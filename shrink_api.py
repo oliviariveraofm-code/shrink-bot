@@ -16,6 +16,7 @@ PERSONALITY RULES:
 - Always be declarative. State facts only.
 - Short sentences. Max 2 sentences per observation unless presenting a data block.
 - Never guess. If data is missing, say exactly what is missing.
+- Keep responses under 150 words unless doing a full pattern report.
 
 LEGAL FRAME:
 Everything you output is educational behavioral analysis, not financial advice.
@@ -49,6 +50,21 @@ class ShrinkAPI:
     def __init__(self, api_key: str):
         self.client = anthropic.Anthropic(api_key=api_key)
 
+    async def chat_with_context(self, user_message: str, context: str = "") -> str:
+        system = SHRINK_SYSTEM_PROMPT
+        if context:
+            system += f"\n\nTRADER CONTEXT:{context}"
+        try:
+            message = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=500,
+                system=system,
+                messages=[{"role": "user", "content": user_message}]
+            )
+            return message.content[0].text
+        except Exception as e:
+            return f"**[SHRINK REPORT]**\nUnavailable. Error: {str(e)}"
+
     async def analyze_behavior(self, user_data: dict) -> str:
         if not user_data:
             return (
@@ -61,8 +77,7 @@ class ShrinkAPI:
         prompt = f"""Analyze this trader's behavioral data and produce a pattern report.
 DATA:
 {data_summary}
-Identify any patterns present. If no patterns are detectable due to low data volume,
-state exactly what data is missing and what threshold is needed."""
+Identify any patterns present."""
         try:
             message = self.client.messages.create(
                 model="claude-sonnet-4-20250514",

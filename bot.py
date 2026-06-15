@@ -7,6 +7,7 @@ import pytz
 from dotenv import load_dotenv
 from triggers import ShrinkTriggers
 from shrink_api import ShrinkAPI
+import database
 
 load_dotenv()
 
@@ -17,6 +18,7 @@ LOSSES_CHANNEL = "losses"
 JOURNAL_CHANNEL = "journal"
 GENERAL_CHANNEL = "general-chat"
 CHECKIN_CHANNEL = "check-in"
+SHRINK_CHANNEL = "shrink"
 PROP_ROLE_NAME = "Prop"
 CORE_ROLE_NAME = "Core"
 
@@ -36,11 +38,6 @@ async def on_ready():
     daily_checkin.start()
 
 
-for guild in bot.guilds:
-        for channel in guild.channels:
-            print(f"Channel: {channel.name}")
-
-
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -51,7 +48,11 @@ async def on_message(message):
 
     if channel_name == LOSSES_CHANNEL:
         if message.reference is None:
+            await database.log_event(str(user.id), user.name, "loss_posted")
             await handle_loss_post(message)
+
+    if channel_name == SHRINK_CHANNEL:
+        await handle_shrink_chat(message)
 
     SPIRAL_KEYWORDS = [
         "revenge", "got back in", "doubled down", "can't stop",
@@ -62,47 +63,10 @@ async def on_message(message):
     msg_lower = message.content.lower()
     if any(kw in msg_lower for kw in SPIRAL_KEYWORDS):
         if channel_name in [GENERAL_CHANNEL, LOSSES_CHANNEL, JOURNAL_CHANNEL]:
-            await handle_spiral_keyword(message, user)
-
-    await bot.process_commands(message)@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    channel_name = message.channel.name
-    user = message.author
-
-    if channel_name == LOSSES_CHANNEL:
-        if message.reference is None:
-            await handle_loss_post(message)
-
-    SPIRAL_KEYWORDS = [
-        "revenge", "got back in", "doubled down", "can't stop",
-        "blew", "blown", "overtraded", "emotional", "tilt", "tilting",
-        "why did i", "so stupid", "one more", "recover",
-        "missed it", "fomo"
-    ]
-    msg_lower = message.content.lower()
-    if any(kw in msg_lower for kw in SPIRAL_KEYWORDS):
-        if channel_name in [GENERAL_CHANNEL, LOSSES_CHANNEL, JOURNAL_CHANNEL]:
+            await database.log_event(str(user.id), user.name, "spiral_keyword", {"keyword_channel": channel_name})
             await handle_spiral_keyword(message, user)
 
     await bot.process_commands(message)
-
-
-@bot.event
-async def on_reaction_add(reaction, user):
-    if user.bot:
-        return
-    if reaction.message.author == bot.user:
-        if "DAILY CHECK-IN" in reaction.message.content:
-            score_map = {
-                "1️⃣": 1, "2️⃣": 2, "3️⃣": 3, "4️⃣": 4, "5️⃣": 5,
-                "6️⃣": 6, "7️⃣": 7, "8️⃣": 8, "9️⃣": 9, "🔟": 10
-            }
-            emoji = str(reaction.emoji)
-            if emoji in score_map:
-                print(f"[CHECKIN] {user.name} scored {score_map[emoji]}")
 
 
 async def handle_loss_post(message):
@@ -116,6 +80,22 @@ async def handle_loss_post(message):
         "||The data is not concerned with how you feel about it.||"
     )
     await message.reply(response, mention_author=False)
+
+
+async def handle_shrink_chat(message):
+    user = message.author
+    history = await database.get_user_history(str(user.id))
+
+    context = ""
+    if history:
+        losses = sum(1 for e in history if e["event_type"] == "loss_posted")
+        spirals = sum(1 for e in history if e["event_type"] == "spiral_keyword")
+        context = f"\nThis trader has {losses} losses logged and {spirals} emotional keyword flags in their history."
+
+    async with message.channel.typing():
+        response = await shrink_api.chat_with_context(message.content, context)
+        await message.reply(response, mention_author=False)
+        await database.log_conversation(str(user.id), user.name, message.content, response)
 
 
 async def handle_spiral_keyword(message, user):
@@ -145,7 +125,6 @@ async def shrink_limit_check(ctx, firm: str = None, account_size: float = None, 
             ephemeral=True
         )
         return
-
     result = calculate_drawdown_status(firm.lower(), account_size, drawdown_used)
     if result is None:
         await ctx.send(f"Firm `{firm}` not recognised.", ephemeral=True)
@@ -179,7 +158,6 @@ def calculate_drawdown_status(firm, account, used):
     }
     if firm not in FIRM_RULES:
         return None
-
     rules = FIRM_RULES[firm]
     daily_limit = account * rules["daily_pct"]
     total_limit = account * rules["total_pct"]
