@@ -13,7 +13,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-LOSSES_CHANNEL = " 📉| losses"
+LOSSES_CHANNEL = "| losses"
 JOURNAL_CHANNEL = "journal"
 GENERAL_CHANNEL = "general-chat"
 CHECKIN_CHANNEL = "check-in"
