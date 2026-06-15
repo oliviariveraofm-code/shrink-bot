@@ -56,7 +56,7 @@ class ShrinkAPI:
             system += f"\n\nTRADER CONTEXT:{context}"
         try:
             message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5",
                 max_tokens=500,
                 system=system,
                 messages=[{"role": "user", "content": user_message}]
@@ -80,7 +80,7 @@ DATA:
 Identify any patterns present."""
         try:
             message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5",
                 max_tokens=1000,
                 system=SHRINK_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}]
@@ -104,7 +104,7 @@ Pattern match: [pattern name if triggered, or none detected]
 Observation: [one declarative sentence]"""
         try:
             message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5",
                 max_tokens=1000,
                 system=SHRINK_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}]
