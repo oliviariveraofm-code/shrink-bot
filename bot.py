@@ -45,9 +45,8 @@ async def on_message(message):
     user = message.author
 
     if channel_name == LOSSES_CHANNEL:
-        if message.reference is None:
-            await asyncio.sleep(30)
-            await handle_loss_post(message)
+            if message.reference is None:
+                await handle_loss_post(message)
 
     SPIRAL_KEYWORDS = [
         "revenge", "got back in", "doubled down", "can't stop",
