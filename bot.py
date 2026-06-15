@@ -13,7 +13,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-LOSSES_CHANNEL = "| losses"
+LOSSES_CHANNEL = "losses"
 JOURNAL_CHANNEL = "journal"
 GENERAL_CHANNEL = "general-chat"
 CHECKIN_CHANNEL = "check-in"
@@ -45,13 +45,36 @@ for guild in bot.guilds:
 async def on_message(message):
     if message.author.bot:
         return
-    print(f"Message received in: {message.channel.name}")
-    await handle_loss_post(message)
-    await bot.process_commands(message)
+
+    channel_name = message.channel.name
+    user = message.author
 
     if channel_name == LOSSES_CHANNEL:
-            if message.reference is None:
-                await handle_loss_post(message)
+        if message.reference is None:
+            await handle_loss_post(message)
+
+    SPIRAL_KEYWORDS = [
+        "revenge", "got back in", "doubled down", "can't stop",
+        "blew", "blown", "overtraded", "emotional", "tilt", "tilting",
+        "why did i", "so stupid", "one more", "recover",
+        "missed it", "fomo"
+    ]
+    msg_lower = message.content.lower()
+    if any(kw in msg_lower for kw in SPIRAL_KEYWORDS):
+        if channel_name in [GENERAL_CHANNEL, LOSSES_CHANNEL, JOURNAL_CHANNEL]:
+            await handle_spiral_keyword(message, user)
+
+    await bot.process_commands(message)@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    channel_name = message.channel.name
+    user = message.author
+
+    if channel_name == LOSSES_CHANNEL:
+        if message.reference is None:
+            await handle_loss_post(message)
 
     SPIRAL_KEYWORDS = [
         "revenge", "got back in", "doubled down", "can't stop",
