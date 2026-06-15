@@ -1,5 +1,4 @@
-discord.py==2.3.2
-audioop-lts
+py-cord==2.6.1
 anthropic==0.25.0
 supabase==2.4.0
 python-dotenv==1.0.1
