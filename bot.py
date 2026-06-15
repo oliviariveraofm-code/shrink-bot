@@ -36,13 +36,18 @@ async def on_ready():
     daily_checkin.start()
 
 
+for guild in bot.guilds:
+        for channel in guild.channels:
+            print(f"Channel: {channel.name}")
+
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
-
-    channel_name = message.channel.name
-    user = message.author
+    print(f"Message received in: {message.channel.name}")
+    await handle_loss_post(message)
+    await bot.process_commands(message)
 
     if channel_name == LOSSES_CHANNEL:
             if message.reference is None:
