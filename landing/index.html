@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Trading Floor — The Shrink</title>
+<meta name="description" content="The Shrink watches your trades. Zero sympathy. Pure pattern detection.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<header class="topbar">
+  <span class="brand">THE&nbsp;TRADING&nbsp;FLOOR</span>
+  <nav>
+    <a href="#agents">AGENTS</a>
+    <a href="#floor">THE&nbsp;FLOOR</a>
+    <a class="cta-small" href="#join">JOIN</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <canvas id="hero-canvas"></canvas>
+
+  <div class="hero-copy">
+    <p class="eyebrow">AGENT&nbsp;05&nbsp;/&nbsp;BEHAVIORAL&nbsp;ANALYST</p>
+    <h1>THE SHRINK <span class="is-watching">IS WATCHING</span></h1>
+    <p class="sub">
+      Not a therapist. Not a coach. Not your friend.
+      It logs every loss, flags every spiral, and reports the pattern
+      whether you want to hear it or not.
+    </p>
+    <div class="hero-actions">
+      <a href="#join" class="btn btn-primary">ENTER THE FLOOR</a>
+      <a href="#agents" class="btn btn-ghost">SEE THE DATA</a>
+    </div>
+  </div>
+
+  <div class="ticker">
+    <div class="ticker-track" id="ticker-track"></div>
+  </div>
+</section>
+
+<section class="floor" id="floor">
+  <h2><span class="tag red">01</span> WHAT THE FLOOR RUNS</h2>
+  <div class="grid">
+    <article class="card">
+      <h3>LOSS LOGGING</h3>
+      <p>Every post in <code>#losses</code> is logged. Three questions follow. Answer them or don't — the data is not concerned with how you feel about it.</p>
+    </article>
+    <article class="card">
+      <h3>SPIRAL DETECTION</h3>
+      <p>Revenge trading. Doubling down. Tilt. Keyword patterns trigger a private, silent flag the moment they surface in chat.</p>
+    </article>
+    <article class="card">
+      <h3>DRAWDOWN MATH</h3>
+      <p>FTMO. The5ers. FundedNext. Topstep. Real-time daily and max-drawdown proximity, no rounding in your favor.</p>
+    </article>
+    <article class="card">
+      <h3>TRADE DEBRIEF</h3>
+      <p>Planned vs. executed. Entry deviation, exit deviation, size deviation. Pattern match or none detected. One declarative sentence.</p>
+    </article>
+    <article class="card">
+      <h3>DAILY CHECK-IN</h3>
+      <p>07:00 UTC. Mental clarity, sleep quality, emotional attachment to yesterday's P&amp;L. Three numbers. One minute.</p>
+    </article>
+    <article class="card">
+      <h3>ZERO SYMPATHY</h3>
+      <p>No exclamation marks. No "good job." No soft language. State facts, extract data, ask the next question.</p>
+    </article>
+  </div>
+</section>
+
+<section class="agents" id="agents">
+  <h2><span class="tag green">02</span> THE FIFTH AGENT</h2>
+  <p class="agents-sub">The Shrink is one voice on the floor. It does not trade for you. It does not predict markets. It only reports what your own behavior already told it.</p>
+</section>
+
+<section class="join" id="join">
+  <h2>THE DATA IS ALREADY RUNNING.</h2>
+  <p>The only question is whether you're logging it or ignoring it.</p>
+  <a href="#" class="btn btn-primary btn-large">JOIN THE TRADING FLOOR</a>
+  <p class="fine-print">Educational behavioral analysis only. Not financial advice. Not a substitute for professional mental health care.</p>
+</section>
+
+<footer>
+  <span>THE TRADING FLOOR — THE SHRINK v1</span>
+  <span>NO ADVICE. NO SYMPATHY. NO EXCEPTIONS.</span>
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./js/vendor/three/three.module.min.js"
+  }
+}
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
