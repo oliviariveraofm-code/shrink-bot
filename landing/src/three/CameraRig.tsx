@@ -6,12 +6,14 @@ import { getScrollState } from "../lib/scrollStore";
 import { pointer } from "../lib/scrollStore";
 import { worldYForScrollY } from "../lib/sectionSync";
 import { fxState } from "../lib/fxState";
+import { cameraState } from "../lib/cameraState";
 
 export default function CameraRig() {
   const { camera } = useThree();
   const introSince = useRef<number | null>(null);
   const targetPos = useRef(new THREE.Vector3(0, 0, 6));
   const lookTarget = useRef(new THREE.Vector3(0, 0, 0));
+  const currentLook = useRef(new THREE.Vector3());
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
@@ -42,12 +44,12 @@ export default function CameraRig() {
     camera.position.x = THREE.MathUtils.damp(camera.position.x, targetPos.current.x, posLambda, delta);
     camera.position.y = THREE.MathUtils.damp(camera.position.y, targetPos.current.y, posLambda, delta);
     camera.position.z = THREE.MathUtils.damp(camera.position.z, targetPos.current.z, posLambda, delta);
+    cameraState.worldY = camera.position.y;
 
-    const currentLook = new THREE.Vector3();
-    camera.getWorldDirection(currentLook);
+    camera.getWorldDirection(currentLook.current);
     const desiredDir = lookTarget.current.clone().sub(camera.position).normalize();
     const lookLambda = 3.2;
-    const newDir = currentLook.clone().lerp(desiredDir, 1 - Math.exp(-lookLambda * delta)).normalize();
+    const newDir = currentLook.current.clone().lerp(desiredDir, 1 - Math.exp(-lookLambda * delta)).normalize();
     camera.lookAt(camera.position.clone().add(newDir));
   });
 

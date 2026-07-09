@@ -1,17 +1,22 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { cameraState } from "../lib/cameraState";
+
+const CULL_DISTANCE = 20;
 
 interface Props {
   worldY: number;
+  cullY?: number;
   count?: number;
   colorA?: string;
   colorB?: string;
   spread?: number;
 }
 
-export default function SectionAmbient({ worldY, count = 10, colorA = "#C4A052", colorB = "#4FD1BE", spread = 9 }: Props) {
+export default function SectionAmbient({ worldY, cullY, count = 10, colorA = "#C4A052", colorB = "#4FD1BE", spread = 9 }: Props) {
   const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const absoluteY = cullY ?? worldY;
 
   const data = useMemo(
     () =>
@@ -28,6 +33,7 @@ export default function SectionAmbient({ worldY, count = 10, colorA = "#C4A052",
   );
 
   useFrame((state) => {
+    if (Math.abs(cameraState.worldY - absoluteY) > CULL_DISTANCE) return;
     const t = state.clock.elapsedTime;
     data.forEach((d, i) => {
       const m = refs.current[i];

@@ -1,11 +1,14 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { cameraState } from "../lib/cameraState";
 
 const GOLD = new THREE.Color("#C4A052");
+const CULL_DISTANCE = 22;
 
 interface Props {
   scale?: number;
+  worldY?: number;
   ySpinSeconds?: number;
   xTiltSeconds?: number;
   breatheSeconds?: number;
@@ -15,6 +18,7 @@ interface Props {
 
 export default function ShrinkBrain({
   scale = 1,
+  worldY = 0,
   ySpinSeconds = 20,
   xTiltSeconds = 8,
   breatheSeconds = 4,
@@ -65,6 +69,7 @@ export default function ShrinkBrain({
   }, []);
 
   useFrame((state, delta) => {
+    if (Math.abs(cameraState.worldY - worldY) > CULL_DISTANCE) return;
     const t = state.clock.elapsedTime;
     if (group.current) {
       group.current.rotation.y += (Math.PI * 2 * delta) / ySpinSeconds;
