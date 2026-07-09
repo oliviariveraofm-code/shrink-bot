@@ -67,7 +67,8 @@
 }
 
 .cta {
-  padding: 15px 34px;
+  position: relative;
+  padding: 16px 36px;
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -75,6 +76,23 @@
   border: 1px solid transparent;
   animation: floatYSmall 2.2s ease-in-out infinite;
   display: inline-block;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.cta:hover {
+  transform: translateY(-2px);
 }
 
 .cta--gold {
@@ -84,11 +102,21 @@
   animation: floatYSmall 2.2s ease-in-out infinite, pulseGoldGlow 2.4s ease-in-out infinite;
 }
 
+.cta--gold:hover {
+  background: rgba(196, 160, 82, 0.16);
+}
+
 .cta--teal {
-  background: rgba(79, 209, 190, 0.08);
-  border-color: var(--teal);
-  color: var(--teal);
+  background: linear-gradient(140deg, #6ee9d8, var(--teal) 55%, #2fa596);
+  border-color: transparent;
+  color: #05201c;
+  font-weight: 700;
+  box-shadow: 0 10px 30px -10px rgba(79, 209, 190, 0.55);
   animation: floatYSmall 2.2s ease-in-out infinite 0.3s, pulseTealGlow 2.4s ease-in-out infinite 0.3s;
+}
+
+.cta--teal:hover {
+  box-shadow: 0 14px 38px -8px rgba(79, 209, 190, 0.7);
 }
 
 .hero-scroll-hint {

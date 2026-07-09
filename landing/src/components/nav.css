@@ -91,14 +91,22 @@
 }
 
 .tf-nav__cta {
-  background: transparent;
-  border: 1px solid var(--teal);
-  color: var(--teal);
-  padding: 8px 18px;
+  position: relative;
+  background: linear-gradient(140deg, #6ee9d8, var(--teal) 55%, #2fa596);
+  border: 1px solid transparent;
+  color: #05201c;
+  padding: 9px 19px;
   border-radius: 999px;
   font-size: 0.78rem;
   letter-spacing: 0.05em;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 6px 18px -8px rgba(79, 209, 190, 0.6);
   animation: pulseTealGlow 2.6s ease-in-out infinite;
   white-space: nowrap;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tf-nav__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px -6px rgba(79, 209, 190, 0.75);
 }

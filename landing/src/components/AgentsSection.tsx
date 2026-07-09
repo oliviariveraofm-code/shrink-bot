@@ -78,10 +78,15 @@ export default function AgentsSection() {
   }
 
   function onEmblemEnter(el: HTMLDivElement | null) {
-    if (!el) return;
-    el.classList.remove("spin-once");
-    void el.offsetWidth;
-    el.classList.add("spin-once");
+    // spin the icon image itself, not its container — the container
+    // already carries a persistent idle-glow animation on the same
+    // `animation` shorthand, and re-triggering "spin-once" there would
+    // permanently clobber it after the first hover
+    const img = el?.querySelector("img");
+    if (!img) return;
+    img.classList.remove("spin-once");
+    void img.offsetWidth;
+    img.classList.add("spin-once");
   }
 
   return (
