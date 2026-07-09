@@ -1,0 +1,169 @@
+.pricing-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-symbols {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pricing-symbol {
+  position: absolute;
+  bottom: -10%;
+  color: var(--gold);
+  opacity: 0.14;
+  font-family: Georgia, serif;
+  animation-name: flowUp;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.pricing-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1100px;
+  width: 100%;
+  padding-top: 10px;
+}
+
+.pricing-cell {
+  width: 300px;
+  animation: floatY 4.4s ease-in-out infinite;
+}
+
+.pricing-cell--0 { animation-duration: 4.2s; }
+.pricing-cell--1 { animation-duration: 5.1s; animation-delay: 0.4s; }
+.pricing-cell--2 { animation-duration: 4.7s; animation-delay: 0.8s; }
+
+.pricing-card {
+  position: relative;
+  border-radius: 20px;
+  padding: 2px;
+  transition: transform 0.5s cubic-bezier(0.2,0.8,0.2,1);
+}
+
+.pricing-card:hover {
+  transform: translateY(-14px) rotateZ(-1.2deg) scale(1.02);
+}
+
+.pricing-chase {
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 0deg, transparent 0%, var(--gold-bright) 6%, transparent 14%, transparent 50%, var(--gold) 56%, transparent 64%);
+  animation: spinSlow 4s linear infinite;
+}
+
+.pricing-card--gold { border: 1px solid var(--border); }
+.pricing-card--teal { border: 1px solid rgba(79,209,190,0.35); }
+.pricing-card--elite { border: 1px solid transparent; overflow: hidden; }
+
+.pricing-card__inner {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-raised);
+  border-radius: 18px;
+  padding: 32px 26px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-card__name {
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.pricing-card--elite .pricing-card__name { color: var(--gold-bright); }
+.pricing-card--teal .pricing-card__name { color: var(--teal); }
+
+.pricing-card__price {
+  font-family: Georgia, serif;
+  font-size: 2.2rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.pricing-card__period {
+  font-size: 1rem;
+  color: var(--text-dim);
+}
+
+.pricing-card__tagline {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  margin-bottom: 20px;
+}
+
+.pricing-card__features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.pricing-card__features li {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  padding-left: 18px;
+  position: relative;
+  opacity: 0.85;
+  transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.pricing-card__features li::before {
+  content: "◆";
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.6rem;
+  top: 4px;
+}
+
+.pricing-card:hover .pricing-card__features li {
+  animation: featureSlideIn 0.5s ease backwards;
+}
+
+.pricing-card__features li:nth-child(1) { animation-delay: 0.05s; }
+.pricing-card__features li:nth-child(2) { animation-delay: 0.12s; }
+.pricing-card__features li:nth-child(3) { animation-delay: 0.19s; }
+.pricing-card__features li:nth-child(4) { animation-delay: 0.26s; }
+.pricing-card__features li:nth-child(5) { animation-delay: 0.33s; }
+
+@keyframes featureSlideIn {
+  from { opacity: 0.3; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pricing-card__cta {
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold-bright);
+  padding: 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.pricing-card--teal .pricing-card__cta { border-color: var(--teal); color: var(--teal); }
+.pricing-card--elite .pricing-card__cta { border-color: var(--gold-bright); color: var(--gold-bright); }
+
+.pricing-card__cta:hover {
+  background: var(--gold);
+  color: #0e0f13;
+}
+
+.pricing-card--teal .pricing-card__cta:hover { background: var(--teal); color: #0e0f13; }

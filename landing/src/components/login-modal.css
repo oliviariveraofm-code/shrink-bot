@@ -1,0 +1,179 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 5, 7, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalBackdropIn 0.3s ease;
+}
+
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  animation: grainShift 0.5s steps(3) infinite;
+}
+
+.modal-panel {
+  position: relative;
+  width: min(400px, 100%);
+  border-radius: 20px;
+  padding: 40px 32px 32px;
+  text-align: center;
+  animation: modalZoomIn 0.45s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+@keyframes modalZoomIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--gold-bright);
+}
+
+.modal-hex {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 18px;
+  background: var(--gold);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  animation: breathe 1.5s ease-in-out infinite, spinSlow 10s linear infinite;
+  box-shadow: 0 0 16px rgba(196,160,82,0.7);
+}
+
+.modal-watch {
+  font-family: Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--gold-bright);
+  min-height: 1.4em;
+  margin-bottom: 26px;
+}
+
+.modal-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--gold-bright);
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  animation: blinkCursor 1s steps(1) infinite;
+}
+
+.discord-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(88, 101, 242, 0.12);
+  border: 1px solid #5865f2;
+  color: #c2c6ff;
+  padding: 13px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  transition: background 0.3s ease;
+}
+
+.discord-btn:hover {
+  background: rgba(88, 101, 242, 0.22);
+}
+
+.discord-btn__logo {
+  transition: transform 0.5s ease;
+}
+
+.discord-btn:hover .discord-btn__logo {
+  transform: rotate(360deg);
+}
+
+.modal-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  margin-bottom: 20px;
+}
+
+.modal-divider::before,
+.modal-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.modal-field input {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.modal-field--focus input {
+  border-color: var(--gold);
+  animation: pulseGoldGlow 1.6s ease-in-out infinite;
+}
+
+.modal-submit {
+  margin-top: 6px;
+  background: var(--gold);
+  border: none;
+  color: #0e0f13;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  transition: filter 0.3s ease;
+}
+
+.modal-submit:hover {
+  filter: brightness(1.1);
+}
