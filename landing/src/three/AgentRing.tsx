@@ -3,8 +3,9 @@ import { useFrame } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { AGENTS } from "../data/agents";
+import { AGENT_IMAGES } from "../assets/agentImages";
 
-const AGENT_TEXTURE_URLS = AGENTS.map((a) => `/agents/${a.id}.png`);
+const AGENT_TEXTURE_URLS = AGENTS.map((a) => AGENT_IMAGES[a.id]);
 
 interface AgentDatum {
   color: THREE.Color;
