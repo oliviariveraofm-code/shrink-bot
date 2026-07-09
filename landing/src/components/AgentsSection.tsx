@@ -112,7 +112,7 @@ export default function AgentsSection() {
                   tabIndex={0}
                 >
                   <div className="agent-card__emblem" onMouseEnter={(e) => onEmblemEnter(e.currentTarget)}>
-                    <div className="agent-card__emblem-hex" />
+                    <img src={`/agents/${agent.id}.png`} alt="" className="agent-card__emblem-img" draggable={false} />
                   </div>
                   <div className="agent-card__name">{agent.name}</div>
                   <div className="agent-card__role">{agent.role}</div>

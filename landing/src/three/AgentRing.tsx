@@ -1,7 +1,10 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { AGENTS } from "../data/agents";
+
+const AGENT_TEXTURE_URLS = AGENTS.map((a) => `/agents/${a.id}.png`);
 
 interface AgentDatum {
   color: THREE.Color;
@@ -24,6 +27,7 @@ export default function AgentRing({ radius = 6.2, opacity = 1, alignBoost }: Pro
   const groupRefs = useRef<(THREE.Group | null)[]>([]);
   const glowRefs = useRef<(THREE.Mesh | null)[]>([]);
   const streamRef = useRef<THREE.Points>(null);
+  const textures = useTexture(AGENT_TEXTURE_URLS);
 
   const data: AgentDatum[] = useMemo(
     () =>
@@ -110,14 +114,13 @@ export default function AgentRing({ radius = 6.2, opacity = 1, alignBoost }: Pro
     <group>
       {data.map((d, i) => (
         <group key={AGENTS[i].id} ref={(el) => { groupRefs.current[i] = el; }}>
-          <mesh>
-            <octahedronGeometry args={[0.16, 0]} />
-            <meshBasicMaterial color={d.color} toneMapped={false} />
-          </mesh>
           <mesh ref={(el) => { glowRefs.current[i] = el; }}>
-            <sphereGeometry args={[0.34, 12, 12]} />
-            <meshBasicMaterial color={d.color} transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+            <sphereGeometry args={[0.3, 12, 12]} />
+            <meshBasicMaterial color={d.color} transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
+          <sprite scale={[0.46, 0.46, 1]}>
+            <spriteMaterial map={textures[i]} transparent depthWrite={false} toneMapped={false} />
+          </sprite>
         </group>
       ))}
       <points ref={streamRef} geometry={streamGeo}>
