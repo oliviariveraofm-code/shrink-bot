@@ -28,7 +28,7 @@ export default function ShrinkBrain({
   const electronsRef = useRef<THREE.Points>(null);
 
   const { edgesGeo, nodesGeo } = useMemo(() => {
-    const base = new THREE.IcosahedronGeometry(1.6, 3);
+    const base = new THREE.IcosahedronGeometry(1.6, 2);
     const posAttr = base.attributes.position as THREE.BufferAttribute;
     const jittered = posAttr.array.slice() as Float32Array;
     for (let i = 0; i < jittered.length; i += 3) {

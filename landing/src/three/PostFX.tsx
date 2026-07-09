@@ -22,8 +22,8 @@ export default function PostFX() {
   });
 
   return (
-    <EffectComposer multisampling={2}>
-      <Bloom intensity={0.7} luminanceThreshold={0.35} luminanceSmoothing={0.25} mipmapBlur radius={0.5} />
+    <EffectComposer multisampling={0}>
+      <Bloom intensity={0.6} luminanceThreshold={0.4} luminanceSmoothing={0.2} mipmapBlur={false} radius={0.35} />
       <ChromaticAberration ref={chromaRef} offset={new THREE.Vector2(0.0004, 0.0002)} blendFunction={BlendFunction.NORMAL} radialModulation={false} modulationOffset={0} />
       <Vignette ref={vignetteRef} eskil={false} offset={0.25} darkness={0.9} blendFunction={BlendFunction.NORMAL} />
       <Noise premultiply opacity={0.035} blendFunction={BlendFunction.OVERLAY} />

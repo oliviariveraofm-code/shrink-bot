@@ -13,8 +13,11 @@ function makeGlowTexture() {
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  // sharp pinpoint core with a fast falloff so particles read as stars, not soft orbs
   grad.addColorStop(0, "rgba(255,255,255,1)");
-  grad.addColorStop(0.4, "rgba(255,255,255,0.6)");
+  grad.addColorStop(0.12, "rgba(255,255,255,0.95)");
+  grad.addColorStop(0.3, "rgba(255,255,255,0.35)");
+  grad.addColorStop(0.55, "rgba(255,255,255,0.06)");
   grad.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
@@ -34,13 +37,12 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
   const { camera } = useThree();
   const texture = useMemo(() => makeGlowTexture(), []);
 
-  const { positions, colors, baseX, baseZ, speeds, phase } = useMemo(() => {
+  const { positions, colors, baseX, baseZ, speeds } = useMemo(() => {
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const baseX = new Float32Array(count);
     const baseZ = new Float32Array(count);
     const speeds = new Float32Array(count);
-    const phase = new Float32Array(count);
 
     for (let i = 0; i < count; i++) {
       const layer = Math.random();
@@ -56,7 +58,6 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
       baseX[i] = x;
       baseZ[i] = z;
       speeds[i] = 0.15 + Math.random() * 0.5 + (1 - layer) * 0.3;
-      phase[i] = Math.random() * Math.PI * 2;
 
       const c = Math.random() > 0.55 ? GOLD : TEAL;
       const jitter = 0.85 + Math.random() * 0.3;
@@ -64,7 +65,7 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
       colors[i * 3 + 1] = c.g * jitter;
       colors[i * 3 + 2] = c.b * jitter;
     }
-    return { positions, colors, baseX, baseZ, speeds, phase };
+    return { positions, colors, baseX, baseZ, speeds };
   }, [count, worldHeight, radius]);
 
   const pointerWorld = useRef(new THREE.Vector3(0, 0, 8));
@@ -90,29 +91,37 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
     }
 
     const swirlRadius = 6;
+    const swirlRadiusSq = swirlRadius * swirlRadius;
+    const pwx = pointerWorld.current.x;
+    const pwz = pointerWorld.current.z;
     for (let i = 0; i < count; i++) {
       let y = arr[i * 3 + 1] + speeds[i] * delta * 0.6;
       if (y > 8) y = -worldHeight + 4;
       arr[i * 3 + 1] = y;
 
-      let x = baseX[i] + Math.sin(t * 0.2 + phase[i]) * 0.6;
-      let z = baseZ[i] + Math.cos(t * 0.18 + phase[i]) * 0.6;
+      const bx = baseX[i];
+      const bz = baseZ[i];
+      const dx = bx - pwx;
+      const dz = bz - pwz;
+      const distSq = dx * dx + dz * dz;
 
-      const dx = x - pointerWorld.current.x;
-      const dz = z - pointerWorld.current.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < swirlRadius) {
+      // cheap path: skip trig entirely for particles outside swirl range (most of them)
+      if (distSq < swirlRadiusSq) {
+        const dist = Math.sqrt(distSq);
         const strength = (1 - dist / swirlRadius) * 1.4;
         const ang = Math.atan2(dz, dx) + strength * 0.9;
         const rad = dist + strength * 0.5;
-        x = pointerWorld.current.x + Math.cos(ang) * rad;
-        z = pointerWorld.current.z + Math.sin(ang) * rad;
+        arr[i * 3] = pwx + Math.cos(ang) * rad;
+        arr[i * 3 + 2] = pwz + Math.sin(ang) * rad;
+      } else {
+        arr[i * 3] = bx;
+        arr[i * 3 + 2] = bz;
       }
-
-      arr[i * 3] = x;
-      arr[i * 3 + 2] = z;
     }
     posAttr.needsUpdate = true;
+
+    const mat = pointsRef.current!.material as THREE.PointsMaterial;
+    mat.opacity = 0.78 + Math.sin(t * 0.6) * 0.07;
 
     // constellation lines: scan a stride subset near pointer
     const lineGeo = lineRef.current?.geometry;
@@ -165,7 +174,7 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
           <bufferAttribute attach="attributes-color" args={[colors, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.16}
+          size={0.09}
           map={texture}
           vertexColors
           transparent

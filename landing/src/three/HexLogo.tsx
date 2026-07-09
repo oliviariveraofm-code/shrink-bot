@@ -56,6 +56,7 @@ export default function HexLogo({ delaySeconds = 2 }: { delaySeconds?: number })
   }, []);
 
   useFrame((state) => {
+    if (doneFired.current) return; // intro finished, stop doing per-frame work forever
     const t = state.clock.elapsedTime;
     if (!started.current) started.current = true;
 

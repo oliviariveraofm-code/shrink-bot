@@ -1,4 +1,5 @@
 import { Canvas } from "@react-three/fiber";
+import { AdaptiveDpr, PerformanceMonitor } from "@react-three/drei";
 import { Suspense, useEffect, useRef, useState } from "react";
 import HexLogo from "./HexLogo";
 import ShrinkBrain from "./ShrinkBrain";
@@ -33,12 +34,13 @@ function HeroGroup() {
 
 export default function Scene() {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
-  const particleCount = isMobile ? 8000 : 15000;
+  const particleCount = isMobile ? 4500 : 9000;
+  const [dpr, setDpr] = useState(Math.min(window.devicePixelRatio || 1, 1.75));
 
   return (
     <div className="canvas-root" aria-hidden="true">
       <Canvas
-        dpr={[1, Math.min(window.devicePixelRatio || 1, 2)]}
+        dpr={dpr}
         gl={{ antialias: false, powerPreference: "high-performance" }}
         camera={{ fov: 50, near: 0.1, far: 200, position: [0, 0, 6.2] }}
       >
@@ -46,6 +48,9 @@ export default function Scene() {
         <fog attach="fog" args={["#0E0F13", 20, 70]} />
         <ambientLight intensity={0.3} />
         <pointLight position={[0, 0, 8]} intensity={8} color="#C4A052" distance={30} />
+
+        <PerformanceMonitor onDecline={() => setDpr((d) => Math.max(d - 0.35, 0.75))} />
+        <AdaptiveDpr pixelated />
 
         <Suspense fallback={null}>
           <CameraRig />
