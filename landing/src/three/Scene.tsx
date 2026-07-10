@@ -2,7 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import type { RootState } from "@react-three/fiber";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HexLogo from "./HexLogo";
-import ShrinkBrain from "./ShrinkBrain";
+import ShrinkFaceGLTF from "./ShrinkFaceGLTF";
 import AgentRing from "./AgentRing";
 import ParticleField from "./ParticleField";
 import CameraRig from "./CameraRig";
@@ -26,7 +26,7 @@ function HeroGroup() {
     <group position={[0, WORLD_Y.hero, 0]}>
       <HexLogo delaySeconds={2} />
       <RevealGroup>
-        <ShrinkBrain scale={1.05} worldY={WORLD_Y.hero} ySpinSeconds={9} xTiltSeconds={11} alignBoost={alignBoost} />
+        <ShrinkFaceGLTF url="/models/shrink-head.glb" excludeNames={["Cube002"]} scale={1.05} />
         <AgentRing radius={6.2} alignBoost={alignBoost} />
       </RevealGroup>
     </group>
@@ -96,7 +96,7 @@ export default function Scene() {
           <HeroGroup />
 
           <group position={[0, WORLD_Y.shrink, 0]}>
-            <ShrinkBrain scale={1.5} worldY={WORLD_Y.shrink} ySpinSeconds={20} xTiltSeconds={8} breatheSeconds={4.5} heartbeatSeconds={1.7} />
+            <ShrinkFaceGLTF url="/models/shrink-head.glb" excludeNames={["Cube002"]} scale={1.15} breatheSeconds={4.5} />
             <SectionAmbient worldY={0} cullY={WORLD_Y.shrink} count={8} />
           </group>
 

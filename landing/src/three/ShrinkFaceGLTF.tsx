@@ -279,7 +279,12 @@ export default function ShrinkFaceGLTF({
     }
     scheduleGlance();
 
-    function applyJawOpen(open: number) {
+    // rebuilding EdgesGeometry re-derives triangle adjacency from scratch —
+    // real but non-trivial cost, so only do it every few ticks during a
+    // burst (the deformation is subtle enough that a couple of frames of
+    // stale wireframe is imperceptible) instead of on every GSAP onUpdate
+    let edgeUpdateTick = 0;
+    function applyJawOpen(open: number, forceEdgeUpdate = false) {
       const rig = jawRigRef.current;
       if (!rig) return;
       const { geometry, basePositions, weights } = rig;
@@ -293,8 +298,11 @@ export default function ShrinkFaceGLTF({
       }
       posAttr.needsUpdate = true;
       geometry.computeVertexNormals();
-      rig.edgeMesh.geometry.dispose();
-      rig.edgeMesh.geometry = new THREE.EdgesGeometry(geometry, 15);
+      edgeUpdateTick++;
+      if (forceEdgeUpdate || edgeUpdateTick % 3 === 0) {
+        rig.edgeMesh.geometry.dispose();
+        rig.edgeMesh.geometry = new THREE.EdgesGeometry(geometry, 15);
+      }
     }
 
     function scheduleTalk() {
@@ -332,6 +340,7 @@ export default function ShrinkFaceGLTF({
           duration: 0.25,
           ease: "power2.inOut",
           onUpdate: () => applyJawOpen(state.open),
+          onComplete: () => applyJawOpen(0, true),
         });
         talkTimeline = tl;
       });
