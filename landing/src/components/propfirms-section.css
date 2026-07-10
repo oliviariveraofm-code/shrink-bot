@@ -35,7 +35,8 @@
 }
 
 .stat-card__number {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 2.6rem;
   color: var(--gold-bright);
   text-shadow: 0 0 16px rgba(196,160,82,0.4);

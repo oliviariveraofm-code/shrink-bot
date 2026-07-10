@@ -28,7 +28,7 @@ function makeTFTexture() {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, size, size);
   ctx.fillStyle = "#C4A052";
-  ctx.font = "700 128px Georgia, serif";
+  ctx.font = "800 120px system-ui, -apple-system, Segoe UI, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.shadowColor = "#C4A052";

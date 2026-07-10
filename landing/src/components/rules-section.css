@@ -84,6 +84,7 @@
 }
 
 .rule-code {
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   color: var(--text-dim);
@@ -98,7 +99,8 @@
 .rule-title {
   font-size: 0.92rem;
   color: var(--text);
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 .rule-text {

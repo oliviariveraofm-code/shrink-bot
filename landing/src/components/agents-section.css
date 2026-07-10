@@ -180,7 +180,8 @@
 }
 
 .agent-card__name {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: 0.1em;
   color: var(--agent-color);

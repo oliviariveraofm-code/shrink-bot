@@ -73,9 +73,10 @@
 .shrink-timer--clear .shrink-timer__label { color: var(--gold); }
 
 .shrink-timer__digits {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 1.02rem;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   gap: 1px;
   color: var(--text);

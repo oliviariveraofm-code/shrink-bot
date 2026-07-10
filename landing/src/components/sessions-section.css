@@ -104,6 +104,7 @@
 .ribbon-marker--dead .ribbon-marker__label { color: var(--text-dim); opacity: 0.6; }
 
 .ribbon-marker__time {
+  font-family: var(--font-mono);
   font-size: 0.66rem;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;

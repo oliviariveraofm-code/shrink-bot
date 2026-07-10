@@ -66,7 +66,8 @@
 }
 
 .modal-watch {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 1.05rem;
   color: var(--gold-bright);
   min-height: 1.4em;
