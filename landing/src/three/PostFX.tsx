@@ -5,7 +5,14 @@ import { BlendFunction, ChromaticAberrationEffect, VignetteEffect } from "postpr
 import * as THREE from "three";
 import { fxState } from "../lib/fxState";
 
-export default function PostFX() {
+interface Props {
+  /** Skip the expensive passes (Bloom especially — multi-tap blur across
+   * mip levels) on mobile, where WebGL memory/bandwidth is much tighter
+   * and a fully-loaded effect chain has been linked to crashes. */
+  simple?: boolean;
+}
+
+export default function PostFX({ simple = false }: Props) {
   const chromaRef = useRef<ChromaticAberrationEffect | null>(null);
   const vignetteRef = useRef<VignetteEffect | null>(null);
 
@@ -40,6 +47,14 @@ export default function PostFX() {
       vignetteRef.current.darkness = 0.9 * fxState.vignetteDarkness + breathe;
     }
   });
+
+  if (simple) {
+    return (
+      <EffectComposer multisampling={0}>
+        <Vignette ref={setVignetteRef} eskil={false} offset={0.25} darkness={0.9} blendFunction={BlendFunction.NORMAL} />
+      </EffectComposer>
+    );
+  }
 
   return (
     <EffectComposer multisampling={0}>

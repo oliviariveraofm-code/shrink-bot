@@ -44,7 +44,11 @@ const QUALITY_TIERS = [
 export default function Scene() {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
   const baseParticleCount = isMobile ? 3600 : 7000;
-  const [tier, setTier] = useState(0);
+  // mobile WebGL contexts (especially iOS Safari) have much tighter GPU
+  // memory budgets than desktop — start conservative rather than at full
+  // quality and reactively stepping down, since a memory-pressure crash
+  // can happen before FpsGuard ever gets a slow-frame reading to react to
+  const [tier, setTier] = useState(isMobile ? 2 : 0);
   const [canvasKey, setCanvasKey] = useState(0);
 
   const quality = QUALITY_TIERS[tier];
@@ -121,7 +125,7 @@ export default function Scene() {
             <SectionAmbient worldY={0} cullY={WORLD_Y.footer} count={6} colorA="#C4A052" colorB="#4FD1BE" spread={9} />
           </group>
 
-          <PostFX />
+          <PostFX simple={isMobile} />
         </Suspense>
       </Canvas>
     </div>
