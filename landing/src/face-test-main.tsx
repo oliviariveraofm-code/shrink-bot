@@ -3,10 +3,11 @@ import { createRoot } from "react-dom/client";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import ShrinkFaceGLTF from "./three/ShrinkFaceGLTF";
+import shrinkHeadUrl from "./assets/models/shrink-head.glb?url";
 
 // Isolated harness for iterating on the GLTF face model — loaded via its
 // own Vite entry (face-test.html) so it never touches the live page.
-const MODEL_URL = "/models/shrink-head.glb";
+const MODEL_URL = shrinkHeadUrl;
 
 function Scene() {
   return (

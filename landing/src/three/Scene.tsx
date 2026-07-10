@@ -12,6 +12,7 @@ import FpsGuard from "./FpsGuard";
 import { subscribeIntro, getIntroPhase } from "../lib/introState";
 import { TOTAL_WORLD_HEIGHT, WORLD_Y } from "../lib/worldLayout";
 import { getScrollState } from "../lib/scrollStore";
+import shrinkHeadUrl from "../assets/models/shrink-head.glb?url";
 
 function RevealGroup({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState(getIntroPhase());
@@ -26,7 +27,7 @@ function HeroGroup() {
     <group position={[0, WORLD_Y.hero, 0]}>
       <HexLogo delaySeconds={2} />
       <RevealGroup>
-        <ShrinkFaceGLTF url="/models/shrink-head.glb" excludeNames={["Cube002"]} scale={1.05} />
+        <ShrinkFaceGLTF url={shrinkHeadUrl} excludeNames={["Cube002"]} scale={1.05} />
         <AgentRing radius={6.2} alignBoost={alignBoost} />
       </RevealGroup>
     </group>
@@ -96,7 +97,7 @@ export default function Scene() {
           <HeroGroup />
 
           <group position={[0, WORLD_Y.shrink, 0]}>
-            <ShrinkFaceGLTF url="/models/shrink-head.glb" excludeNames={["Cube002"]} scale={1.15} breatheSeconds={4.5} />
+            <ShrinkFaceGLTF url={shrinkHeadUrl} excludeNames={["Cube002"]} scale={1.15} breatheSeconds={4.5} />
             <SectionAmbient worldY={0} cullY={WORLD_Y.shrink} count={8} />
           </group>
 
