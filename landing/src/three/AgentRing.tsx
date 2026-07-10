@@ -116,8 +116,8 @@ export default function AgentRing({ radius = 6.2, opacity = 1, alignBoost }: Pro
       {data.map((d, i) => (
         <group key={AGENTS[i].id} ref={(el) => { groupRefs.current[i] = el; }}>
           <mesh ref={(el) => { glowRefs.current[i] = el; }}>
-            <sphereGeometry args={[0.2, 12, 12]} />
-            <meshBasicMaterial color={d.color} transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+            <sphereGeometry args={[0.15, 12, 12]} />
+            <meshBasicMaterial color={d.color} transparent opacity={0.22} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
           </mesh>
           <sprite scale={[0.3, 0.3, 1]}>
             <spriteMaterial map={textures[i]} transparent depthWrite={false} toneMapped={false} />

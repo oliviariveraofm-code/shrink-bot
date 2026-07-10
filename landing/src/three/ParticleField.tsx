@@ -25,6 +25,36 @@ function makeGlowTexture() {
   return tex;
 }
 
+// Plain PointsMaterial scales point size purely by 1/distance with no
+// ceiling, so a star that drifts close to the camera balloons into a
+// huge glowing blob for a frame or two — a custom shader lets us clamp
+// the max size so that can never happen, while keeping the same
+// distance-based attenuation look for everything further away.
+const STAR_VERTEX_SHADER = `
+  attribute vec3 aColor;
+  varying vec3 vColor;
+  uniform float uSize;
+  uniform float uMaxPixelSize;
+  uniform float uPixelRatio;
+  void main() {
+    vColor = aColor;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    float attenuated = (uSize * uPixelRatio * 420.0) / max(-mvPosition.z, 0.001);
+    gl_PointSize = clamp(attenuated, 1.0, uMaxPixelSize);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const STAR_FRAGMENT_SHADER = `
+  uniform sampler2D uMap;
+  uniform float uOpacity;
+  varying vec3 vColor;
+  void main() {
+    vec4 tex = texture2D(uMap, gl_PointCoord);
+    gl_FragColor = vec4(vColor, 1.0) * tex * uOpacity;
+  }
+`;
+
 interface Props {
   count: number;
   worldHeight: number;
@@ -33,9 +63,21 @@ interface Props {
 
 export default function ParticleField({ count, worldHeight, radius = 26 }: Props) {
   const pointsRef = useRef<THREE.Points>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>(null);
   const lineRef = useRef<THREE.LineSegments>(null);
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const texture = useMemo(() => makeGlowTexture(), []);
+
+  const uniforms = useMemo(
+    () => ({
+      uMap: { value: texture },
+      uSize: { value: 0.09 },
+      uMaxPixelSize: { value: 5.5 },
+      uPixelRatio: { value: gl.getPixelRatio() },
+      uOpacity: { value: 0.85 },
+    }),
+    [texture, gl]
+  );
 
   const { positions, colors, baseX, baseZ, speeds } = useMemo(() => {
     const positions = new Float32Array(count * 3);
@@ -120,8 +162,9 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
     }
     posAttr.needsUpdate = true;
 
-    const mat = pointsRef.current!.material as THREE.PointsMaterial;
-    mat.opacity = 0.78 + Math.sin(t * 0.6) * 0.07;
+    if (materialRef.current) {
+      materialRef.current.uniforms.uOpacity.value = 0.78 + Math.sin(t * 0.6) * 0.07;
+    }
 
     // constellation lines: scan a stride subset near pointer
     const lineGeo = lineRef.current?.geometry;
@@ -171,17 +214,16 @@ export default function ParticleField({ count, worldHeight, radius = 26 }: Props
       <points ref={pointsRef}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+          <bufferAttribute attach="attributes-aColor" args={[colors, 3]} />
         </bufferGeometry>
-        <pointsMaterial
-          size={0.09}
-          map={texture}
-          vertexColors
+        <shaderMaterial
+          ref={materialRef}
+          vertexShader={STAR_VERTEX_SHADER}
+          fragmentShader={STAR_FRAGMENT_SHADER}
+          uniforms={uniforms}
           transparent
-          opacity={0.85}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
-          sizeAttenuation
         />
       </points>
       <lineSegments ref={lineRef}>
