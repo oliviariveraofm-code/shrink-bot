@@ -145,6 +145,13 @@ export default function ShrinkFaceGLTF({ url, scale = 1, breatheSeconds = 5 }: P
   return (
     <group ref={outerGroup}>
       <group ref={swayGroup} scale={scale}>
+        {/* symmetric off-axis lights baked into the component itself so
+            the face's facets throw real, even shadow no matter where
+            this mounts — a parent scene's light is usually close to
+            camera-coaxial, which flattens facet contrast on one side
+            more than the other (or all of it) */}
+        <pointLight position={[1.7, 1.1, 2.3]} intensity={2.6} distance={9} decay={2} color="#eafff5" />
+        <pointLight position={[-1.7, 1.1, 2.3]} intensity={2.6} distance={9} decay={2} color="#eafff5" />
         <primitive object={restyled} />
       </group>
     </group>
