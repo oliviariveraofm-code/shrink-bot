@@ -10,26 +10,45 @@ interface Props {
   url: string;
   scale?: number;
   breatheSeconds?: number;
+  /** Skip named sub-meshes — some downloaded assets bundle stray extra
+   * geometry (a duplicate head, a reference cube) alongside the real one. */
+  excludeNames?: string[];
 }
+
+const TARGET_DIAMETER = 3.1; // matches the old procedural head's ~1.55 radius
 
 // Loads an external low-poly head/face .glb and restyles it to match the
 // site's teal-faceted-fill + gold-wireframe look, rather than sculpting
 // facial geometry procedurally (that approach repeatedly failed to
 // produce legible features). All "alive" motion is GSAP-driven eased
 // tweens — no per-frame procedural spin/bounce.
-export default function ShrinkFaceGLTF({ url, scale = 1, breatheSeconds = 5 }: Props) {
+export default function ShrinkFaceGLTF({ url, scale = 1, breatheSeconds = 5, excludeNames = [] }: Props) {
   const { scene } = useGLTF(url);
   const outerGroup = useRef<THREE.Group>(null);
   const swayGroup = useRef<THREE.Group>(null);
 
   const restyled = useMemo(() => {
     const cloned = scene.clone(true);
-    const group = new THREE.Group();
-
+    const meshes: THREE.Mesh[] = [];
     cloned.traverse((child) => {
       const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      const geometry = mesh.geometry;
+      if (mesh.isMesh && !excludeNames.includes(mesh.name)) meshes.push(mesh);
+    });
+
+    // auto-center + auto-scale to a consistent size, so any dropped-in
+    // asset frames the same way regardless of its native modeling units
+    const bounds = new THREE.Box3();
+    meshes.forEach((mesh) => bounds.expandByObject(mesh));
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const fitScale = TARGET_DIAMETER / Math.max(size.x, size.y, size.z, 1e-6);
+
+    const group = new THREE.Group();
+    meshes.forEach((mesh) => {
+      const geometry = mesh.geometry.clone();
+      geometry.applyMatrix4(mesh.matrixWorld);
+      geometry.translate(-center.x, -center.y, -center.z);
+      geometry.scale(fitScale, fitScale, fitScale);
       geometry.computeVertexNormals();
 
       const fillMesh = new THREE.Mesh(
@@ -44,23 +63,17 @@ export default function ShrinkFaceGLTF({ url, scale = 1, breatheSeconds = 5 }: P
           toneMapped: false,
         })
       );
-      fillMesh.position.copy(mesh.position);
-      fillMesh.rotation.copy(mesh.rotation);
-      fillMesh.scale.copy(mesh.scale);
 
       const edgeLines = new THREE.LineSegments(
         new THREE.EdgesGeometry(geometry, 15),
         new THREE.LineBasicMaterial({ color: GOLD, transparent: true, opacity: 0.85, toneMapped: false })
       );
-      edgeLines.position.copy(mesh.position);
-      edgeLines.rotation.copy(mesh.rotation);
-      edgeLines.scale.copy(mesh.scale);
 
       group.add(fillMesh, edgeLines);
     });
 
     return group;
-  }, [scene]);
+  }, [scene, excludeNames]);
 
   // Idle sway (slow sine-driven rotation), breathing (subtle scale
   // pulse), and an occasional glance — all eased tweens, never linear,

@@ -6,7 +6,7 @@ import ShrinkFaceGLTF from "./three/ShrinkFaceGLTF";
 
 // Isolated harness for iterating on the GLTF face model — loaded via its
 // own Vite entry (face-test.html) so it never touches the live page.
-const MODEL_URL = "/test-placeholder-head.glb";
+const MODEL_URL = "/models/shrink-head.glb";
 
 function Scene() {
   return (
@@ -16,7 +16,7 @@ function Scene() {
       <pointLight position={[3, 2, 4]} intensity={3} distance={12} />
       <pointLight position={[-3, 2, 4]} intensity={3} distance={12} />
       <Suspense fallback={null}>
-        <ShrinkFaceGLTF url={MODEL_URL} scale={1.6} />
+        <ShrinkFaceGLTF url={MODEL_URL} scale={1} excludeNames={["Cube002"]} />
       </Suspense>
       <OrbitControls enableDamping />
     </Canvas>
