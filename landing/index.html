@@ -97,6 +97,25 @@
     EYES: true
   };
 
+  /* ---- the eleven agents: fixed, seeded positions so the cluster reads as composed, not random ----
+     x,y are fractions of the canvas; z is a fake depth (0=far/small/subtle, 1=near/large/bold) used
+     for size, drift range and parallax strength; cyc/seed stagger each node's line-pulse. */
+  var AGENTS = [
+    {name:'RALLY',     color:'79,209,190',  x:0.115, y:0.34,  z:0.85, seed:0.4, cyc:3.4, keepMobile:true, mx:0.03 },
+    {name:'CRASH',     color:'224,110,90',  x:0.075, y:0.19,  z:0.55, seed:1.7, cyc:4.1, keepMobile:true },
+    {name:'VECTOR',    color:'111,168,216', x:0.185, y:0.075, z:0.40, seed:3.0, cyc:3.8, keepMobile:false},
+    {name:'TEMPO',     color:'220,227,237', x:0.880, y:0.135, z:0.75, seed:4.4, cyc:4.6, keepMobile:true },
+    {name:'HUNT',      color:'224,110,90',  x:0.925, y:0.31,  z:0.50, seed:5.9, cyc:3.6, keepMobile:true },
+    {name:'SNIPER',    color:'198,162,83',  x:0.845, y:0.44,  z:0.35, seed:7.2, cyc:4.9, keepMobile:false},
+    {name:'MACRO',     color:'79,209,190',  x:0.38,  y:0.045, z:0.60, seed:8.6, cyc:3.3, keepMobile:true },
+    {name:'HEDGE',     color:'156,140,217', x:0.60,  y:0.035, z:0.45, seed:9.8, cyc:4.3, keepMobile:false},
+    {name:'FLOW',      color:'111,168,216', x:0.20,  y:0.44,  z:0.30, seed:11.1,cyc:5.0, keepMobile:false},
+    {name:'SENTIMENT', color:'198,162,83',  x:0.80,  y:0.41,  z:0.65, seed:12.5,cyc:3.7, keepMobile:false},
+    {name:'ORACLE',    color:'220,227,237', x:0.50,  y:0.015, z:0.90, seed:13.9,cyc:4.5, keepMobile:true }
+  ];
+  var AGENT_HUB_Y = 0.20;          // brain/crown area the feed-lines converge on
+  var AGENT_PARALLAX_X = 0.14, AGENT_PARALLAX_Y = 0.12;
+
   var root = document.getElementById('shrinkHolo');
   var mount = document.getElementById('shrinkHoloCanvas');
   // hash-overrides voor tests: #debug | style=wire/dots/solid | lite (schaduw uit)
@@ -192,6 +211,56 @@
       g.addColorStop(0,'rgba('+col+',0.85)'); g.addColorStop(1,'rgba('+col+',0)');
       px2.fillStyle=g; px2.beginPath(); px2.arc(X,Y,9,0,7); px2.fill();
     }
+  }
+
+  /* ---- the eleven agents: hexagon nodes feeding the head, drawn on the same pulse canvas ---- */
+  function hexPath(ctx,cx,cy,r){
+    ctx.beginPath();
+    for (var i=0;i<6;i++){
+      var a=Math.PI/6 + i*Math.PI/3, hx=cx+r*Math.cos(a), hy=cy+r*Math.sin(a);
+      if (i===0) ctx.moveTo(hx,hy); else ctx.lineTo(hx,hy);
+    }
+    ctx.closePath();
+  }
+  function drawAgentNodes(t){
+    var AW=pulseCv.width, AH=pulseCv.height;
+    var scalePx = AW / root.clientWidth;
+    var mobile = root.clientWidth < 720;
+    var list = mobile ? AGENTS.filter(function(a){ return a.keepMobile; }) : AGENTS;
+    var rotY = rig ? rig.rotation.y : 0, rotX = rig ? rig.rotation.x : 0;
+    var hubX = AW*0.5 + rotY*AW*AGENT_PARALLAX_X;
+    var hubY = AH*AGENT_HUB_Y + rotX*AH*AGENT_PARALLAX_Y;
+
+    list.forEach(function(a, idx){
+      var driftPh = t*0.12 + idx*1.7 + a.seed;
+      var driftR = Math.min(AW,AH) * 0.012 * (0.5 + a.z);
+      var dx = Math.cos(driftPh) * driftR;
+      var dy = Math.sin(driftPh*1.3) * driftR * 0.6;
+      var px = rotY * a.z * AW * AGENT_PARALLAX_X;
+      var py = rotX * a.z * AH * AGENT_PARALLAX_Y;
+      var baseX = (mobile && a.mx !== undefined) ? a.mx : a.x;
+      var baseY = (mobile && a.my !== undefined) ? a.my : a.y;
+      var nx = baseX*AW + dx + px, ny = baseY*AH + dy + py;
+
+      var pulse = 0.55 + 0.45*Math.sin(t*(2*Math.PI/a.cyc) + a.seed*3.0);
+      px2.strokeStyle = 'rgba('+a.color+','+(0.22*pulse).toFixed(3)+')';
+      px2.lineWidth = 1;
+      px2.beginPath(); px2.moveTo(hubX,hubY); px2.lineTo(nx,ny); px2.stroke();
+
+      var rPx = ((mobile?30:34) + a.z*24) * 0.5 * scalePx;
+      hexPath(px2, nx, ny, rPx);
+      px2.fillStyle = 'rgba('+a.color+',0.07)'; px2.fill();
+      px2.strokeStyle = 'rgba('+a.color+',0.62)'; px2.lineWidth = 1.1; px2.stroke();
+      px2.beginPath(); px2.arc(nx,ny,rPx*0.22,0,7);
+      px2.fillStyle = 'rgba('+a.color+',0.5)'; px2.fill();
+
+      var fontPx = Math.max(8, Math.round(rPx*0.42));
+      px2.font = fontPx+'px monospace';
+      px2.textAlign = 'center';
+      px2.fillStyle = 'rgba('+a.color+',0.55)';
+      px2.fillText(a.name, nx, ny + rPx + fontPx + 2);
+    });
+    px2.textAlign = 'left';
   }
 
   if (reduce || coarse || noWebGL){
@@ -638,6 +707,7 @@
     rig.rotation.x += (leanX - rig.rotation.x)*0.06;
 
     drawPulses();
+    drawAgentNodes(t);
     renderer.render(scene,camera);
   })();
 })();
