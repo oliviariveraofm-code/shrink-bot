@@ -122,10 +122,10 @@ export default function ShrinkFaceGLTF({
       const mat = new THREE.MeshStandardMaterial({
         color: TEAL,
         flatShading: true,
-        metalness: 0.15,
-        roughness: 0.55,
+        metalness: 0.65,
+        roughness: 0.3,
         emissive: TEAL,
-        emissiveIntensity: 0.08,
+        emissiveIntensity: 0.05,
         toneMapped: false,
         transparent: true,
         opacity: 1,
@@ -212,13 +212,14 @@ export default function ShrinkFaceGLTF({
         opacity: 1,
         side: THREE.DoubleSide,
       });
-      const ringGeo = new THREE.TorusGeometry(0.1, 0.013, 8, 24);
+      // hexagonal aperture — reads as a camera iris/lens rim rather than an
+      // organic eye, for the robotic/cyborg restyle
+      const ringGeo = new THREE.TorusGeometry(0.1, 0.014, 8, 6);
       clusters.forEach((c) => {
         if (!c.n) return;
         const cx = c.sumX / c.n;
         const cy = c.sumY / c.n;
         const ring = new THREE.Mesh(ringGeo, eyeRingMat!);
-        ring.scale.set(1.35, 0.82, 1); // open almond shape, not a circle
         ring.position.set(cx, cy, c.maxZ + 0.025);
         ring.userData.baseScaleY = ring.scale.y;
         pivot.add(ring);
