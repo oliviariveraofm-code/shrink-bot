@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHRINK — The Trading Floor</title>
+<style>
+  :root{
+    --bg:#0E0F13; --bg2:#07090C; --gold:#C6A253; --teal:#4FD1BE;
+    --ice:#DCE3ED; --txt:#EDF0F4; --dim:#A3A9B4;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;}
+
+  /* ============ SHRINK CIRCUIT-HOLO SECTION (drop-in) ============ */
+  .shrink-holo{position:relative;min-height:100vh;display:flex;align-items:center;
+    justify-content:center;overflow:hidden;background:var(--bg2);}
+  .shrink-holo__circuit, .shrink-holo__pulse{position:absolute;inset:0;width:100%;height:100%;}
+  .shrink-holo__vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(900px 640px at 50% 40%, rgba(79,209,190,.055), transparent 60%),
+               radial-gradient(140% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.72) 100%);}
+  .shrink-holo__stage{position:relative;width:min(92vw,860px);height:min(88vh,860px);}
+  .shrink-holo__canvas{position:absolute;inset:0;}
+  .shrink-holo__canvas canvas{display:block;width:100%;height:100%;}
+  .shrink-holo__fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;}
+  .shrink-holo__fallback img{max-width:92%;max-height:92%;object-fit:contain;}
+  .shrink-holo.is-fallback .shrink-holo__fallback{display:flex;}
+  .shrink-holo.is-fallback .shrink-holo__canvas{display:none;}
+
+  .shrink-holo__meta{position:absolute;left:0;right:0;bottom:0;text-align:center;pointer-events:none;z-index:3;
+    padding:120px 24px 5%;
+    background:linear-gradient(to top, rgba(7,9,12,.94) 0%, rgba(7,9,12,.82) 34%, rgba(7,9,12,.35) 68%, rgba(7,9,12,0) 100%);}
+  .shrink-holo__kicker{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.34em;
+    color:var(--teal);text-transform:uppercase;}
+  .shrink-holo__name{font-size:clamp(34px,5vw,54px);font-weight:800;letter-spacing:.01em;margin-top:10px;
+    text-shadow:0 0 26px rgba(79,209,190,.25);}
+  .shrink-holo__name span{color:var(--gold);}
+  .shrink-holo__tag{font-size:clamp(12px,1.4vw,15px);color:var(--dim);margin-top:8px;font-style:italic;}
+
+  .shrink-holo__cta{margin-top:22px;pointer-events:auto;}
+  .shrink-holo__cta a{
+    display:inline-block;padding:13px 34px;font-family:'JetBrains Mono',monospace;
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;
+    color:var(--bg2);background:var(--gold);border-radius:2px;
+    box-shadow:0 0 22px rgba(198,162,83,.30);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .shrink-holo__cta a:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(198,162,83,.48);}
+</style>
+</head>
+<body>
+
+<!-- ================= DROP-IN START ================= -->
+<section class="shrink-holo" id="shrinkHolo">
+  <canvas class="shrink-holo__circuit" id="shCircuit"></canvas>
+  <canvas class="shrink-holo__pulse" id="shPulse"></canvas>
+  <div class="shrink-holo__vig"></div>
+  <div class="shrink-holo__stage">
+    <div class="shrink-holo__canvas" id="shrinkHoloCanvas"></div>
+    <div class="shrink-holo__fallback"><img id="shrinkHoloImg" alt="SHRINK — The Brain" src=""></div>
+  </div>
+  <div class="shrink-holo__meta">
+    <div class="shrink-holo__kicker">Agent 12 · The Brain of the Floor</div>
+    <div class="shrink-holo__name">SH<span>RINK</span></div>
+    <div class="shrink-holo__tag">&ldquo;Eleven read the market. One reads them.&rdquo;</div>
+    <div class="shrink-holo__cta"><a href="#">Enter The Floor</a></div>
+  </div>
+</section>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script>
+(function(){
+  /* ================= CONFIG ================= */
+  var CONFIG = {
+    STYLE: "solid",            // "solid" = realistisch belicht | "wire" = lijnennet | "dots" = stippels
+    MODEL_URL: "assets/shrink-head.glb",        // detail-mesh (occluder + brein)
+    WIRE_URL:  "assets/shrink-head-wire.glb",   // low-poly mesh voor het lijnennet
+    FALLBACK_IMG: "assets/shrink-hologram-still.jpg",
+    POINTS: 46000,
+    LINE_OPACITY: 0.55,
+    EYE_HERO: 0,               // welk oog fel gloeit (0 of 1), ander oog blijft subtiel
+    CROWN: false,              // stippel-gloed op de kruin (uit op verzoek)
+    FRESNEL: 0.10,             // subtiele teal randgloed in solid-stijl (0 = uit)
+    MOTION: "eyes",            // "eyes" = model stil, ogen volgen cursor | "head" = hele model volgt
+    EYE_POS: [[-0.1522,0.3755,0.4042],[0.1532,0.3699,0.4065]],  // exact uit de emissive-map berekend
+    EYE_SENS: 2.2,             // gevoeligheid: max bereik al bij ~45% schermafstand
+    EYE_RANGE_X: 0.034,        // horizontale reis: de volle iris-breedte
+    EYE_RANGE_Y: 0.014,        // verticale reis: duidelijk zichtbaar mee omhoog/omlaag
+    TEAL: 0x4FD1BE, ICE: 0xDCE3ED, GOLD: 0xC6A253,
+    PITCH: 0.05,               // vrijwel rechtuit, zoals de wireframe-referentie
+    SWAY: 0.12,                // idle sway als de muis stilstaat
+    TRACK: {x:0.50, y:0.30},   // hoe sterk het hoofd de cursor volgt
+    FIT_HEIGHT: 3.0,
+    MODEL_ROT_Y: 0,            // voorkant van het model = +z (gecorrigeerd)
+    BRAIN_FRAC: 0.10,          // kruin van de schedel = brein-gloed (fel + puls)
+    EYES: true
+  };
+
+  var root = document.getElementById('shrinkHolo');
+  var mount = document.getElementById('shrinkHoloCanvas');
+  // hash-overrides voor tests: #debug | style=wire/dots/solid | lite (schaduw uit)
+  var HS = location.hash || '';
+  var mStyle = HS.match(/style=(wire|dots|solid)/); if (mStyle) CONFIG.STYLE = mStyle[1];
+  var LITE = /lite/.test(HS);
+
+  /* ---- fallback ---- */
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var coarse = window.matchMedia('(pointer: coarse)').matches;
+  var noWebGL = (function(){ try{ var c=document.createElement('canvas');
+      return !(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')));
+    }catch(e){ return true; } })();
+
+  /* ================= PROCEDURELE PRINTPLAAT ================= */
+  function drawCircuit(){
+    var cv = document.getElementById('shCircuit');
+    var W = cv.width = root.clientWidth * Math.min(devicePixelRatio||1, 2);
+    var H = cv.height = root.clientHeight * Math.min(devicePixelRatio||1, 2);
+    var x = cv.getContext('2d');
+    var teal='79,209,190', ice='190,210,230', gold='198,162,83';
+    x.clearRect(0,0,W,H);
+    function rnd(a,b){ return a + Math.random()*(b-a); }
+    function snap(v,g){ return Math.round(v/g)*g; }
+    var G = Math.max(14, Math.round(W/70));   // rasterafstand
+    var paths = [];
+    function trace(x0,y0,steps,col,alpha,w){
+      var px=snap(x0,G), py=snap(y0,G), pts=[[px,py]];
+      var dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+      var d = dirs[Math.floor(Math.random()*4)];
+      for (var i=0;i<steps;i++){
+        if (Math.random()<0.45){
+          var nd = dirs[Math.floor(Math.random()*dirs.length)];
+          if (!(nd[0]===-d[0]&&nd[1]===-d[1])) d=nd;
+        }
+        var len = G*Math.floor(rnd(1,5));
+        px+=d[0]*len; py+=d[1]*len;
+        pts.push([px,py]);
+      }
+      x.strokeStyle='rgba('+col+','+alpha+')'; x.lineWidth=w;
+      x.beginPath(); x.moveTo(pts[0][0],pts[0][1]);
+      for (var j=1;j<pts.length;j++) x.lineTo(pts[j][0],pts[j][1]);
+      x.stroke();
+      // nodes op knikken
+      for (var k=0;k<pts.length;k++){
+        if (Math.random()<0.4){
+          x.fillStyle='rgba('+col+','+(alpha*1.35)+')';
+          if (Math.random()<0.5) x.fillRect(pts[k][0]-1.6,pts[k][1]-1.6,3.2,3.2);
+          else { x.beginPath(); x.arc(pts[k][0],pts[k][1],1.8,0,7); x.fill(); }
+        }
+      }
+      paths.push(pts);
+    }
+    // dichte verticale 'ruggengraat' boven het hoofd + verspreide sporen
+    for (var i=0;i<34;i++) trace(W*0.5+rnd(-W*0.16,W*0.16), rnd(-H*0.05,H*0.34), 9, teal, rnd(0.10,0.26), 1);
+    for (var i2=0;i2<52;i2++) trace(rnd(0,W), rnd(0,H), 8, teal, rnd(0.06,0.16), 1);
+    for (var i3=0;i3<14;i3++) trace(rnd(0,W), rnd(0,H), 7, ice, rnd(0.05,0.10), 1);
+    for (var i4=0;i4<7;i4++)  trace(rnd(0,W), rnd(H*0.55,H), 8, gold, rnd(0.10,0.18), 1);
+    // mono-labels zoals in de poster
+    var labels=['REG 2011','NEB 01B','TF·12','SYNC 88','DAT 73','0x4F','LOG 45','RISK Ø','NODE 7','TAPE 21','EXEC 03','DD 5.0'];
+    x.font = Math.round(G*0.62)+'px monospace';
+    for (var L=0; L<18; L++){
+      var lx=snap(rnd(W*0.04,W*0.92),G), ly=snap(rnd(H*0.06,H*0.95),G);
+      x.fillStyle='rgba('+(Math.random()<0.85?teal:gold)+','+rnd(0.18,0.4)+')';
+      x.fillText(labels[Math.floor(Math.random()*labels.length)], lx, ly);
+    }
+    return paths;
+  }
+  var circuitPaths = drawCircuit();
+
+  /* pulsen die over de sporen lopen */
+  var pulseCv = document.getElementById('shPulse');
+  function sizePulse(){ pulseCv.width = root.clientWidth*Math.min(devicePixelRatio||1,2);
+                        pulseCv.height = root.clientHeight*Math.min(devicePixelRatio||1,2); }
+  sizePulse();
+  var px2 = pulseCv.getContext('2d');
+  var pulses=[];
+  for (var pi=0; pi<12 && circuitPaths.length; pi++){
+    pulses.push({path:circuitPaths[Math.floor(Math.random()*circuitPaths.length)],
+                 t:Math.random(), sp:0.0016+Math.random()*0.003,
+                 gold:Math.random()<0.18});
+  }
+  function drawPulses(){
+    px2.clearRect(0,0,pulseCv.width,pulseCv.height);
+    for (var i=0;i<pulses.length;i++){
+      var p=pulses[i]; p.t+=p.sp; if(p.t>=1){ p.t=0;
+        p.path=circuitPaths[Math.floor(Math.random()*circuitPaths.length)]; }
+      var pts=p.path, seg=(pts.length-1)*p.t, s0=Math.floor(seg), f=seg-s0;
+      var a=pts[Math.min(s0,pts.length-1)], b=pts[Math.min(s0+1,pts.length-1)];
+      var X=a[0]+(b[0]-a[0])*f, Y=a[1]+(b[1]-a[1])*f;
+      var col = p.gold ? '198,162,83' : '79,209,190';
+      var g=px2.createRadialGradient(X,Y,0,X,Y,9);
+      g.addColorStop(0,'rgba('+col+',0.85)'); g.addColorStop(1,'rgba('+col+',0)');
+      px2.fillStyle=g; px2.beginPath(); px2.arc(X,Y,9,0,7); px2.fill();
+    }
+  }
+
+  if (reduce || coarse || noWebGL){
+    document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
+    root.classList.add('is-fallback');
+    return;   // printplaat blijft als statische achtergrond staan
+  }
+
+  /* ================= THREE ================= */
+  var W = mount.clientWidth, H = mount.clientHeight;
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setSize(W, H);
+  mount.appendChild(renderer.domElement);
+  if (CONFIG.STYLE === 'solid'){
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = !LITE;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(33, W/H, 0.1, 60);
+  camera.position.set(0, 0.1, 5.6);
+  var rig = new THREE.Group(); scene.add(rig);
+  if (location.hash.indexOf('debug') >= 0){ window.__rig = rig; window.__lock = false; window.__frames = 0; }
+  var eyeRigs = [];
+  if (location.hash.indexOf('debug') >= 0){ window.__eyeRigs = eyeRigs; window.__cfg = CONFIG; }
+
+  if (CONFIG.STYLE === 'solid'){
+    var hemi = new THREE.HemisphereLight(0x9fb2c4, 0x0a0c10, 0.75); scene.add(hemi);
+    var key = new THREE.DirectionalLight(0xfff1dd, 1.25);
+    key.position.set(2.4, 3.2, 3.0); key.castShadow = !LITE;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.left=-3; key.shadow.camera.right=3;
+    key.shadow.camera.top=3.5; key.shadow.camera.bottom=-3;
+    key.shadow.bias = -0.0006;
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0x4FD1BE, 0.85);
+    rim.position.set(-3.2, 1.2, -2.4); scene.add(rim);
+    var fill = new THREE.DirectionalLight(0xbfd0e2, 0.35);
+    fill.position.set(-1.4, 0.4, 3.2); scene.add(fill);
+    var ec = document.createElement('canvas'); ec.width=256; ec.height=128;
+    var eg = ec.getContext('2d');
+    eg.fillStyle='#0c0e12'; eg.fillRect(0,0,256,128);
+    var grd = eg.createLinearGradient(0,6,0,40);
+    grd.addColorStop(0,'rgba(255,252,244,0.95)'); grd.addColorStop(1,'rgba(255,252,244,0)');
+    eg.fillStyle=grd; eg.fillRect(0,6,256,34);
+    eg.fillStyle='rgba(79,209,190,0.18)'; eg.fillRect(0,74,256,14);
+    eg.fillStyle='rgba(198,162,83,0.10)'; eg.fillRect(150,90,70,10);
+    var envTex = new THREE.CanvasTexture(ec);
+    envTex.mapping = THREE.EquirectangularReflectionMapping;
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromEquirectangular(envTex).texture;
+  }
+
+  /* ---- materialen ---- */
+  var occluderMat = new THREE.MeshBasicMaterial({color:0x05070a});
+  occluderMat.polygonOffset = true; occluderMat.polygonOffsetFactor = 1; occluderMat.polygonOffsetUnits = 1;
+
+  var fresnelMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uTeal:{value:new THREE.Color(CONFIG.TEAL)},
+      uStrength:{value:(CONFIG.STYLE==='solid' ? CONFIG.FRESNEL : 0.40)} },
+    vertexShader:[
+      'varying vec3 vN;','varying vec3 vV;','varying float vY;',
+      'void main(){',
+      '  vN = normalize(normalMatrix * normal);',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  vV = normalize(-mv.xyz);',
+      '  vY = (modelMatrix * vec4(position,1.0)).y;',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uTeal;','uniform float uStrength;',
+      'varying vec3 vN;','varying vec3 vV;','varying float vY;',
+      'void main(){',
+      '  float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.6);',
+      '  float scan = 0.85 + 0.15*sin(vY*30.0 - uTime*2.0);',
+      '  gl_FragColor = vec4(uTeal, fr * uStrength * scan);','}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending
+  });
+
+  var dotMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+      uTeal:{value:new THREE.Color(CONFIG.TEAL)}, uIce:{value:new THREE.Color(CONFIG.ICE)} },
+    vertexShader:[
+      'attribute float aSize;','attribute float aPhase;','attribute float aBright;',
+      'attribute vec3 aNormal;',
+      'uniform float uTime;','uniform float uPR;',
+      'varying float vPhase;','varying float vBright;','varying float vY;',
+      'varying float vLit;','varying float vRim;',
+      'void main(){',
+      '  vPhase=aPhase; vBright=aBright;',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  vY = (modelMatrix * vec4(position,1.0)).y;',
+      '  vec3 N = normalize(normalMatrix * aNormal);',
+      '  vec3 V = normalize(-mv.xyz);',
+      '  vec3 L = normalize(vec3(-0.22, 0.62, 0.75));', // licht van boven-voor (camera-locked)
+      '  float lam = max(dot(N, L), 0.0);',
+      '  vLit = pow(lam, 2.2);',
+      '  vRim = pow(1.0 - abs(dot(N, V)), 3.0);',
+      '  gl_PointSize = aSize * uPR * (54.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uTeal;','uniform vec3 uIce;',
+      'varying float vPhase;','varying float vBright;','varying float vY;',
+      'varying float vLit;','varying float vRim;',
+      'void main(){',
+      '  vec2 uv = gl_PointCoord - 0.5;',
+      '  float disc = smoothstep(0.5, 0.14, length(uv));',
+      '  float scan = 0.86 + 0.14 * sin(vY*30.0 - uTime*2.0);',
+      '  float flick = 0.9 + 0.1 * sin(uTime*8.0 + vPhase*40.0);',
+      '  float pulse = (vBright > 0.9) ? (0.74 + 0.36*sin(uTime*1.5 + vPhase*2.0)) : 1.0;',
+      '  float shade = 0.03 + 1.45*vLit + 1.15*vRim;',        // vorm-belichting
+      '  float e = shade * vBright * pulse;',
+      '  vec3 col = mix(uTeal, uIce, clamp(e*0.55, 0.0, 1.0));',
+      '  float a = disc * scan * flick * clamp(e, 0.0, 1.6);',
+      '  gl_FragColor = vec4(col * (0.35 + 0.9*e), a);',
+      '}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+  });
+
+  var nodeMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+      uIce:{value:new THREE.Color(CONFIG.ICE)} },
+    vertexShader:[
+      'attribute float aSize;','attribute float aPhase;',
+      'uniform float uTime;','uniform float uPR;','varying float vPhase;',
+      'void main(){',
+      '  vPhase=aPhase;',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  gl_PointSize = aSize * uPR * (44.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uIce;','varying float vPhase;',
+      'void main(){',
+      '  float disc = smoothstep(0.5, 0.1, length(gl_PointCoord - 0.5));',
+      '  float tw = 0.55 + 0.45*sin(uTime*2.2 + vPhase*40.0);',
+      '  gl_FragColor = vec4(uIce, disc * tw * 0.85);','}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+  });
+
+  /* ---- surface sampling met normal-offset + helderheid per zone ---- */
+  function sampleMeshes(meshes, count, box){
+    var tris=[], areas=[], total=0, tmp=new THREE.Vector3();
+    meshes.forEach(function(m){
+      var g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
+      var pos = g.attributes.position; m.updateWorldMatrix(true,false);
+      for (var i=0;i<pos.count;i+=3){
+        var a=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);
+        var b=new THREE.Vector3().fromBufferAttribute(pos,i+1).applyMatrix4(m.matrixWorld);
+        var c=new THREE.Vector3().fromBufferAttribute(pos,i+2).applyMatrix4(m.matrixWorld);
+        var ar = tmp.copy(b).sub(a).cross(new THREE.Vector3().copy(c).sub(a)).length()*0.5;
+        if (ar>0){ tris.push([a,b,c]); areas.push(ar); total+=ar; }
+      }
+    });
+    var cum=[], run=0; for (var q=0;q<areas.length;q++){ run+=areas[q]; cum.push(run); }
+    function pick(){ var r=Math.random()*total, lo=0, hi=cum.length-1;
+      while(lo<hi){ var mid=(lo+hi)>>1; if (cum[mid]<r) lo=mid+1; else hi=mid; } return tris[lo]; }
+    var sy = box.max.y-box.min.y, brainY = box.max.y - sy*CONFIG.BRAIN_FRAC;
+    var pos3=new Float32Array(count*3), nrm3=new Float32Array(count*3),
+        sizes=new Float32Array(count),
+        phase=new Float32Array(count), bright=new Float32Array(count);
+    var n=new THREE.Vector3(), e1=new THREE.Vector3(), e2=new THREE.Vector3();
+    for (var k=0;k<count;k++){
+      var t=pick(), r1=Math.random(), r2=Math.random();
+      if (r1+r2>1){ r1=1-r1; r2=1-r2; }
+      e1.copy(t[1]).sub(t[0]); e2.copy(t[2]).sub(t[0]);
+      n.copy(e1).cross(e2).normalize();
+      var p=new THREE.Vector3().copy(t[0]).addScaledVector(e1,r1).addScaledVector(e2,r2)
+             .addScaledVector(n, 0.012);
+      pos3[k*3]=p.x; pos3[k*3+1]=p.y; pos3[k*3+2]=p.z;
+      nrm3[k*3]=n.x; nrm3[k*3+1]=n.y; nrm3[k*3+2]=n.z;
+      var isBrain = p.y > brainY;
+      var isBand  = !isBrain && p.y > (brainY - sy*0.07);
+      bright[k] = isBrain ? (1.05+Math.random()*0.4)
+                : isBand  ? (0.62+Math.random()*0.2)
+                :           (0.34+Math.random()*0.14);
+      sizes[k]  = isBrain ? (0.95+Math.random()*1.15)
+                : isBand  ? (0.75+Math.random()*0.85)
+                :           (0.6+Math.random()*0.7);
+      phase[k]=Math.random();
+    }
+    var g2=new THREE.BufferGeometry();
+    g2.setAttribute('position', new THREE.BufferAttribute(pos3,3));
+    g2.setAttribute('aNormal', new THREE.BufferAttribute(nrm3,3));
+    g2.setAttribute('aSize', new THREE.BufferAttribute(sizes,1));
+    g2.setAttribute('aPhase', new THREE.BufferAttribute(phase,1));
+    g2.setAttribute('aBright', new THREE.BufferAttribute(bright,1));
+    return g2;
+  }
+
+  function estimateEyes(geom, box){
+    var pos=geom.attributes.position, sy=box.max.y-box.min.y,
+        sz=box.max.z-box.min.z, sx=box.max.x-box.min.x;
+    var yLo=box.min.y+sy*0.70, yHi=box.min.y+sy*0.80, zTh=box.max.z-sz*0.20; // front = +z
+    var L=[0,0,0,0], R=[0,0,0,0];
+    for (var i=0;i<pos.count;i++){
+      var X=pos.getX(i), Y=pos.getY(i), Z=pos.getZ(i);
+      if (Y>yLo && Y<yHi && Z>zTh){
+        if (X < -sx*0.05){ L[0]+=X;L[1]+=Y;L[2]+=Z;L[3]++; }
+        else if (X > sx*0.05){ R[0]+=X;R[1]+=Y;R[2]+=Z;R[3]++; }
+      }
+    }
+    if (L[3]<40 || R[3]<40) return null;
+    return [[L[0]/L[3],L[1]/L[3],L[2]/L[3]+0.05],[R[0]/R[3],R[1]/R[3],R[2]/R[3]+0.05]];
+  }
+
+  function glowSprite(color, size){
+    var c=document.createElement('canvas'); c.width=c.height=128;
+    var g=c.getContext('2d'), gr=g.createRadialGradient(64,64,0,64,64,62);
+    var col=(color===CONFIG.GOLD)?'198,162,83':(color==='warm')?'255,238,200':(color==='pupil')?'24,15,6':'140,235,220';
+    var A=(color==='pupil')?0.92:0.95;
+    // gaussische val: onzichtbare rand, alleen licht
+    [[0,1.00],[0.08,0.66],[0.16,0.42],[0.26,0.25],[0.38,0.135],[0.50,0.068],[0.63,0.030],[0.77,0.011],[0.89,0.003],[1,0]]
+      .forEach(function(st){ gr.addColorStop(st[0], 'rgba('+col+','+(A*st[1]).toFixed(3)+')'); });
+    g.fillStyle=gr; g.fillRect(0,0,128,128);
+    var tex=new THREE.CanvasTexture(c);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
+        blending:(color==='pupil')?THREE.NormalBlending:THREE.AdditiveBlending,
+        depthTest:true, depthWrite:false}));
+    sp.scale.setScalar(size);
+    return sp;
+  }
+
+  function buildHead(meshes){
+    var box = new THREE.Box3();
+    meshes.forEach(function(m){ box.expandByObject(m); });
+    var size=box.getSize(new THREE.Vector3()), center=box.getCenter(new THREE.Vector3());
+    var s = CONFIG.FIT_HEIGHT/Math.max(size.y,1e-6);
+    var holder=new THREE.Group();
+    holder.rotation.y = CONFIG.MODEL_ROT_Y||0;
+    holder.rotation.x = CONFIG.PITCH||0;
+    holder.scale.setScalar(s);
+    var inner=new THREE.Group();
+    inner.position.set(-center.x,-center.y+0.02/s,-center.z);
+    holder.add(inner);
+
+    if (CONFIG.STYLE === 'solid'){
+      meshes.forEach(function(m){
+        var mat = (m.material && m.material.map) ? m.material :
+          new THREE.MeshStandardMaterial({color:0xeef1f5, roughness:0.30, metalness:0.22});
+        if (mat.isMeshStandardMaterial) mat.envMapIntensity = 1.0;
+        if (mat.emissiveMap) mat.emissiveIntensity = 1.10;
+        var solid = new THREE.Mesh(m.geometry, mat);
+        solid.castShadow = true; solid.receiveShadow = true;
+        solid.matrixAutoUpdate=false; solid.matrix.copy(m.matrixWorld); solid.renderOrder=0; inner.add(solid);
+        if (CONFIG.FRESNEL > 0){
+          var gh=new THREE.Mesh(m.geometry, fresnelMat);
+          gh.matrixAutoUpdate=false; gh.matrix.copy(m.matrixWorld); gh.renderOrder=2; inner.add(gh);
+        }
+      });
+    } else {
+      meshes.forEach(function(m){
+        var occ=new THREE.Mesh(m.geometry, occluderMat);
+        occ.matrixAutoUpdate=false; occ.matrix.copy(m.matrixWorld); occ.renderOrder=0; inner.add(occ);
+        var gh=new THREE.Mesh(m.geometry, fresnelMat);
+        gh.matrixAutoUpdate=false; gh.matrix.copy(m.matrixWorld); gh.renderOrder=2; inner.add(gh);
+      });
+    }
+    var sampleN = (CONFIG.STYLE === 'solid' && !CONFIG.CROWN) ? 9000 : CONFIG.POINTS;
+    var dotsGeom = sampleMeshes(meshes, sampleN, box);
+    if (CONFIG.STYLE === 'wire'){
+      // alleen het brein als stippels; de rest wordt lijnennet
+      var sy2 = box.max.y-box.min.y, brainY2 = box.max.y - sy2*CONFIG.BRAIN_FRAC;
+      var P=dotsGeom.attributes.position, N=dotsGeom.attributes.aNormal,
+          S=dotsGeom.attributes.aSize, F=dotsGeom.attributes.aPhase, B=dotsGeom.attributes.aBright;
+      if (CONFIG.CROWN){
+        var keep=[];
+        for (var di=0; di<P.count; di++){ if (P.getY(di) > brainY2 - sy2*0.05) keep.push(di); }
+        var g3=new THREE.BufferGeometry();
+        function sub(att,it){ var out=new Float32Array(keep.length*it);
+          for (var q2=0;q2<keep.length;q2++) for (var c2=0;c2<it;c2++) out[q2*it+c2]=att.array[keep[q2]*it+c2];
+          return new THREE.BufferAttribute(out,it); }
+        g3.setAttribute('position', sub(P,3)); g3.setAttribute('aNormal', sub(N,3));
+        g3.setAttribute('aSize', sub(S,1)); g3.setAttribute('aPhase', sub(F,1)); g3.setAttribute('aBright', sub(B,1));
+        var bd=new THREE.Points(g3, dotMat); bd.renderOrder=2; inner.add(bd);
+      }
+
+      new THREE.GLTFLoader().load(CONFIG.WIRE_URL, function(g){
+        g.scene.updateWorldMatrix(true,true);
+        g.scene.traverse(function(o){
+          if(!o.isMesh) return;
+          var wf = new THREE.WireframeGeometry(o.geometry);
+          var lines = new THREE.LineSegments(wf, new THREE.LineBasicMaterial({
+            color: CONFIG.ICE, transparent:true, opacity: CONFIG.LINE_OPACITY,
+            blending: THREE.AdditiveBlending, depthTest:true, depthWrite:false }));
+          lines.matrixAutoUpdate=false; lines.matrix.copy(o.matrixWorld);
+          lines.renderOrder=1; inner.add(lines);
+          // sparks op de knopen van het net
+          var vp = o.geometry.attributes.position, nn = vp.count;
+          var np=new Float32Array(nn*3), ns=new Float32Array(nn), nf=new Float32Array(nn);
+          for (var vi=0; vi<nn; vi++){
+            np[vi*3]=vp.getX(vi); np[vi*3+1]=vp.getY(vi); np[vi*3+2]=vp.getZ(vi);
+            ns[vi]=0.5+Math.random()*0.9; nf[vi]=Math.random();
+          }
+          var ng=new THREE.BufferGeometry();
+          ng.setAttribute('position', new THREE.BufferAttribute(np,3));
+          ng.setAttribute('aSize', new THREE.BufferAttribute(ns,1));
+          ng.setAttribute('aPhase', new THREE.BufferAttribute(nf,1));
+          var nodes=new THREE.Points(ng, nodeMat);
+          nodes.matrixAutoUpdate=false; nodes.matrix.copy(o.matrixWorld);
+          nodes.renderOrder=2; inner.add(nodes);
+        });
+      });
+    } else if (CONFIG.STYLE === 'dots') {
+      var dots=new THREE.Points(dotsGeom, dotMat); dots.renderOrder=1; inner.add(dots);
+    }
+
+    if (CONFIG.EYES){
+      var eyePts = CONFIG.EYE_POS || estimateEyes(dotsGeom, box);
+      if (eyePts){
+        eyePts.forEach(function(e, ei){
+          if (CONFIG.STYLE === 'solid'){
+            // drie lagen licht: fluisterzachte bloom + iris-gloed + hete kern (geen randen)
+            var bloom=glowSprite('warm', size.y*0.105);
+            bloom.material.depthTest=false; bloom.material.opacity=0.18;
+            bloom.position.set(e[0],e[1],e[2]+0.055); bloom.renderOrder=3; inner.add(bloom);
+            var mid=glowSprite('warm', size.y*0.032);
+            mid.material.depthTest=false; mid.material.opacity=0.42;
+            mid.position.set(e[0],e[1],e[2]+0.06); mid.renderOrder=4; inner.add(mid);
+            var core=glowSprite('warm', size.y*0.012);
+            core.material.depthTest=false; core.material.opacity=1.0;
+            core.position.set(e[0],e[1],e[2]+0.065); core.renderOrder=5; inner.add(core);
+            eyeRigs.push({ base:new THREE.Vector3(e[0],e[1],e[2]),
+                           bloom:bloom, mid:mid, core:core, off:new THREE.Vector2() });
+            return;
+          }
+          var hero = (ei === (CONFIG.EYE_HERO||0));
+          var sp=glowSprite(CONFIG.TEAL, size.y*(hero?0.075:0.030));
+          sp.material.opacity = hero ? 1.0 : 0.38;
+          sp.position.set(e[0],e[1],e[2]); sp.renderOrder=3; inner.add(sp);
+          if (hero){
+            var core=glowSprite(CONFIG.ICE, size.y*0.028);
+            core.position.set(e[0],e[1],e[2]+0.02); core.renderOrder=4; inner.add(core);
+          }
+        });
+      }
+    }
+    rig.add(holder);
+  }
+
+  function placeholderMeshes(){
+    var mat=new THREE.MeshBasicMaterial();
+    var skull=new THREE.Mesh(new THREE.SphereGeometry(1,56,40), mat);
+    skull.scale.set(0.92,1.18,1.0); skull.position.y=0.42;
+    var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.46,0.9,32), mat);
+    neck.position.y=-1.1;
+    var grp=new THREE.Group(); grp.add(skull,neck); grp.updateWorldMatrix(true,true);
+    return [skull,neck];
+  }
+  var loaded=false;
+  try{
+    new THREE.GLTFLoader().load(CONFIG.MODEL_URL, function(gltf){
+      var meshes=[]; gltf.scene.updateWorldMatrix(true,true);
+      gltf.scene.traverse(function(o){ if(o.isMesh) meshes.push(o); });
+      if (meshes.length){ buildHead(meshes); loaded=true; }
+      else buildHead(placeholderMeshes());
+    }, undefined, function(){ if(!loaded) showFallback(); });
+  }catch(e){ showFallback(); }
+  function showFallback(){
+    document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
+    root.classList.add('is-fallback');
+  }
+
+  /* ---- interactie & loop ---- */
+  var mx=0,my=0, running=true, inView=true, lastMove=-10, hasPointer=false;
+  function onMove(e){
+    mx=(e.clientX/window.innerWidth)*2-1; my=(e.clientY/window.innerHeight)*2-1;
+    hasPointer = true;
+    lastMove = clock ? clock.getElapsedTime() : 0;
+    if (window.__frames !== undefined){ window.__mx=mx; window.__my=my; window.__lastMove=lastMove; }
+  }
+  window.addEventListener('mousemove', onMove, {passive:true});
+  window.addEventListener('pointermove', onMove, {passive:true});
+  window.addEventListener('mouseout', function(e){ if (!e.relatedTarget) hasPointer = false; }, {passive:true});
+  window.addEventListener('blur', function(){ hasPointer = false; });
+  document.addEventListener('visibilitychange', function(){ running=!document.hidden; });
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(function(en){ inView=en[0].isIntersecting; },{threshold:0.05}).observe(root);
+  }
+  window.addEventListener('resize', function(){
+    W=mount.clientWidth; H=mount.clientHeight;
+    camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+    circuitPaths = drawCircuit(); sizePulse();
+  });
+
+  var clock=new THREE.Clock();
+  (function loop(){
+    requestAnimationFrame(loop);
+    if(!running || !inView) return;
+    if (window.__lock){ dotMat.uniforms.uTime.value=clock.getElapsedTime(); nodeMat.uniforms.uTime.value=clock.getElapsedTime(); fresnelMat.uniforms.uTime.value=clock.getElapsedTime(); renderer.render(scene,camera); return; }
+    var t=clock.getElapsedTime();
+    if (window.__frames !== undefined) window.__frames++;
+    dotMat.uniforms.uTime.value=t;
+    nodeMat.uniforms.uTime.value=t;
+    fresnelMat.uniforms.uTime.value=t;
+    if (CONFIG.MOTION === 'head'){
+      var idle = (t - lastMove) > 2.5;
+      var ty, tx;
+      if (idle){ ty = Math.sin(t*0.24)*CONFIG.SWAY; tx = Math.sin(t*0.31)*0.02; }
+      else { ty = mx*CONFIG.TRACK.x; tx = my*CONFIG.TRACK.y - 0.04; }
+      rig.rotation.y += (ty - rig.rotation.y)*0.07;
+      rig.rotation.x += (tx - rig.rotation.x)*0.07;
+      rig.position.y = Math.sin(t*0.5)*0.03;
+    } else {
+      // The Shrink is always watching: gloed volgt de cursor binnen de oogkas
+      // blik vasthouden zolang de cursor op de pagina staat
+      var txE = hasPointer ? Math.max(-1, Math.min(1, mx * CONFIG.EYE_SENS)) : 0;
+      var tyE = hasPointer ? Math.max(-1, Math.min(1, -my * CONFIG.EYE_SENS)) : 0;
+      var exT = txE * CONFIG.EYE_RANGE_X, eyT = tyE * CONFIG.EYE_RANGE_Y;
+      var spd = hasPointer ? 0.22 : 0.05;
+      if (window.__frames !== undefined){ window.__dbg = {t:t, lm:lastMove, idle:!hasPointer, mx:mx, txE:txE, exT:exT, off0: eyeRigs.length? [eyeRigs[0].off.x, eyeRigs[0].off.y] : null}; }                // volgen: snel | terug naar rust: traag glijden
+      for (var ei2=0; ei2<eyeRigs.length; ei2++){
+        var er = eyeRigs[ei2];
+        er.off.x += (exT - er.off.x)*spd;
+        er.off.y += (eyT - er.off.y)*spd;
+        er.bloom.position.set(er.base.x + er.off.x*0.6, er.base.y + er.off.y*0.6, er.base.z + 0.055);
+        er.mid.position.set(er.base.x + er.off.x, er.base.y + er.off.y, er.base.z + 0.06);
+        er.core.position.set(er.base.x + er.off.x, er.base.y + er.off.y, er.base.z + 0.065);
+      }
+    }
+    drawPulses();
+    renderer.render(scene,camera);
+  })();
+})();
+</script>
+<!-- ================= DROP-IN END ================= -->
+
+</body>
+</html>
