@@ -6,11 +6,44 @@
 <title>SHRINK — The Trading Floor</title>
 <style>
   :root{
+    /* hero-native tokens (unchanged — still what the 3D scene / agent nodes / original hero styles use) */
     --bg:#0E0F13; --bg2:#07090C; --gold:#C6A253; --teal:#4FD1BE;
     --ice:#DCE3ED; --txt:#EDF0F4; --dim:#A3A9B4;
+
+    /* refined page-wide design tokens (Trading Floor spec) */
+    --bg-0:#0E0F13; --bg-1:#14161C; --line:#262A33;
+    --text-hi:#F2F3F5; --text-mid:#9AA1AD; --text-low:#787E8A;
+    --accent-gold:#C4A052;
+
+    --font-display:'Inter',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+
+    --h-hero: clamp(72px,14vw,220px);
+    --h-section: clamp(40px,6vw,88px);
+    --space-section-mobile: 90px;
+    --space-section-desktop: 160px;
+    --container-max: 1280px;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;}
+  body{background:var(--bg-0);color:var(--txt);font-family:var(--font-display);}
+
+  /* ============ page-wide layout utilities (used by sections below the hero) ============ */
+  .tf-container{max-width:var(--container-max);margin:0 auto;padding-left:24px;padding-right:24px;}
+  .tf-section{padding-top:var(--space-section-mobile);padding-bottom:var(--space-section-mobile);}
+  @media (min-width:900px){
+    .tf-section{padding-top:var(--space-section-desktop);padding-bottom:var(--space-section-desktop);}
+  }
+  .tf-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-low);}
+  .tf-headline{font-family:var(--font-display);font-size:var(--h-section);font-weight:700;
+    letter-spacing:-0.02em;line-height:1.05;color:var(--text-hi);}
+  .tf-body{font-size:16px;line-height:1.6;color:var(--text-mid);max-width:60ch;}
+  .tf-divider{border:none;border-top:1px solid var(--line);margin:0;}
+  .tf-reveal{opacity:0;transform:translateY(8px);transition:opacity .3s ease-out, transform .3s ease-out;}
+  .tf-reveal.is-visible{opacity:1;transform:translateY(0);}
+  @media (prefers-reduced-motion: reduce){
+    .tf-reveal{opacity:1!important;transform:none!important;transition:none!important;}
+  }
 
   /* ============ SHRINK CIRCUIT-HOLO SECTION (drop-in) ============ */
   .shrink-holo{position:relative;min-height:100vh;display:flex;align-items:center;
@@ -27,15 +60,38 @@
   .shrink-holo.is-fallback .shrink-holo__fallback{display:flex;}
   .shrink-holo.is-fallback .shrink-holo__canvas{display:none;}
 
+  /* giant wordmark — sits behind the head (DOM order: after pulse, before vig/stage) so the
+     stage's WebGL canvas paints over it wherever the model has geometry, and the vignette
+     still dims its edges like everything else in the background layer. */
+  .shrink-holo__type{position:absolute;inset:0;z-index:1;display:flex;align-items:center;
+    justify-content:center;pointer-events:none;user-select:none;text-align:center;
+    font-family:var(--font-display);font-size:var(--h-hero);font-weight:800;
+    letter-spacing:-0.03em;line-height:0.9;color:var(--text-hi);opacity:.92;white-space:nowrap;}
+  .shrink-holo__type span{color:var(--accent-gold);}
+
+  .shrink-holo__corner{position:absolute;z-index:3;font-family:var(--font-mono);font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--text-low);opacity:.55;pointer-events:none;}
+  .shrink-holo__corner--tl{top:28px;left:28px;}
+  .shrink-holo__corner--tr{top:28px;right:28px;}
+
+  .shrink-holo__scroll{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;
+    display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--font-mono);
+    font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-low);
+    opacity:.6;pointer-events:none;}
+  .shrink-holo__scroll i{display:block;width:1px;height:16px;background:currentColor;
+    font-style:normal;animation:shrinkScrollTick 1.8s ease-in-out infinite;}
+  @keyframes shrinkScrollTick{0%,100%{transform:scaleY(1);opacity:.5;}50%{transform:scaleY(.4);opacity:.15;}}
+  @media (prefers-reduced-motion: reduce){
+    .shrink-holo__scroll i{animation:none;}
+  }
+
   .shrink-holo__meta{position:absolute;left:0;right:0;bottom:0;text-align:center;pointer-events:none;z-index:3;
-    padding:120px 24px 5%;
+    padding:64px 24px 92px;
     background:linear-gradient(to top, rgba(7,9,12,.94) 0%, rgba(7,9,12,.82) 34%, rgba(7,9,12,.35) 68%, rgba(7,9,12,0) 100%);}
   .shrink-holo__kicker{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.34em;
-    color:var(--teal);text-transform:uppercase;}
-  .shrink-holo__name{font-size:clamp(34px,5vw,54px);font-weight:800;letter-spacing:.01em;margin-top:10px;
-    text-shadow:0 0 26px rgba(79,209,190,.25);}
-  .shrink-holo__name span{color:var(--gold);}
-  .shrink-holo__tag{font-size:clamp(12px,1.4vw,15px);color:var(--dim);margin-top:8px;font-style:italic;}
+    color:var(--teal);text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 20px rgba(0,0,0,.8);}
+  .shrink-holo__tag{font-size:clamp(12px,1.4vw,15px);color:var(--dim);margin-top:16px;font-style:italic;
+    text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 20px rgba(0,0,0,.8);}
 
   .shrink-holo__cta{margin-top:22px;pointer-events:auto;}
   .shrink-holo__cta a{
@@ -54,17 +110,20 @@
 <section class="shrink-holo" id="shrinkHolo">
   <canvas class="shrink-holo__circuit" id="shCircuit"></canvas>
   <canvas class="shrink-holo__pulse" id="shPulse"></canvas>
+  <h1 class="shrink-holo__type">SH<span>RINK</span></h1>
   <div class="shrink-holo__vig"></div>
   <div class="shrink-holo__stage">
     <div class="shrink-holo__canvas" id="shrinkHoloCanvas"></div>
     <div class="shrink-holo__fallback"><img id="shrinkHoloImg" alt="SHRINK — The Brain" src=""></div>
   </div>
+  <div class="shrink-holo__corner shrink-holo__corner--tl">01 / 07</div>
+  <div class="shrink-holo__corner shrink-holo__corner--tr">Node · 12</div>
   <div class="shrink-holo__meta">
     <div class="shrink-holo__kicker">Agent 12 · The Brain of the Floor</div>
-    <div class="shrink-holo__name">SH<span>RINK</span></div>
     <div class="shrink-holo__tag">&ldquo;Eleven read the market. One reads them.&rdquo;</div>
     <div class="shrink-holo__cta"><a href="#">Enter The Floor</a></div>
   </div>
+  <div class="shrink-holo__scroll" aria-hidden="true"><span>Scroll</span><i></i></div>
 </section>
 
 <script src="vendor/three.min.js"></script>
