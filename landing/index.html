@@ -15,6 +15,14 @@
     --text-hi:#F2F3F5; --text-mid:#9AA1AD; --text-low:#787E8A;
     --accent-gold:#C4A052;
 
+    /* semantic color ROLES — every one of these points at a hex already used elsewhere in the
+       project (agent-node colors from the hero JS, or the existing teal/gold/ice tokens above).
+       No new hex introduced here, per the content spec. */
+    --role-positive:#4FD1BE;   /* = --teal, also RALLY/MACRO agent color */
+    --role-negative:#E06E5A;   /* = CRASH/HUNT agent color (224,110,90) */
+    --role-warning:#C6A253;    /* = --gold, also SNIPER/SENTIMENT agent color */
+    --role-accent:#DCE3ED;     /* = --ice, also TEMPO/ORACLE agent color */
+
     --font-display:'Inter',system-ui,sans-serif;
     --font-mono:'JetBrains Mono',monospace;
 
@@ -44,6 +52,180 @@
   @media (prefers-reduced-motion: reduce){
     .tf-reveal{opacity:1!important;transform:none!important;transition:none!important;}
   }
+
+  /* ============ nav ============ */
+  .tf-nav{position:sticky;top:0;z-index:50;background:rgba(14,15,19,.82);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);}
+  .tf-nav__row{max-width:var(--container-max);margin:0 auto;padding:16px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;}
+  .tf-nav__word{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-hi);text-decoration:none;white-space:nowrap;}
+  .tf-nav__word b{color:var(--accent-gold);font-weight:700;}
+  .tf-nav__links{display:none;gap:22px;list-style:none;}
+  .tf-nav__links a{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--text-mid);text-decoration:none;transition:color .15s ease;}
+  .tf-nav__links a:hover{color:var(--text-hi);}
+  @media (min-width:960px){ .tf-nav__links{display:flex;align-items:center;} }
+  .tf-nav__cta{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    text-decoration:none;color:var(--bg-0);background:var(--accent-gold);padding:9px 18px;border-radius:2px;
+    white-space:nowrap;}
+
+  /* ============ chip strip ============ */
+  .tf-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+  .tf-chip{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--text-mid);border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+    background:var(--bg-1);}
+  .tf-chip--star{color:var(--role-warning);border-color:rgba(198,162,83,.4);}
+  .tf-chip--out{color:var(--role-negative);border-color:rgba(224,110,90,.4);}
+
+  /* ============ panels ============ */
+  .tf-panels{display:grid;grid-template-columns:1fr;gap:20px;}
+  @media (min-width:760px){ .tf-panels{grid-template-columns:1fr 1fr;} }
+  .tf-panel{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:28px 26px;}
+  .tf-panel__label{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-low);margin-bottom:14px;}
+  .tf-panel--positive .tf-panel__label{color:var(--role-positive);}
+  .tf-panel--negative .tf-panel__label{color:var(--role-negative);}
+
+  /* ============ 5-step flow ============ */
+  .tf-steps{display:grid;grid-template-columns:1fr;gap:0;position:relative;}
+  @media (min-width:900px){ .tf-steps{grid-template-columns:repeat(5,1fr);} }
+  .tf-step{padding:22px 20px;border-top:1px solid var(--line);position:relative;}
+  @media (min-width:900px){
+    .tf-step{border-top:none;border-left:1px solid var(--line);}
+    .tf-step:first-child{border-left:none;}
+  }
+  .tf-step__n{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--accent-gold);}
+  .tf-step__t{font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.01em;
+    color:var(--text-hi);margin-top:10px;}
+  .tf-step__d{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:8px;}
+
+  /* ============ agent grid ============ */
+  .tf-tier-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--text-low);margin:44px 0 16px;}
+  .tf-tier-label:first-child{margin-top:0;}
+  .tf-agents{display:grid;grid-template-columns:1fr;gap:14px;}
+  @media (min-width:640px){ .tf-agents{grid-template-columns:1fr 1fr;} }
+  @media (min-width:1040px){ .tf-agents{grid-template-columns:repeat(4,1fr);} }
+  .tf-agent{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:22px 20px;
+    border-top:2px solid var(--agent-c, var(--line));}
+  .tf-agent__emblem{width:34px;height:34px;color:var(--agent-c, var(--text-mid));}
+  .tf-agent__name{font-family:var(--font-display);font-weight:800;font-size:19px;letter-spacing:-.01em;
+    color:var(--text-hi);margin-top:14px;}
+  .tf-agent__desk{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--agent-c, var(--text-low));margin-top:4px;}
+  .tf-agent__line{font-size:13.5px;line-height:1.5;color:var(--text-mid);margin-top:12px;font-style:italic;}
+
+  .tf-spotlight{margin-top:36px;border:1px solid var(--line);background:var(--bg-1);border-radius:4px;
+    padding:30px 28px;border-top:2px solid #F0D18C;}
+
+  /* ============ trade card ============ */
+  .tf-card-anatomy{display:grid;grid-template-columns:1fr;gap:36px;align-items:start;}
+  @media (min-width:900px){ .tf-card-anatomy{grid-template-columns:1fr 1fr;} }
+  .tf-tradecard{font-family:var(--font-mono);font-size:13.5px;line-height:1.85;color:var(--text-hi);
+    background:var(--bg-1);border:1px solid var(--line);border-radius:4px;padding:26px 24px;white-space:pre-wrap;}
+  .tf-tradecard b{color:var(--role-positive);}
+  .tf-tradecard .tf-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-low);
+    margin-top:10px;text-align:right;}
+  .tf-legend{display:flex;flex-direction:column;gap:16px;}
+  .tf-legend__row{border-bottom:1px solid var(--line);padding-bottom:14px;}
+  .tf-legend__row:last-child{border-bottom:none;}
+  .tf-legend__k{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent-gold);}
+  .tf-legend__v{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:6px;}
+
+  /* ============ confidence / sizing ============ */
+  .tf-tier-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:13.5px;}
+  .tf-tier-table td{padding:12px 6px;border-top:1px solid var(--line);color:var(--text-mid);}
+  .tf-tier-table tr:first-child td{border-top:none;}
+  .tf-tier-table td:first-child{color:var(--text-hi);white-space:nowrap;}
+  .tf-tier-table .r-negative td:first-child{color:var(--role-negative);}
+  .tf-tier-table .r-warning td:first-child{color:var(--role-warning);}
+  .tf-tier-table .r-accent td:first-child{color:var(--role-accent);}
+  .tf-tier-table .r-positive td:first-child{color:var(--role-positive);font-weight:700;}
+  .tf-note{font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:14px;}
+
+  /* ============ DNA panels ============ */
+  .tf-dna{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media (min-width:760px){ .tf-dna{grid-template-columns:1fr 1fr;} }
+  .tf-dna__p{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:24px 22px;}
+  .tf-dna__label{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent-gold);margin-bottom:10px;}
+  .tf-dna__body{font-size:14px;line-height:1.6;color:var(--text-mid);}
+  .tf-banner{margin-top:20px;border:1px solid rgba(224,110,90,.4);background:rgba(224,110,90,.06);
+    border-radius:4px;padding:16px 20px;font-family:var(--font-mono);font-size:12.5px;
+    letter-spacing:.04em;color:var(--role-negative);text-align:center;}
+
+  /* ============ session table ============ */
+  .tf-sessions{width:100%;border-collapse:collapse;}
+  .tf-sessions th{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-low);text-align:left;padding:0 12px 12px;border-bottom:1px solid var(--line);font-weight:400;}
+  .tf-sessions td{padding:14px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text-mid);
+    vertical-align:top;}
+  .tf-sessions td:first-child{font-family:var(--font-mono);color:var(--text-hi);white-space:nowrap;}
+  .tf-badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;}
+  .tf-badge--prime{color:var(--role-warning);border-color:rgba(198,162,83,.4);}
+  .tf-badge--active,.tf-badge--incoming{color:var(--role-accent);border-color:rgba(220,227,237,.3);}
+  .tf-badge--judas,.tf-badge--dead,.tf-badge--deadzone,.tf-badge--reduced{color:var(--role-negative);
+    border-color:rgba(224,110,90,.35);}
+  @media (max-width:720px){
+    .tf-sessions thead{display:none;}
+    .tf-sessions, .tf-sessions tbody, .tf-sessions tr, .tf-sessions td{display:block;width:100%;}
+    .tf-sessions tr{border-bottom:1px solid var(--line);padding:16px 0;}
+    .tf-sessions td{border-bottom:none;padding:3px 0;}
+    .tf-sessions td:first-child{font-size:15px;}
+  }
+
+  /* ============ strategies ============ */
+  .tf-strategies{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media (min-width:820px){ .tf-strategies{grid-template-columns:repeat(3,1fr);} }
+  .tf-strategy{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:24px 22px;}
+  .tf-strategy__tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent-gold);}
+  .tf-strategy__name{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em;
+    color:var(--text-hi);margin-top:10px;}
+  .tf-strategy__win{font-family:var(--font-mono);font-size:11px;color:var(--text-low);margin-top:4px;}
+  .tf-strategy__d{font-size:14px;line-height:1.6;color:var(--text-mid);margin-top:12px;}
+
+  /* ============ rules ============ */
+  .tf-rules{border-top:1px solid var(--line);}
+  .tf-rule{display:grid;grid-template-columns:56px 1fr;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);}
+  .tf-rule__id{font-family:var(--font-mono);font-size:13px;letter-spacing:.08em;color:var(--accent-gold);}
+  .tf-rule__body{font-size:14.5px;line-height:1.6;color:var(--text-mid);}
+
+  /* ============ discord / ecosystem ============ */
+  .tf-discord{display:grid;grid-template-columns:1fr;gap:40px;}
+  @media (min-width:840px){ .tf-discord{grid-template-columns:1fr 1fr;} }
+  .tf-channels{display:flex;flex-direction:column;gap:6px;}
+  .tf-channels__cat{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent-gold);margin-top:18px;}
+  .tf-channels__cat:first-child{margin-top:0;}
+  .tf-channels__item{font-family:var(--font-mono);font-size:13.5px;color:var(--text-mid);padding-left:2px;}
+  .tf-legal{font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-low);}
+  .tf-legal p{margin-top:14px;}
+  .tf-placeholder{border:1px dashed var(--line);color:var(--text-low);font-family:var(--font-mono);
+    font-size:12.5px;padding:20px;border-radius:4px;text-align:center;}
+
+  /* ============ join / footer ============ */
+  .tf-join{text-align:center;}
+  .tf-join .tf-headline{font-size:var(--h-hero);}
+  .tf-join__cta{margin-top:32px;display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;}
+  .tf-btn{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    text-decoration:none;padding:15px 36px;border-radius:2px;display:inline-block;
+    transition:transform .18s ease, box-shadow .18s ease;}
+  .tf-btn--primary{color:var(--bg-0);background:var(--accent-gold);box-shadow:0 0 22px rgba(196,160,82,.28);}
+  .tf-btn--primary:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(196,160,82,.44);}
+  .tf-btn--ghost{color:var(--text-hi);border:1px solid var(--line);background:transparent;}
+  .tf-btn--ghost:hover{border-color:var(--text-mid);}
+  .tf-micro{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-low);margin-top:18px;}
+  .tf-contact{font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:20px;}
+
+  footer.tf-footer{border-top:1px solid var(--line);padding:56px 0 40px;}
+  .tf-footer__row{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start;}
+  .tf-footer__word{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--text-hi);}
 
   /* ============ SHRINK CIRCUIT-HOLO SECTION (drop-in) ============ */
   .shrink-holo{position:relative;min-height:100vh;display:flex;align-items:center;
@@ -85,32 +267,44 @@
     .shrink-holo__scroll i{animation:none;}
   }
 
-  .shrink-holo__meta{position:absolute;left:0;right:0;bottom:0;text-align:center;pointer-events:none;z-index:3;
-    padding:64px 24px 92px;
-    background:linear-gradient(to top, rgba(7,9,12,.94) 0%, rgba(7,9,12,.82) 34%, rgba(7,9,12,.35) 68%, rgba(7,9,12,0) 100%);}
-  .shrink-holo__kicker{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.34em;
+  .shrink-holo__kicker{position:absolute;left:0;right:0;bottom:36px;z-index:3;text-align:center;
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.34em;pointer-events:none;
     color:var(--teal);text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 20px rgba(0,0,0,.8);}
-  .shrink-holo__tag{font-size:clamp(12px,1.4vw,15px);color:var(--dim);margin-top:16px;font-style:italic;
-    text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 20px rgba(0,0,0,.8);}
 
-  .shrink-holo__cta{margin-top:22px;pointer-events:auto;}
-  .shrink-holo__cta a{
-    display:inline-block;padding:13px 34px;font-family:'JetBrains Mono',monospace;
-    font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;
-    color:var(--bg2);background:var(--gold);border-radius:2px;
-    box-shadow:0 0 22px rgba(198,162,83,.30);
-    transition:transform .18s ease, box-shadow .18s ease;
-  }
-  .shrink-holo__cta a:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(198,162,83,.48);}
+  /* ============ hero copy block — clean typographic beat directly below the visual hero,
+     NOT layered over the head/wordmark, so the (long, verbatim) headline/sub/CTA never collides
+     with the "subject through type" treatment above. ============ */
+  .tf-hero-copy{text-align:center;padding-top:0;}
+  .tf-hero-h1{font-family:var(--font-display);font-size:clamp(30px,4.4vw,58px);font-weight:700;
+    letter-spacing:-0.02em;line-height:1.1;color:var(--text-hi);max-width:18ch;margin:18px auto 0;}
+  .tf-hero-sub{font-size:16px;line-height:1.6;color:var(--text-mid);max-width:56ch;margin:20px auto 0;}
+  .tf-hero-cta{margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
 </style>
 </head>
 <body>
+
+<nav class="tf-nav" id="top">
+  <div class="tf-nav__row">
+    <a class="tf-nav__word" href="#top"><b>THE</b> TRADING FLOOR</a>
+    <ul class="tf-nav__links">
+      <li><a href="#philosophy">Engine</a></li>
+      <li><a href="#agents">Agents</a></li>
+      <li><a href="#anatomy">Card</a></li>
+      <li><a href="#dna">DNA</a></li>
+      <li><a href="#sessions">Sessions</a></li>
+      <li><a href="#strategies">Strategies</a></li>
+      <li><a href="#rules">Rules</a></li>
+      <li><a href="#discord">Discord</a></li>
+    </ul>
+    <a class="tf-nav__cta" href="#join">Join The Floor</a>
+  </div>
+</nav>
 
 <!-- ================= DROP-IN START ================= -->
 <section class="shrink-holo" id="shrinkHolo">
   <canvas class="shrink-holo__circuit" id="shCircuit"></canvas>
   <canvas class="shrink-holo__pulse" id="shPulse"></canvas>
-  <h1 class="shrink-holo__type">SH<span>RINK</span></h1>
+  <div class="shrink-holo__type" aria-hidden="true">SH<span>RINK</span></div>
   <div class="shrink-holo__vig"></div>
   <div class="shrink-holo__stage">
     <div class="shrink-holo__canvas" id="shrinkHoloCanvas"></div>
@@ -118,13 +312,408 @@
   </div>
   <div class="shrink-holo__corner shrink-holo__corner--tl">01 / 07</div>
   <div class="shrink-holo__corner shrink-holo__corner--tr">Node · 12</div>
-  <div class="shrink-holo__meta">
-    <div class="shrink-holo__kicker">Agent 12 · The Brain of the Floor</div>
-    <div class="shrink-holo__tag">&ldquo;Eleven read the market. One reads them.&rdquo;</div>
-    <div class="shrink-holo__cta"><a href="#">Enter The Floor</a></div>
-  </div>
+  <div class="shrink-holo__kicker">The Trading Floor · Dubai GMT+4</div>
   <div class="shrink-holo__scroll" aria-hidden="true"><span>Scroll</span><i></i></div>
 </section>
+
+<section class="tf-hero-copy tf-section" style="padding-bottom:40px;">
+  <div class="tf-container">
+    <h1 class="tf-hero-h1 tf-reveal">Twelve agents. One analysis. No call without consensus.</h1>
+    <p class="tf-hero-sub tf-reveal">An AI analysis engine of 12 specialized agents that fight out every chart in silence. Only on consensus does a card drop: a TRADE card with exact entry, SL and targets — or a deliberate NO TRADE.</p>
+    <div class="tf-hero-cta tf-reveal">
+      <a class="tf-btn tf-btn--primary" href="#discord-invite" data-placeholder="DISCORD_INVITE_URL">Join The Discord</a>
+      <a class="tf-btn tf-btn--ghost" href="#briefing-pdf" data-placeholder="BRIEFING_PDF_URL">Read The Briefing (PDF)</a>
+    </div>
+    <div class="tf-micro tf-reveal" style="text-align:center;">Analysis &amp; Education · Not Financial Advice</div>
+  </div>
+</section>
+
+<div class="tf-container" style="padding-bottom:60px;">
+  <div class="tf-chips">
+    <span class="tf-chip tf-chip--star">XAUUSD★</span>
+    <span class="tf-chip">EURUSD</span>
+    <span class="tf-chip">GBPUSD</span>
+    <span class="tf-chip">GBPJPY</span>
+    <span class="tf-chip">NAS100</span>
+    <span class="tf-chip">US30</span>
+    <span class="tf-chip">GER40</span>
+    <span class="tf-chip">USDJPY</span>
+    <span class="tf-chip tf-chip--out">CRYPTO ⛔ OUT OF SCOPE</span>
+  </div>
+</div>
+
+<main>
+
+<section class="tf-section" id="philosophy">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">01 · The Philosophy</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">No consensus, no call.</h2>
+    <p class="tf-body tf-reveal" style="margin-top:24px;">Every agent reads the chart from one angle — structure, liquidity, timing, macro, order flow, psychology. They debate in silence. If they don&rsquo;t agree, there is no setup. Period.</p>
+    <div class="tf-panels tf-reveal" style="margin-top:48px;">
+      <div class="tf-panel tf-panel--positive">
+        <div class="tf-panel__label">Trade Card</div>
+        <p class="tf-body">Consensus reached. One card with exact entry, SL, TP1, TP2, size and expiry.</p>
+      </div>
+      <div class="tf-panel tf-panel--negative">
+        <div class="tf-panel__label">No Trade</div>
+        <p class="tf-body">No consensus. That&rsquo;s an outcome too — with the exact level to watch and the trigger that would still produce a card. Not trading is a position.</p>
+      </div>
+    </div>
+    <p class="tf-body tf-reveal" style="margin-top:36px;font-style:italic;">Confidence = honest confluence count. Minimum 65% to trade. Capped at 90%. Never inflated.</p>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="card-flow">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">02 · How A Card Is Made</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">How a card is made.</h2>
+    <div class="tf-steps tf-reveal" style="margin-top:48px;">
+      <div class="tf-step"><div class="tf-step__n">01</div><div class="tf-step__t">Chart In</div><div class="tf-step__d">One chart, one timeframe set: 15M + 5M, cross-ref 1H + 4H.</div></div>
+      <div class="tf-step"><div class="tf-step__n">02</div><div class="tf-step__t">12 Agents Read</div><div class="tf-step__d">Every desk analyses independently. No one sees each other&rsquo;s work.</div></div>
+      <div class="tf-step"><div class="tf-step__n">03</div><div class="tf-step__t">Silent Debate</div><div class="tf-step__d">Votes are weighed. Vetoes count hard.</div></div>
+      <div class="tf-step"><div class="tf-step__n">04</div><div class="tf-step__t">Consensus Gate</div><div class="tf-step__d">Below 65%? Automatic NO TRADE.</div></div>
+      <div class="tf-step"><div class="tf-step__n">05</div><div class="tf-step__t">One Card</div><div class="tf-step__d">TRADE or NO TRADE. Nothing in between.</div></div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="agents">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">03 · The Twelve Agents</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:10ch;">The floor.</h2>
+    <p class="tf-body tf-reveal" style="margin-top:24px;">Twelve desks. Each reads the chart from exactly one angle. Eight vote in the consensus, three weigh context and conviction, one guards the discipline.</p>
+
+    <div class="tf-tier-label tf-reveal">Core — 8 Votes</div>
+    <div class="tf-agents tf-reveal">
+      <div class="tf-agent" style="--agent-c:rgb(79,209,190)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l8-7 8 7"/><path d="M4 13l8-7 8 7"/><path d="M4 7l8-6 8 6"/></svg>
+        <div class="tf-agent__name">Rally</div>
+        <div class="tf-agent__desk">Bull Desk</div>
+        <p class="tf-agent__line">&ldquo;Momentum is your friend.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(224,110,90)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8 6 8-6"/><path d="M4 12l8 6 8-6"/><path d="M4 18l8 4 8-4"/></svg>
+        <div class="tf-agent__name">Crash</div>
+        <div class="tf-agent__desk">Bear Desk</div>
+        <p class="tf-agent__line">&ldquo;What goes up can fall.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(111,168,216)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>
+        <div class="tf-agent__name">Vector</div>
+        <div class="tf-agent__desk">Direction Desk</div>
+        <p class="tf-agent__line">&ldquo;Trend is direction. Direction is edge.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(220,227,237)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h8"/><path d="M9 20L12 4l3 16"/><path d="M12 4v10"/></svg>
+        <div class="tf-agent__name">Tempo</div>
+        <div class="tf-agent__desk">Timing Desk</div>
+        <p class="tf-agent__line">&ldquo;The right moment, not just any moment.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(224,110,90)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M9 3l3 9 3-9"/><path d="M9 21l3-9 3 9"/></svg>
+        <div class="tf-agent__name">Hunt</div>
+        <div class="tf-agent__desk">Liquidity Desk</div>
+        <p class="tf-agent__line">&ldquo;Follow the liquidity.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(198,162,83)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+        <div class="tf-agent__name">Sniper</div>
+        <div class="tf-agent__desk">Entry Desk</div>
+        <p class="tf-agent__line">&ldquo;Discipline. Precision. Execution.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(79,209,190)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
+        <div class="tf-agent__name">Macro</div>
+        <div class="tf-agent__desk">Macro Desk</div>
+        <p class="tf-agent__line">&ldquo;See the bigger picture.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(156,140,217)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z"/></svg>
+        <div class="tf-agent__name">Hedge</div>
+        <div class="tf-agent__desk">Risk Desk</div>
+        <p class="tf-agent__line">&ldquo;Protect first, profit second.&rdquo;</p>
+      </div>
+    </div>
+
+    <div class="tf-tier-label tf-reveal">Context — Conviction &amp; Risk</div>
+    <div class="tf-agents tf-reveal">
+      <div class="tf-agent" style="--agent-c:rgb(111,168,216)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
+        <div class="tf-agent__name">Flow</div>
+        <div class="tf-agent__desk">Order Flow Desk</div>
+        <p class="tf-agent__line">&ldquo;Capital doesn&rsquo;t lie.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(198,162,83)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M12 16l5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>
+        <div class="tf-agent__name">Sentiment</div>
+        <div class="tf-agent__desk">Sentiment Desk</div>
+        <p class="tf-agent__line">&ldquo;Read the mood of the market.&rdquo;</p>
+      </div>
+      <div class="tf-agent" style="--agent-c:rgb(220,227,237)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11L6 5"/><path d="M12 11l6-6"/><path d="M12 15l-4-4"/><path d="M12 15l4-4"/></svg>
+        <div class="tf-agent__name">Oracle</div>
+        <div class="tf-agent__desk">Probability Desk</div>
+        <p class="tf-agent__line">&ldquo;Every outcome. One edge.&rdquo;</p>
+      </div>
+    </div>
+
+    <div class="tf-tier-label tf-reveal">Discipline</div>
+    <div class="tf-agents tf-reveal">
+      <div class="tf-agent" style="--agent-c:rgb(255,214,140)">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
+        <div class="tf-agent__name">Shrink</div>
+        <div class="tf-agent__desk">Psychology Desk</div>
+        <p class="tf-agent__line">&ldquo;The data is not concerned with how you feel about it.&rdquo;</p>
+      </div>
+    </div>
+
+    <div class="tf-spotlight tf-reveal">
+      <div class="tf-panel__label">The Twelfth Seat</div>
+      <p class="tf-body">Shrink doesn&rsquo;t trade — he watches. Every trade is logged, every pattern registered: revenge trades, overtrading, oversized risk after a loss. Zero sympathy, only data. Including your distance to prop-firm limits: FTMO · Topstep · The5ers · FundedNext.</p>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="anatomy">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">04 · Anatomy Of A Card</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Anatomy of a card.</h2>
+    <div class="tf-card-anatomy tf-reveal" style="margin-top:44px;">
+      <div>
+        <div class="tf-tradecard">🎯 XAUUSD 15M — LONG ⚡ 78%
+
+ENTRY <b>2318.50</b> (Bull OB retest)
+SL   2311.00 (Invalidates OB)
+TP1  2334.00 → R:R 1:2.1
+TP2  2348.00 → R:R 1:3.8
+AT TP1: close 50%, move SL to break-even
+
+SIZE 1.5% | VALID 16:45 Dubai
+STRATEGY C | KILLZONE STRONG
+CONSENSUS 6/8 BULL
+FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
+        <div class="tf-cap">Example card · prices illustrative</div>
+      </div>
+      <div class="tf-legend">
+        <div class="tf-legend__row"><div class="tf-legend__k">Header line</div><div class="tf-legend__v">Asset · timeframe · direction · killzone status · confidence.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">Entry</div><div class="tf-legend__v">Exact price, plus what the level is.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">SL</div><div class="tf-legend__v">Stop placement, plus what breaks if hit.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">TP1 / TP2</div><div class="tf-legend__v">Targets with R:R; at TP1 close 50%, SL to break-even.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">Size / Valid</div><div class="tf-legend__v">Risk as % of account · expiry time.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">Strategy / Killzone</div><div class="tf-legend__v">Which of the three strategies, and window quality.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">Consensus</div><div class="tf-legend__v">How many of the 8 core agents agreed.</div></div>
+        <div class="tf-legend__row"><div class="tf-legend__k">Flags</div><div class="tf-legend__v">Max 3. Every flag is a meaningful condition, not decoration.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="confidence">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">05 · Confidence &amp; Sizing</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Confidence &amp; sizing.</h2>
+    <div class="tf-panels tf-reveal" style="margin-top:44px;">
+      <div class="tf-panel">
+        <div class="tf-panel__label">Confidence → Tier</div>
+        <table class="tf-tier-table">
+          <tr class="r-negative"><td>≤3 confluences</td><td>NO TRADE (below 65%)</td></tr>
+          <tr class="r-warning"><td>4 confluences</td><td>65-69% · A-setup minimum</td></tr>
+          <tr class="r-accent"><td>5-6 confluences</td><td>70-79% · Solid, standard</td></tr>
+          <tr class="r-positive"><td>7-8 confluences</td><td>80-90% · A+, size up</td></tr>
+        </table>
+        <div class="tf-note">Cap: 90%. Never 95%+.</div>
+      </div>
+      <div class="tf-panel">
+        <div class="tf-panel__label">Sizing Grid</div>
+        <table class="tf-tier-table">
+          <tr><td>65-69%</td><td>0.5% risk</td></tr>
+          <tr><td>70-74%</td><td>1.0% risk</td></tr>
+          <tr><td>75-79%</td><td>1.5% risk</td></tr>
+          <tr><td>80-84%</td><td>2.0% risk</td></tr>
+          <tr><td>85-90%</td><td>2.5% risk</td></tr>
+        </table>
+        <div class="tf-note">NY cont first 10 trades: ×0.5 all above.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="dna">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">06 · Trading DNA</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">Trading DNA.</h2>
+    <div class="tf-chips tf-reveal" style="margin-top:28px;">
+      <span class="tf-chip tf-chip--star">XAUUSD★</span>
+      <span class="tf-chip">EURUSD</span>
+      <span class="tf-chip">GBPUSD</span>
+      <span class="tf-chip">GBPJPY</span>
+      <span class="tf-chip">NAS100</span>
+      <span class="tf-chip">US30</span>
+      <span class="tf-chip">GER40</span>
+      <span class="tf-chip">USDJPY</span>
+      <span class="tf-chip tf-chip--out">CRYPTO → OUT OF SCOPE</span>
+    </div>
+    <div class="tf-dna tf-reveal" style="margin-top:32px;">
+      <div class="tf-dna__p">
+        <div class="tf-dna__label">XAUUSD — Strongest (88%)</div>
+        <p class="tf-dna__body">ADR 150-300p. London 09:30-11:00 = HUNT only (sweep risk high). <b style="color:var(--text-hi)">Best window: NY 15:30-17:00.</b> Inverse DXY always applies.</p>
+      </div>
+      <div class="tf-dna__p">
+        <div class="tf-dna__label">EURUSD — Cleanest (75%)</div>
+        <p class="tf-dna__body">Small ADR. Prime: 09:30-11:00 + 13:00-13:30 Silver Bullet. <b style="color:var(--text-hi)">Closed after 14:00. No NY trades.</b></p>
+      </div>
+      <div class="tf-dna__p">
+        <div class="tf-dna__label">GBPUSD — Weakest (50%)</div>
+        <p class="tf-dna__body">Prime window: <b style="color:var(--text-hi)">09:30-10:00 ONLY.</b> Closed after 13:00. Requires 5+ confluences minimum. Handle with care.</p>
+      </div>
+      <div class="tf-dna__p">
+        <div class="tf-dna__label">NAS100 / US30 — Indices</div>
+        <p class="tf-dna__body">Small sample. Prime: <b style="color:var(--text-hi)">15:30-17:00.</b> NAS100 inverse VIX. US30 = 1H OBs most reliable. Avoid Fed/CPI windows.</p>
+      </div>
+    </div>
+    <div class="tf-banner tf-reveal">CRYPTO = OUT OF SCOPE — no card issued. Response: OUT OF DNA.</div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="sessions">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">07 · Session Timing</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">Session timing (Dubai GMT+4).</h2>
+    <table class="tf-sessions tf-reveal" style="margin-top:36px;">
+      <thead><tr><th>Dubai Time</th><th>Session</th><th>Assets</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>08:55-09:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GER40</td><td>DAX open. All others dead.</td></tr>
+        <tr><td>09:00-09:30</td><td><span class="tf-badge tf-badge--judas">Judas</span></td><td>GBP/EUR pairs</td><td>NO ENTRIES on GBPUSD / EURUSD / GBPJPY. Fakeout window.</td></tr>
+        <tr><td>09:30-10:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GBPUSD, GBPJPY, XAUUSD</td><td>London Sweep window. XAUUSD: HUNT mode only.</td></tr>
+        <tr><td>10:00-11:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD</td><td>GBPUSD / GBPJPY / XAU active but secondary.</td></tr>
+        <tr><td>11:00-13:00</td><td><span class="tf-badge tf-badge--active">Active</span></td><td>EURUSD, GBPUSD</td><td>Rest dead. Momentum fades. Reduce size.</td></tr>
+        <tr><td>13:00-13:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD (Silver Bullet)</td><td>Strategy B FVG window. Tight timing — 30min only.</td></tr>
+        <tr><td>13:30-15:00</td><td><span class="tf-badge tf-badge--dead">Dead</span></td><td>—</td><td>Lunch dead. No prime setups.</td></tr>
+        <tr><td>15:00-15:30</td><td><span class="tf-badge tf-badge--incoming">Incoming</span></td><td>XAUUSD, USDJPY, NAS100, US30</td><td>NY pre-open. Watch, don&rsquo;t trade yet.</td></tr>
+        <tr><td>15:30-17:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAU, USDJPY, NAS100, US30, GBPJPY</td><td>Best overall window. Forex dead.</td></tr>
+        <tr><td>17:00-18:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAUUSD, USDJPY</td><td>NAS100 / US30 active. First 10 trades = 50% size on cont.</td></tr>
+        <tr><td>18:30-20:00</td><td><span class="tf-badge tf-badge--reduced">Reduced</span></td><td>XAUUSD only</td><td>50% size. All others dead.</td></tr>
+        <tr><td>20:00+</td><td><span class="tf-badge tf-badge--deadzone">Dead Zone</span></td><td>—</td><td>NO ENTRIES. Hard gate. Asia session = dead.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="strategies">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">08 · The Three Strategies</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">The three strategies.</h2>
+    <div class="tf-strategies tf-reveal" style="margin-top:36px;">
+      <div class="tf-strategy">
+        <div class="tf-strategy__tag">Strategy A ⛔</div>
+        <div class="tf-strategy__name">London Sweep + OB Retest</div>
+        <div class="tf-strategy__win">09:30-11:00</div>
+        <p class="tf-strategy__d">Sweep of prior high/low → rejection → return to OB. Needs clean displacement + confirmed sweep. XAU sweep must be 70%+ clean.</p>
+      </div>
+      <div class="tf-strategy">
+        <div class="tf-strategy__tag">Strategy B 🎯</div>
+        <div class="tf-strategy__name">Silver Bullet FVG</div>
+        <div class="tf-strategy__win">13:00-14:00</div>
+        <p class="tf-strategy__d">15M FVG from last 3 candles. Must be HTF aligned. 30-min window only. EURUSD primary. Expires fast — watch valid-until time.</p>
+      </div>
+      <div class="tf-strategy">
+        <div class="tf-strategy__tag">Strategy C 🔄</div>
+        <div class="tf-strategy__name">Overlap + NY Continuation</div>
+        <div class="tf-strategy__win">15:00-18:30</div>
+        <p class="tf-strategy__d">Trend pullback to OB/FVG. HTF aligned. NY cont (17:00-18:30): XAU, USDJPY, NAS100, US30 only. 50% size first 10 trades.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="rules">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">09 · Hard Rules</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">Hard rules.</h2>
+    <div class="tf-rules tf-reveal" style="margin-top:36px;">
+      <div class="tf-rule"><div class="tf-rule__id">R01</div><div class="tf-rule__body">NO ENTRIES during Judas window 09:00-09:30 on GBPUSD, EURUSD, GBPJPY. Fakeout probability too high.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R02</div><div class="tf-rule__body">DEAD ZONE after 20:00 Dubai. Zero entries. System hard-stops. Asia session = no edge.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R03</div><div class="tf-rule__body">NO TRADE if high-impact news within 60 minutes of entry. Prop firm: override permanently blocked.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R04</div><div class="tf-rule__body">R:R minimum 1.5. Below that = automatic veto by HEDGE. Card will not be issued.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R05</div><div class="tf-rule__body">No entry mid-range. Requires a clean POI (OB or FVG). Mid-range entries are the fastest way to blow stops.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R06</div><div class="tf-rule__body">After 2 consecutive losses → size drops 50% automatically. Flag: REDUCED SIZING ⚠️</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R07</div><div class="tf-rule__body">Drawdown 3-5% → max 0.5% risk per trade. Drawdown &gt;5% → NO TRADE until <code>drawdown: reset</code> issued.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R08</div><div class="tf-rule__body">CRYPTO = OUT OF SCOPE. No card issued. Response: ⛔ OUT OF DNA.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R09</div><div class="tf-rule__body">Every card expires. Strategy A: +45min. Strategy B: +30min. NY prime: +90min. NY cont: +60min. Expired card = NO TRADE.</div></div>
+      <div class="tf-rule"><div class="tf-rule__id">R10</div><div class="tf-rule__body">AT TP1 — always close 50% of position and move SL to break-even. Non-negotiable. Protect the trade.</div></div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="discord">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">10 · Inside The Discord</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Inside the Discord.</h2>
+    <div class="tf-discord tf-reveal" style="margin-top:40px;">
+      <div>
+        <div class="tf-panel__label">Channel Structure</div>
+        <div class="tf-channels" style="margin-top:14px;">
+          <div class="tf-channels__cat">Information</div>
+          <div class="tf-channels__item">#rules-and-setup</div>
+          <div class="tf-channels__item">#session-timing</div>
+          <div class="tf-channels__item">#announcements</div>
+        </div>
+      </div>
+      <div class="tf-legal">
+        <div>The Trading Floor · Analysis &amp; education, not financial advice</div>
+        <div>Trading involves a risk of loss.</div>
+        <div>© 2026 The Trading Floor</div>
+        <p>Trading forex, indices, metals and CFDs carries a high risk of loss and is not suitable for everyone. Past results are no guarantee of future performance. All content on this site and in the Discord is analytical and educational in nature; no individual investment advice is given. Never trade with money you cannot afford to lose.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="ecosystem">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">11 · The Ecosystem</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">The ecosystem.</h2>
+    <div class="tf-placeholder tf-reveal" style="margin-top:28px;">[PLACEHOLDER — copy TBD. No masterprompt PDF §5 content was provided in this session.]</div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section tf-join" id="join">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">12 · Join The Floor</div>
+    <h2 class="tf-headline tf-reveal" style="margin:16px auto 0;">Join the floor.</h2>
+    <div class="tf-join__cta tf-reveal">
+      <a class="tf-btn tf-btn--primary" href="#discord-invite" data-placeholder="DISCORD_INVITE_URL">Join The Discord</a>
+    </div>
+    <div class="tf-contact tf-reveal">[ @handle · contact ]</div>
+  </div>
+</section>
+
+</main>
+
+<footer class="tf-footer">
+  <div class="tf-container">
+    <div class="tf-footer__row">
+      <div class="tf-footer__word"><b style="color:var(--accent-gold)">THE</b> TRADING FLOOR</div>
+      <div class="tf-legal">
+        <div>The Trading Floor · Analysis &amp; education, not financial advice</div>
+        <div>Trading involves a risk of loss.</div>
+        <div>© 2026 The Trading Floor</div>
+      </div>
+    </div>
+    <p class="tf-legal" style="margin-top:24px;max-width:80ch;">Trading forex, indices, metals and CFDs carries a high risk of loss and is not suitable for everyone. Past results are no guarantee of future performance. All content on this site and in the Discord is analytical and educational in nature; no individual investment advice is given. Never trade with money you cannot afford to lose.</p>
+  </div>
+</footer>
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
@@ -772,6 +1361,28 @@
 })();
 </script>
 <!-- ================= DROP-IN END ================= -->
+
+<script>
+(function(){
+  var els = document.querySelectorAll('.tf-reveal');
+  if (!('IntersectionObserver' in window) || !els.length){
+    els.forEach(function(e){ e.classList.add('is-visible'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting){ en.target.classList.add('is-visible'); io.unobserve(en.target); }
+    });
+  }, {threshold:0.15, rootMargin:'0px 0px -40px 0px'});
+  els.forEach(function(e){ io.observe(e); });
+  // safety net: a heavily congested main thread (low-end device, or a lot of concurrent
+  // rendering work) can delay IntersectionObserver callbacks well past when content should
+  // already be readable. Never leave a section permanently invisible because of that.
+  setTimeout(function(){
+    document.querySelectorAll('.tf-reveal:not(.is-visible)').forEach(function(e){ e.classList.add('is-visible'); });
+  }, 3500);
+})();
+</script>
 
 </body>
 </html>
