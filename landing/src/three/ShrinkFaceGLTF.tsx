@@ -7,6 +7,7 @@ import { getScrollState, pointer } from "../lib/scrollStore";
 
 const TEAL = new THREE.Color("#4FD1BE");
 const GOLD = new THREE.Color("#C4A052");
+const CONTOUR = new THREE.Color("#262A33");
 
 interface Props {
   url: string;
@@ -40,6 +41,10 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return t * t * (3 - 2 * t);
 }
 
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
 interface JawRig {
   geometry: THREE.BufferGeometry;
   basePositions: Float32Array;
@@ -47,21 +52,33 @@ interface JawRig {
   edgeMesh: THREE.LineSegments;
 }
 
+interface FadeTargets {
+  fillMats: THREE.MeshStandardMaterial[];
+  edgeMats: THREE.LineBasicMaterial[];
+  eyeRingMat: THREE.MeshBasicMaterial | null;
+  eyeRings: THREE.Mesh[];
+}
+
 // Loads an external low-poly head/face .glb and restyles it to match the
-// site's teal-faceted-fill + gold-wireframe look, rather than sculpting
-// facial geometry procedurally (that approach repeatedly failed to
-// produce legible features).
+// site's brand look: teal facet fill, dark contour wireframe (gold is
+// reserved for the eyes only — a full gold wireframe competes with the
+// gold CTA button next to it), rather than sculpting facial geometry
+// procedurally (that approach repeatedly failed to produce legible
+// features).
 //
 // "Alive" motion layers, all eased (never linear) and never a continuous
 // spin/bounce:
-//  - idle sway + breathing + occasional glance: GSAP tweens on the whole
-//    head (same pattern proven on the old procedural version)
+//  - entrance: fade + scale in once on mount, eyes arriving slightly
+//    after the body
+//  - idle sway + breathing + occasional glance + blink: GSAP tweens
 //  - a subtle jaw/mouth movement: GSAP timeline nudging a vertex weight
 //    mask in the mouth-to-chin region, in occasional short "almost
 //    talking" bursts
 //  - eyes: damped per-frame rotation toward scroll direction / pointer,
 //    since that's a continuously-changing target rather than a
 //    discrete state change
+// All idle motion (everything but the static entrance pose) is skipped
+// under prefers-reduced-motion.
 export default function ShrinkFaceGLTF({
   url,
   scale = 1,
@@ -75,10 +92,11 @@ export default function ShrinkFaceGLTF({
   const swayGroup = useRef<THREE.Group>(null);
   const eyesPivot = useRef<THREE.Group>(null);
   const jawRigRef = useRef<JawRig | null>(null);
+  const fadeRef = useRef<FadeTargets | null>(null);
   const eyeYaw = useRef(0);
   const eyePitch = useRef(0);
 
-  const { restyled, jawRig } = useMemo(() => {
+  const { restyled, jawRig, fade } = useMemo(() => {
     const cloned = scene.clone(true);
     const meshes: THREE.Mesh[] = [];
     cloned.traverse((child) => {
@@ -97,9 +115,11 @@ export default function ShrinkFaceGLTF({
     const group = new THREE.Group();
     let jawRig: JawRig | null = null;
     const eyeMeshes: THREE.Mesh[] = [];
+    const fillMats: THREE.MeshStandardMaterial[] = [];
+    const edgeMats: THREE.LineBasicMaterial[] = [];
 
-    const makeFillMaterial = () =>
-      new THREE.MeshStandardMaterial({
+    const makeFillMaterial = () => {
+      const mat = new THREE.MeshStandardMaterial({
         color: TEAL,
         flatShading: true,
         metalness: 0.15,
@@ -107,9 +127,20 @@ export default function ShrinkFaceGLTF({
         emissive: TEAL,
         emissiveIntensity: 0.08,
         toneMapped: false,
+        transparent: true,
+        opacity: 1,
       });
-    const makeEdgeMaterial = () =>
-      new THREE.LineBasicMaterial({ color: GOLD, transparent: true, opacity: 0.85, toneMapped: false });
+      fillMats.push(mat);
+      return mat;
+    };
+    // dark contour lines rather than bright gold — a full gold wireframe
+    // reads as too much gold next to the gold CTA button beside it; gold
+    // is reserved as a sparing accent on the eyes only
+    const makeEdgeMaterial = () => {
+      const mat = new THREE.LineBasicMaterial({ color: CONTOUR, transparent: true, opacity: 0.9, toneMapped: false });
+      edgeMats.push(mat);
+      return mat;
+    };
 
     meshes.forEach((mesh) => {
       const geometry = mesh.geometry.clone();
@@ -142,7 +173,12 @@ export default function ShrinkFaceGLTF({
     });
 
     // eyes: re-centered to their own pivot so rotating looks like the
-    // eyes turning in their sockets, not the whole head tilting
+    // eyes turning in their sockets, not the whole head tilting. The
+    // eyeball meshes themselves stay as a subtle teal fill; the focal
+    // "eye" mark is an open almond-shaped ring — stroke only, no solid
+    // fill — never a flat filled circle/dot.
+    let eyeRingMat: THREE.MeshBasicMaterial | null = null;
+    const eyeRings: THREE.Mesh[] = [];
     if (eyeMeshes.length) {
       const eyeBounds = new THREE.Box3();
       eyeMeshes.forEach((m) => eyeBounds.expandByObject(m));
@@ -150,10 +186,6 @@ export default function ShrinkFaceGLTF({
       const pivot = new THREE.Group();
       pivot.position.copy(eyeCenter);
 
-      // plain UV spheres have no iris/pupil marker, so rotating them
-      // alone doesn't read as "looking" — split each eye mesh's
-      // vertices by which side of center they're on and drop a small
-      // dark pupil on the front of each cluster
       const clusters = [
         { sumX: 0, sumY: 0, sumZ: 0, maxZ: -Infinity, n: 0 }, // left (-x)
         { sumX: 0, sumY: 0, sumZ: 0, maxZ: -Infinity, n: 0 }, // right (+x)
@@ -172,14 +204,25 @@ export default function ShrinkFaceGLTF({
           c.n++;
         }
       });
-      const pupilMat = new THREE.MeshBasicMaterial({ color: "#0b1512", toneMapped: false });
+
+      eyeRingMat = new THREE.MeshBasicMaterial({
+        color: GOLD,
+        toneMapped: false,
+        transparent: true,
+        opacity: 1,
+        side: THREE.DoubleSide,
+      });
+      const ringGeo = new THREE.TorusGeometry(0.1, 0.013, 8, 24);
       clusters.forEach((c) => {
         if (!c.n) return;
         const cx = c.sumX / c.n;
         const cy = c.sumY / c.n;
-        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), pupilMat);
-        pupil.position.set(cx, cy, c.maxZ + 0.03);
-        pivot.add(pupil);
+        const ring = new THREE.Mesh(ringGeo, eyeRingMat!);
+        ring.scale.set(1.35, 0.82, 1); // open almond shape, not a circle
+        ring.position.set(cx, cy, c.maxZ + 0.025);
+        ring.userData.baseScaleY = ring.scale.y;
+        pivot.add(ring);
+        eyeRings.push(ring);
       });
 
       eyeMeshes.forEach((m) => {
@@ -193,12 +236,16 @@ export default function ShrinkFaceGLTF({
       group.add(pivot);
     }
 
-    return { restyled: group, jawRig };
+    return { restyled: group, jawRig, fade: { fillMats, edgeMats, eyeRingMat, eyeRings } };
   }, [scene, excludeNames, jawMeshName, eyeMeshNames]);
 
   useEffect(() => {
     jawRigRef.current = jawRig;
   }, [jawRig]);
+
+  useEffect(() => {
+    fadeRef.current = fade;
+  }, [fade]);
 
   // find the eyes pivot placed inside `restyled` and hand it to the ref
   // used by the per-frame eye-tracking below
@@ -206,55 +253,78 @@ export default function ShrinkFaceGLTF({
     eyesPivot.current = (restyled.getObjectByName("__eyesPivot") as THREE.Group) ?? null;
   }, [restyled]);
 
-  // Idle sway (slow sine-driven rotation), breathing (subtle scale
-  // pulse), an occasional glance, and a subtle jaw/mouth "almost
-  // talking" movement — all eased tweens, never linear, no continuous
-  // spin/bounce.
+  // Entrance (fade + scale in, eyes arriving last), idle sway, breathing,
+  // occasional glance, blink, and a subtle jaw/mouth "almost talking"
+  // movement — all eased tweens, never linear, no continuous spin/bounce.
+  // Skips everything but the static assembled pose under
+  // prefers-reduced-motion.
   useEffect(() => {
     const sway = swayGroup.current;
     const outer = outerGroup.current;
-    if (!sway || !outer) return;
+    const f = fadeRef.current;
+    if (!sway || !outer || !f) return;
+
+    const reduced = prefersReducedMotion();
+
+    // start state for the entrance: slightly smaller + fully transparent;
+    // reduced-motion skips straight to the final assembled values
+    f.fillMats.forEach((m) => (m.opacity = reduced ? 1 : 0));
+    f.edgeMats.forEach((m) => (m.opacity = reduced ? 0.9 : 0));
+    if (f.eyeRingMat) f.eyeRingMat.opacity = reduced ? 1 : 0;
+    sway.scale.setScalar(reduced ? scale : scale * 0.85);
+
+    if (reduced) {
+      return; // static, fully assembled — no idle motion at all
+    }
 
     const tweens: gsap.core.Tween[] = [];
-    tweens.push(
-      gsap.to(sway.rotation, {
-        y: THREE.MathUtils.degToRad(7),
-        duration: 5.2,
-        ease: "power2.inOut",
-        repeat: -1,
-        yoyo: true,
-      }),
-      gsap.to(sway.rotation, {
-        x: THREE.MathUtils.degToRad(4.5),
-        duration: 6.7,
-        ease: "power2.inOut",
-        repeat: -1,
-        yoyo: true,
-        delay: 0.6,
-      }),
-      gsap.fromTo(
-        sway.scale,
-        { x: scale, y: scale, z: scale },
-        {
-          x: scale * 1.015,
-          y: scale * 1.015,
-          z: scale * 1.015,
-          duration: breatheSeconds / 2,
-          ease: "power2.inOut",
-          repeat: -1,
-          yoyo: true,
-        }
-      )
-    );
-
     let glanceCall: gsap.core.Tween | null = null;
     let talkCall: gsap.core.Tween | null = null;
     let talkTimeline: gsap.core.Timeline | null = null;
+    let blinkCall: gsap.core.Tween | null = null;
     let cancelled = false;
+
+    function startIdleLoops() {
+      if (cancelled || !sway || !outer) return;
+      tweens.push(
+        gsap.to(sway.rotation, {
+          y: THREE.MathUtils.degToRad(6),
+          duration: 8,
+          ease: "power2.inOut",
+          repeat: -1,
+          yoyo: true,
+        }),
+        gsap.to(sway.rotation, {
+          x: THREE.MathUtils.degToRad(4),
+          duration: 9,
+          ease: "power2.inOut",
+          repeat: -1,
+          yoyo: true,
+          delay: 0.6,
+        }),
+        gsap.fromTo(
+          sway.scale,
+          { x: scale, y: scale, z: scale },
+          {
+            x: scale * 1.012,
+            y: scale * 1.012,
+            z: scale * 1.012,
+            duration: breatheSeconds / 2,
+            ease: "power2.inOut",
+            repeat: -1,
+            yoyo: true,
+          }
+        )
+      );
+
+      scheduleGlance();
+      scheduleTalk();
+      scheduleBlink();
+    }
 
     function scheduleGlance() {
       if (cancelled || !outer) return;
-      const delay = 8 + Math.random() * 7;
+      const delay = 10 + Math.random() * 6;
       glanceCall = gsap.delayedCall(delay, () => {
         if (cancelled || !outer) return;
         const targetX = THREE.MathUtils.degToRad((Math.random() - 0.5) * 10);
@@ -277,7 +347,21 @@ export default function ShrinkFaceGLTF({
         });
       });
     }
-    scheduleGlance();
+
+    function scheduleBlink() {
+      if (cancelled) return;
+      const delay = 7 + Math.random() * 7;
+      blinkCall = gsap.delayedCall(delay, () => {
+        if (cancelled) {
+          return;
+        }
+        fadeRef.current?.eyeRings.forEach((ring) => {
+          const baseY = (ring.userData.baseScaleY as number) ?? ring.scale.y;
+          gsap.to(ring.scale, { y: baseY * 0.1, duration: 0.11, ease: "power2.inOut", yoyo: true, repeat: 1 });
+        });
+        scheduleBlink();
+      });
+    }
 
     // rebuilding EdgesGeometry re-derives triangle adjacency from scratch —
     // real but non-trivial cost, so only do it every few ticks during a
@@ -345,14 +429,23 @@ export default function ShrinkFaceGLTF({
         talkTimeline = tl;
       });
     }
-    scheduleTalk();
 
+    // entrance: body fades/scales in, eyes arrive slightly after
+    const entrance = gsap.timeline({ onComplete: startIdleLoops });
+    entrance.to(sway.scale, { x: scale, y: scale, z: scale, duration: 1.6, ease: "power2.inOut" }, 0);
+    entrance.to(f.edgeMats, { opacity: 0.9, duration: 1.2, ease: "power2.inOut" }, 0.05);
+    entrance.to(f.fillMats, { opacity: 1, duration: 1.3, ease: "power2.inOut" }, 0.15);
+    if (f.eyeRingMat) {
+      entrance.to(f.eyeRingMat, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 0.9);
+    }
     return () => {
       cancelled = true;
+      entrance.kill();
       tweens.forEach((tw) => tw.kill());
       glanceCall?.kill();
       talkCall?.kill();
       talkTimeline?.kill();
+      blinkCall?.kill();
       gsap.killTweensOf(sway.rotation);
       gsap.killTweensOf(sway.scale);
       gsap.killTweensOf(outer.rotation);
@@ -365,7 +458,7 @@ export default function ShrinkFaceGLTF({
   // non-robotic without being a GSAP "state to state" tween.
   useFrame((_state, delta) => {
     const pivot = eyesPivot.current;
-    if (!pivot) return;
+    if (!pivot || prefersReducedMotion()) return;
     const { velocity } = getScrollState();
     const targetPitch = THREE.MathUtils.clamp(-velocity * 0.012, -0.14, 0.14);
     const targetYaw = THREE.MathUtils.clamp(pointer.nx * 0.16, -0.14, 0.14);
