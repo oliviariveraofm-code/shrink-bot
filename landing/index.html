@@ -49,8 +49,13 @@
   .tf-divider{border:none;border-top:1px solid var(--line);margin:0;}
   .tf-reveal{opacity:0;transform:translateY(8px);transition:opacity .3s ease-out, transform .3s ease-out;}
   .tf-reveal.is-visible{opacity:1;transform:translateY(0);}
+  /* slower, deliberate clip-reveal for the big "hero moment" headlines (§6 motion upgrade) */
+  .tf-reveal.tf-reveal--mask{opacity:1;transform:none;clip-path:inset(0 100% 0 0);
+    transition:clip-path 1s cubic-bezier(.16,1,.3,1);}
+  .tf-reveal.tf-reveal--mask.is-visible{clip-path:inset(0 0 0 0);}
   @media (prefers-reduced-motion: reduce){
     .tf-reveal{opacity:1!important;transform:none!important;transition:none!important;}
+    .tf-reveal--mask{clip-path:inset(0)!important;}
   }
 
   /* ============ nav ============ */
@@ -227,6 +232,34 @@
   .tf-footer__word{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
     color:var(--text-hi);}
 
+  /* ============ 01 · PHILOSOPHY — archetype A: full-bleed statement ============ */
+  .phi{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;
+    padding-top:120px;padding-bottom:120px;overflow:hidden;}
+  .phi__mark{position:absolute;left:18px;top:50%;transform:translateY(-50%) rotate(-90deg);
+    transform-origin:left center;font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;
+    text-transform:uppercase;color:var(--text-low);white-space:nowrap;opacity:.6;}
+  .phi__eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--text-low);padding-left:56px;}
+  .phi__headline{font-family:var(--font-display);font-weight:800;letter-spacing:-0.035em;line-height:0.92;
+    color:var(--text-hi);font-size:clamp(56px,9vw,144px);margin:22px 0 0 56px;max-width:94vw;}
+  .phi__lower{margin-top:96px;max-width:var(--container-max);margin-left:auto;margin-right:auto;
+    padding-left:56px;padding-right:24px;}
+  .phi__intro{font-size:17px;line-height:1.65;color:var(--text-mid);max-width:44ch;
+    margin-left:auto;margin-right:0;text-align:left;}
+  .phi__panels{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;margin-top:56px;}
+  @media (max-width:760px){ .phi__panels{grid-template-columns:1fr;} }
+  .phi__panel{border:1px solid var(--line);border-radius:4px;padding:32px 28px;position:relative;
+    box-shadow:0 24px 48px -24px rgba(0,0,0,.6);}
+  .phi__panel--positive{background:linear-gradient(160deg, rgba(79,209,190,.10), var(--bg-1) 60%);
+    border-color:rgba(79,209,190,.28);}
+  .phi__panel--negative{background:linear-gradient(160deg, rgba(224,110,90,.10), var(--bg-1) 60%);
+    border-color:rgba(224,110,90,.28);margin-top:34px;}
+  @media (max-width:760px){ .phi__panel--negative{margin-top:0;} }
+  .phi__panel--positive .tf-panel__label{color:var(--role-positive);}
+  .phi__panel--negative .tf-panel__label{color:var(--role-negative);}
+  .phi__closing{font-size:19px;line-height:1.6;color:var(--text-hi);font-style:italic;margin-top:60px;
+    max-width:46ch;padding-left:22px;border-left:2px solid var(--accent-gold);}
+
   /* ============ SHRINK CIRCUIT-HOLO SECTION (drop-in) ============ */
   .shrink-holo{position:relative;min-height:100vh;display:flex;align-items:center;
     justify-content:center;overflow:hidden;background:var(--bg2);}
@@ -344,22 +377,23 @@
 
 <main>
 
-<section class="tf-section" id="philosophy">
-  <div class="tf-container">
-    <div class="tf-eyebrow tf-reveal">01 · The Philosophy</div>
-    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">No consensus, no call.</h2>
-    <p class="tf-body tf-reveal" style="margin-top:24px;">Every agent reads the chart from one angle — structure, liquidity, timing, macro, order flow, psychology. They debate in silence. If they don&rsquo;t agree, there is no setup. Period.</p>
-    <div class="tf-panels tf-reveal" style="margin-top:48px;">
-      <div class="tf-panel tf-panel--positive">
+<section class="phi" id="philosophy">
+  <div class="phi__mark" aria-hidden="true">01 · Philosophy</div>
+  <div class="tf-eyebrow phi__eyebrow tf-reveal">The Philosophy</div>
+  <h2 class="phi__headline tf-reveal tf-reveal--mask">No consensus,<br>no call.</h2>
+  <div class="phi__lower">
+    <p class="phi__intro tf-reveal">Every agent reads the chart from one angle — structure, liquidity, timing, macro, order flow, psychology. They debate in silence. If they don&rsquo;t agree, there is no setup. Period.</p>
+    <div class="phi__panels tf-reveal">
+      <div class="phi__panel phi__panel--positive">
         <div class="tf-panel__label">Trade Card</div>
         <p class="tf-body">Consensus reached. One card with exact entry, SL, TP1, TP2, size and expiry.</p>
       </div>
-      <div class="tf-panel tf-panel--negative">
+      <div class="phi__panel phi__panel--negative">
         <div class="tf-panel__label">No Trade</div>
         <p class="tf-body">No consensus. That&rsquo;s an outcome too — with the exact level to watch and the trigger that would still produce a card. Not trading is a position.</p>
       </div>
     </div>
-    <p class="tf-body tf-reveal" style="margin-top:36px;font-style:italic;">Confidence = honest confluence count. Minimum 65% to trade. Capped at 90%. Never inflated.</p>
+    <p class="phi__closing tf-reveal">Confidence = honest confluence count. Minimum 65% to trade. Capped at 90%. Never inflated.</p>
   </div>
 </section>
 <hr class="tf-divider">
