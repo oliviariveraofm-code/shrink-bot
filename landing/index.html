@@ -622,6 +622,21 @@
         er.core.position.set(er.base.x + er.off.x, er.base.y + er.off.y, er.base.z + 0.065);
       }
     }
+
+    /* ---- cursor-reactive head lean: additive layer on top of the eye tracking above ---- */
+    var leanIdle = !hasPointer || (t - lastMove) > 2.0;
+    var leanY, leanX;
+    if (leanIdle){
+      leanY = Math.sin(t*0.24)*CONFIG.SWAY;
+      leanX = Math.sin(t*0.31)*0.02;
+    } else {
+      var lx = Math.max(-1, Math.min(1, mx)), ly = Math.max(-1, Math.min(1, -my));
+      leanY = lx * 0.16;
+      leanX = ly * 0.10;
+    }
+    rig.rotation.y += (leanY - rig.rotation.y)*0.06;
+    rig.rotation.x += (leanX - rig.rotation.x)*0.06;
+
     drawPulses();
     renderer.render(scene,camera);
   })();
