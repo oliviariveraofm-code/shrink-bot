@@ -1,0 +1,56 @@
+.tf-footer {
+  min-height: 40vh;
+  gap: 14px;
+  text-align: center;
+}
+
+.tf-footer__hex {
+  width: 30px;
+  height: 30px;
+  background: var(--gold);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  animation: floatY 3s ease-in-out infinite, breathe 4s ease-in-out infinite;
+  box-shadow: 0 0 16px rgba(196,160,82,0.6);
+  margin-bottom: 6px;
+}
+
+.tf-footer__brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--gold-bright);
+  font-size: 0.92rem;
+}
+
+.tf-footer__tagline {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  max-width: 420px;
+}
+
+.tf-footer__links {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 18px 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.tf-footer__links a:hover {
+  color: var(--gold-bright);
+}
+
+.tf-footer__legal {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  opacity: 0.6;
+  max-width: 400px;
+}
+
+.tf-footer__copy {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  opacity: 0.4;
+}
