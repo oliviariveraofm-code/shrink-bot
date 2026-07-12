@@ -168,7 +168,24 @@
     color:var(--accent-gold);}
   .tf-legend__v{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:6px;}
 
-  /* ============ confidence / sizing ============ */
+  /* ============ 05 · CONFIDENCE & SIZING — archetype E: terminal readout ============ */
+  .term__window{border:1px solid var(--line);border-radius:8px;background:var(--bg-1);overflow:hidden;
+    box-shadow:0 32px 64px -30px rgba(0,0,0,.7);}
+  .term__bar{display:flex;align-items:center;gap:7px;padding:13px 18px;background:var(--bg-0);
+    border-bottom:1px solid var(--line);}
+  .term__dot{width:9px;height:9px;border-radius:50%;display:inline-block;opacity:.85;}
+  .term__dot--r{background:var(--role-negative);} .term__dot--y{background:var(--role-warning);}
+  .term__dot--g{background:var(--role-positive);}
+  .term__title{margin-left:10px;font-family:var(--font-mono);font-size:11px;color:var(--text-low);letter-spacing:.06em;}
+  .term__body{padding:36px 32px;display:grid;grid-template-columns:1fr 1fr;gap:48px;}
+  @media (max-width:760px){ .term__body{grid-template-columns:1fr;gap:36px;} }
+  .term__prompt{font-family:var(--font-mono);font-size:12.5px;color:var(--role-positive);margin-bottom:18px;}
+  .term__prompt b{color:var(--text-hi);font-weight:400;}
+  .term__prompt i{display:inline-block;width:7px;height:14px;background:var(--role-positive);
+    margin-left:2px;vertical-align:-2px;animation:termBlink 1.1s step-end infinite;}
+  @keyframes termBlink{50%{opacity:0;}}
+  @media (prefers-reduced-motion: reduce){ .term__prompt i{animation:none;} }
+
   .tf-tier-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:13.5px;}
   .tf-tier-table td{padding:12px 6px;border-top:1px solid var(--line);color:var(--text-mid);}
   .tf-tier-table tr:first-child td{border-top:none;}
@@ -179,23 +196,40 @@
   .tf-tier-table .r-positive td:first-child{color:var(--role-positive);font-weight:700;}
   .tf-note{font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:14px;}
 
-  /* ============ DNA panels ============ */
-  .tf-dna{display:grid;grid-template-columns:1fr;gap:16px;}
+  /* ============ 06 · TRADING DNA — archetype D variant: immersive grid by asset strength ============ */
+  .tf-dna{display:grid;grid-template-columns:1fr;gap:18px;}
   @media (min-width:760px){ .tf-dna{grid-template-columns:1fr 1fr;} }
-  .tf-dna__p{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:24px 22px;}
+  .tf-dna__p{position:relative;overflow:hidden;border:1px solid var(--line);background:var(--bg-1);
+    border-radius:6px;padding:28px 26px;transition:transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;}
+  .tf-dna__p:hover{transform:translateY(-5px);box-shadow:0 24px 44px -22px rgba(0,0,0,.55);}
+  .tf-dna__pct{position:absolute;right:10px;bottom:-26px;font-family:var(--font-display);font-weight:800;
+    font-size:110px;line-height:1;color:var(--text-hi);opacity:.05;pointer-events:none;}
+  .tf-dna__p--positive{background:linear-gradient(155deg, rgba(79,209,190,.10), var(--bg-1) 60%);
+    border-color:rgba(79,209,190,.3);}
+  .tf-dna__p--positive .tf-dna__label{color:var(--role-positive);}
+  .tf-dna__p--accent{background:linear-gradient(155deg, rgba(220,227,237,.08), var(--bg-1) 60%);
+    border-color:rgba(220,227,237,.25);}
+  .tf-dna__p--accent .tf-dna__label{color:var(--role-accent);}
+  .tf-dna__p--negative{background:linear-gradient(155deg, rgba(224,110,90,.10), var(--bg-1) 60%);
+    border-color:rgba(224,110,90,.3);}
+  .tf-dna__p--negative .tf-dna__label{color:var(--role-negative);}
+  .tf-dna__p--warning{background:linear-gradient(155deg, rgba(198,162,83,.10), var(--bg-1) 60%);
+    border-color:rgba(198,162,83,.3);}
+  .tf-dna__p--warning .tf-dna__label{color:var(--role-warning);}
   .tf-dna__label{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--accent-gold);margin-bottom:10px;}
-  .tf-dna__body{font-size:14px;line-height:1.6;color:var(--text-mid);}
+    margin-bottom:10px;position:relative;z-index:1;}
+  .tf-dna__body{font-size:14px;line-height:1.6;color:var(--text-mid);position:relative;z-index:1;}
   .tf-banner{margin-top:20px;border:1px solid rgba(224,110,90,.4);background:rgba(224,110,90,.06);
     border-radius:4px;padding:16px 20px;font-family:var(--font-mono);font-size:12.5px;
     letter-spacing:.04em;color:var(--role-negative);text-align:center;}
 
-  /* ============ session table ============ */
+  /* ============ 07 · SESSION TIMING — archetype E: terminal readout ============ */
   .tf-sessions{width:100%;border-collapse:collapse;}
   .tf-sessions th{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--text-low);text-align:left;padding:0 12px 12px;border-bottom:1px solid var(--line);font-weight:400;}
   .tf-sessions td{padding:14px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text-mid);
-    vertical-align:top;}
+    vertical-align:top;transition:background .15s ease;}
+  .tf-sessions tbody tr:hover td{background:rgba(255,255,255,.025);}
   .tf-sessions td:first-child{font-family:var(--font-mono);color:var(--text-hi);white-space:nowrap;}
   .tf-badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
     padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;}
@@ -211,40 +245,81 @@
     .tf-sessions td:first-child{font-size:15px;}
   }
 
-  /* ============ strategies ============ */
+  /* ============ 08 · THE THREE STRATEGIES — archetype C variant: horizontal day timeline ============ */
+  .strat__timeline{position:relative;height:64px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .strat__seg{position:absolute;top:8px;bottom:8px;border-radius:3px;}
+  .strat__seg--a{background:linear-gradient(90deg, rgba(224,110,90,.32), rgba(224,110,90,.12));border:1px solid rgba(224,110,90,.5);}
+  .strat__seg--b{background:linear-gradient(90deg, rgba(198,162,83,.32), rgba(198,162,83,.12));border:1px solid rgba(198,162,83,.5);}
+  .strat__seg--c{background:linear-gradient(90deg, rgba(79,209,190,.32), rgba(79,209,190,.12));border:1px solid rgba(79,209,190,.5);}
+  .strat__seg-label{position:absolute;top:50%;left:12px;transform:translateY(-50%);font-family:var(--font-mono);
+    font-size:10.5px;letter-spacing:.06em;white-space:nowrap;color:var(--text-hi);}
+  .strat__axis{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--font-mono);
+    font-size:10px;color:var(--text-low);}
+  @media (max-width:700px){
+    .strat__seg-label{display:none;}
+    .strat__axis span:nth-child(2n){display:none;}
+  }
+
   .tf-strategies{display:grid;grid-template-columns:1fr;gap:16px;}
   @media (min-width:820px){ .tf-strategies{grid-template-columns:repeat(3,1fr);} }
-  .tf-strategy{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:24px 22px;}
+  .tf-strategy{position:relative;overflow:hidden;border:1px solid var(--line);border-left:2px solid var(--strat-c,var(--line));
+    background:var(--bg-1);border-radius:4px;padding:26px 24px;}
+  .tf-strategy__glyph{position:absolute;right:-6px;bottom:-16px;font-size:96px;line-height:1;opacity:.08;
+    pointer-events:none;filter:grayscale(1);}
+  .tf-strategy__n{font-family:var(--font-display);font-weight:800;font-size:34px;color:var(--strat-c,var(--text-low));
+    opacity:.55;line-height:1;position:relative;z-index:1;}
   .tf-strategy__tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--accent-gold);}
+    color:var(--accent-gold);position:relative;z-index:1;margin-top:14px;}
   .tf-strategy__name{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em;
-    color:var(--text-hi);margin-top:10px;}
-  .tf-strategy__win{font-family:var(--font-mono);font-size:11px;color:var(--text-low);margin-top:4px;}
-  .tf-strategy__d{font-size:14px;line-height:1.6;color:var(--text-mid);margin-top:12px;}
+    color:var(--text-hi);margin-top:10px;position:relative;z-index:1;}
+  .tf-strategy__win{font-family:var(--font-mono);font-size:11px;color:var(--text-low);margin-top:4px;
+    position:relative;z-index:1;}
+  .tf-strategy__d{font-size:14px;line-height:1.6;color:var(--text-mid);margin-top:12px;position:relative;z-index:1;}
 
-  /* ============ rules ============ */
+  /* ============ 09 · HARD RULES — severity-accented system log ============ */
   .tf-rules{border-top:1px solid var(--line);}
-  .tf-rule{display:grid;grid-template-columns:56px 1fr;gap:18px;padding:18px 0;border-bottom:1px solid var(--line);}
-  .tf-rule__id{font-family:var(--font-mono);font-size:13px;letter-spacing:.08em;color:var(--accent-gold);}
+  .tf-rule{position:relative;display:grid;grid-template-columns:74px 1fr;gap:18px;padding:20px 0 20px 18px;
+    border-bottom:1px solid var(--line);border-left:3px solid var(--rule-c, var(--line));
+    transition:background .15s ease;}
+  .tf-rule:hover{background:rgba(255,255,255,.02);}
+  .tf-rule__id{font-family:var(--font-mono);font-weight:700;font-size:15px;letter-spacing:.04em;
+    color:var(--rule-c, var(--accent-gold));}
   .tf-rule__body{font-size:14.5px;line-height:1.6;color:var(--text-mid);}
+  .tf-rule__body code{font-family:var(--font-mono);font-size:12.5px;background:var(--bg-1);
+    padding:2px 6px;border-radius:3px;color:var(--text-hi);}
 
-  /* ============ discord / ecosystem ============ */
-  .tf-discord{display:grid;grid-template-columns:1fr;gap:40px;}
-  @media (min-width:840px){ .tf-discord{grid-template-columns:1fr 1fr;} }
-  .tf-channels{display:flex;flex-direction:column;gap:6px;}
-  .tf-channels__cat{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--accent-gold);margin-top:18px;}
-  .tf-channels__cat:first-child{margin-top:0;}
-  .tf-channels__item{font-family:var(--font-mono);font-size:13.5px;color:var(--text-mid);padding-left:2px;}
+  /* ============ 10 · INSIDE THE DISCORD — archetype B variant: split + sidebar mockup ============ */
+  .tf-discord{display:grid;grid-template-columns:1fr;gap:40px;align-items:start;}
+  @media (min-width:840px){ .tf-discord{grid-template-columns:minmax(0,320px) 1fr;} }
+  .disco__sidebar{background:var(--bg-1);border:1px solid var(--line);border-radius:8px;overflow:hidden;
+    box-shadow:0 28px 56px -26px rgba(0,0,0,.65);}
+  .disco__sidebar__head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+  .disco__sidebar__logo{width:26px;height:26px;border-radius:7px;background:var(--accent-gold);
+    display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;
+    font-size:12px;color:var(--bg-0);flex-shrink:0;}
+  .disco__sidebar__name{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--text-hi);}
+  .tf-channels{display:flex;flex-direction:column;gap:2px;padding:14px 12px 20px;}
+  .tf-channels__cat{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-low);margin:14px 0 4px 6px;}
+  .tf-channels__cat:first-child{margin-top:2px;}
+  .tf-channels__item{font-family:var(--font-mono);font-size:13px;color:var(--text-mid);padding:6px 10px;
+    border-radius:5px;transition:background .15s ease, color .15s ease;}
+  .tf-channels__item:hover{background:rgba(255,255,255,.045);color:var(--text-hi);}
   .tf-legal{font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-low);}
   .tf-legal p{margin-top:14px;}
   .tf-placeholder{border:1px dashed var(--line);color:var(--text-low);font-family:var(--font-mono);
     font-size:12.5px;padding:20px;border-radius:4px;text-align:center;}
 
-  /* ============ join / footer ============ */
-  .tf-join{text-align:center;}
-  .tf-join .tf-headline{font-size:var(--h-hero);}
-  .tf-join__cta{margin-top:32px;display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;}
+  /* ============ 12 · JOIN THE FLOOR — archetype F: full-bleed dark moment ============ */
+  .tf-join{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+    align-items:center;text-align:center;overflow:hidden;padding-top:0;padding-bottom:0;}
+  .tf-join__glow{position:absolute;top:50%;left:50%;width:min(1000px,140vw);height:min(1000px,140vw);
+    transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle, rgba(255,214,140,.10) 0%, rgba(255,214,140,.03) 45%, transparent 72%);}
+  .tf-join .tf-headline{font-size:clamp(64px,10vw,160px);letter-spacing:-0.03em;line-height:.98;max-width:none;
+    position:relative;z-index:1;}
+  .tf-join__cta{position:relative;z-index:1;margin-top:32px;display:flex;flex-wrap:wrap;gap:16px;
+    justify-content:center;align-items:center;}
   .tf-btn{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
     text-decoration:none;padding:15px 36px;border-radius:2px;display:inline-block;
     transition:transform .18s ease, box-shadow .18s ease;}
@@ -254,7 +329,8 @@
   .tf-btn--ghost:hover{border-color:var(--text-mid);}
   .tf-micro{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--text-low);margin-top:18px;}
-  .tf-contact{font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:20px;}
+  .tf-contact{position:relative;z-index:1;font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:20px;}
+  .tf-join .tf-eyebrow{position:relative;z-index:1;}
 
   footer.tf-footer{border-top:1px solid var(--line);padding:56px 0 40px;}
   .tf-footer__row{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start;}
@@ -656,27 +732,33 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">05 · Confidence &amp; Sizing</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Confidence &amp; sizing.</h2>
-    <div class="tf-panels tf-reveal" style="margin-top:44px;">
-      <div class="tf-panel">
-        <div class="tf-panel__label">Confidence → Tier</div>
-        <table class="tf-tier-table">
-          <tr class="r-negative"><td>≤3 confluences</td><td>NO TRADE (below 65%)</td></tr>
-          <tr class="r-warning"><td>4 confluences</td><td>65-69% · A-setup minimum</td></tr>
-          <tr class="r-accent"><td>5-6 confluences</td><td>70-79% · Solid, standard</td></tr>
-          <tr class="r-positive"><td>7-8 confluences</td><td>80-90% · A+, size up</td></tr>
-        </table>
-        <div class="tf-note">Cap: 90%. Never 95%+.</div>
+    <div class="term__window tf-reveal" style="margin-top:44px;">
+      <div class="term__bar">
+        <span class="term__dot term__dot--r"></span><span class="term__dot term__dot--y"></span><span class="term__dot term__dot--g"></span>
+        <span class="term__title">confidence.sys — read only</span>
       </div>
-      <div class="tf-panel">
-        <div class="tf-panel__label">Sizing Grid</div>
-        <table class="tf-tier-table">
-          <tr><td>65-69%</td><td>0.5% risk</td></tr>
-          <tr><td>70-74%</td><td>1.0% risk</td></tr>
-          <tr><td>75-79%</td><td>1.5% risk</td></tr>
-          <tr><td>80-84%</td><td>2.0% risk</td></tr>
-          <tr><td>85-90%</td><td>2.5% risk</td></tr>
-        </table>
-        <div class="tf-note">NY cont first 10 trades: ×0.5 all above.</div>
+      <div class="term__body">
+        <div>
+          <div class="term__prompt">&gt; <b>confidence --tier</b><i></i></div>
+          <table class="tf-tier-table">
+            <tr class="r-negative"><td>≤3 confluences</td><td>NO TRADE (below 65%)</td></tr>
+            <tr class="r-warning"><td>4 confluences</td><td>65-69% · A-setup minimum</td></tr>
+            <tr class="r-accent"><td>5-6 confluences</td><td>70-79% · Solid, standard</td></tr>
+            <tr class="r-positive"><td>7-8 confluences</td><td>80-90% · A+, size up</td></tr>
+          </table>
+          <div class="tf-note">Cap: 90%. Never 95%+.</div>
+        </div>
+        <div>
+          <div class="term__prompt">&gt; <b>sizing --grid</b></div>
+          <table class="tf-tier-table">
+            <tr><td>65-69%</td><td>0.5% risk</td></tr>
+            <tr><td>70-74%</td><td>1.0% risk</td></tr>
+            <tr><td>75-79%</td><td>1.5% risk</td></tr>
+            <tr><td>80-84%</td><td>2.0% risk</td></tr>
+            <tr><td>85-90%</td><td>2.5% risk</td></tr>
+          </table>
+          <div class="tf-note">NY cont first 10 trades: ×0.5 all above.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -699,19 +781,22 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       <span class="tf-chip tf-chip--out">CRYPTO → OUT OF SCOPE</span>
     </div>
     <div class="tf-dna tf-reveal" style="margin-top:32px;">
-      <div class="tf-dna__p">
+      <div class="tf-dna__p tf-dna__p--positive">
+        <div class="tf-dna__pct" aria-hidden="true">88</div>
         <div class="tf-dna__label">XAUUSD — Strongest (88%)</div>
         <p class="tf-dna__body">ADR 150-300p. London 09:30-11:00 = HUNT only (sweep risk high). <b style="color:var(--text-hi)">Best window: NY 15:30-17:00.</b> Inverse DXY always applies.</p>
       </div>
-      <div class="tf-dna__p">
+      <div class="tf-dna__p tf-dna__p--accent">
+        <div class="tf-dna__pct" aria-hidden="true">75</div>
         <div class="tf-dna__label">EURUSD — Cleanest (75%)</div>
         <p class="tf-dna__body">Small ADR. Prime: 09:30-11:00 + 13:00-13:30 Silver Bullet. <b style="color:var(--text-hi)">Closed after 14:00. No NY trades.</b></p>
       </div>
-      <div class="tf-dna__p">
+      <div class="tf-dna__p tf-dna__p--negative">
+        <div class="tf-dna__pct" aria-hidden="true">50</div>
         <div class="tf-dna__label">GBPUSD — Weakest (50%)</div>
         <p class="tf-dna__body">Prime window: <b style="color:var(--text-hi)">09:30-10:00 ONLY.</b> Closed after 13:00. Requires 5+ confluences minimum. Handle with care.</p>
       </div>
-      <div class="tf-dna__p">
+      <div class="tf-dna__p tf-dna__p--warning">
         <div class="tf-dna__label">NAS100 / US30 — Indices</div>
         <p class="tf-dna__body">Small sample. Prime: <b style="color:var(--text-hi)">15:30-17:00.</b> NAS100 inverse VIX. US30 = 1H OBs most reliable. Avoid Fed/CPI windows.</p>
       </div>
@@ -725,7 +810,12 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">07 · Session Timing</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">Session timing (Dubai GMT+4).</h2>
-    <table class="tf-sessions tf-reveal" style="margin-top:36px;">
+    <div class="term__window tf-reveal" style="margin-top:36px;">
+      <div class="term__bar">
+        <span class="term__dot term__dot--r"></span><span class="term__dot term__dot--y"></span><span class="term__dot term__dot--g"></span>
+        <span class="term__title">sessions.log — live</span>
+      </div>
+      <table class="tf-sessions">
       <thead><tr><th>Dubai Time</th><th>Session</th><th>Assets</th><th>Notes</th></tr></thead>
       <tbody>
         <tr><td>08:55-09:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GER40</td><td>DAX open. All others dead.</td></tr>
@@ -742,6 +832,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
         <tr><td>20:00+</td><td><span class="tf-badge tf-badge--deadzone">Dead Zone</span></td><td>—</td><td>NO ENTRIES. Hard gate. Asia session = dead.</td></tr>
       </tbody>
     </table>
+    </div>
   </div>
 </section>
 <hr class="tf-divider">
@@ -750,20 +841,36 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">08 · The Three Strategies</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">The three strategies.</h2>
-    <div class="tf-strategies tf-reveal" style="margin-top:36px;">
-      <div class="tf-strategy">
+
+    <div class="strat__timeline tf-reveal" style="margin-top:52px;">
+      <div class="strat__seg strat__seg--a" style="left:12.5%;width:12.5%;"><span class="strat__seg-label">A · 09:30</span></div>
+      <div class="strat__seg strat__seg--b" style="left:41.7%;width:8.3%;"><span class="strat__seg-label">B · 13:00</span></div>
+      <div class="strat__seg strat__seg--c" style="left:58.3%;width:29.2%;"><span class="strat__seg-label">C · 15:00</span></div>
+    </div>
+    <div class="strat__axis tf-reveal">
+      <span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span>
+    </div>
+
+    <div class="tf-strategies tf-reveal" style="margin-top:48px;">
+      <div class="tf-strategy" style="--strat-c:var(--role-negative)">
+        <span class="tf-strategy__glyph" aria-hidden="true">⛔</span>
+        <div class="tf-strategy__n">01</div>
         <div class="tf-strategy__tag">Strategy A ⛔</div>
         <div class="tf-strategy__name">London Sweep + OB Retest</div>
         <div class="tf-strategy__win">09:30-11:00</div>
         <p class="tf-strategy__d">Sweep of prior high/low → rejection → return to OB. Needs clean displacement + confirmed sweep. XAU sweep must be 70%+ clean.</p>
       </div>
-      <div class="tf-strategy">
+      <div class="tf-strategy" style="--strat-c:var(--role-warning)">
+        <span class="tf-strategy__glyph" aria-hidden="true">🎯</span>
+        <div class="tf-strategy__n">02</div>
         <div class="tf-strategy__tag">Strategy B 🎯</div>
         <div class="tf-strategy__name">Silver Bullet FVG</div>
         <div class="tf-strategy__win">13:00-14:00</div>
         <p class="tf-strategy__d">15M FVG from last 3 candles. Must be HTF aligned. 30-min window only. EURUSD primary. Expires fast — watch valid-until time.</p>
       </div>
-      <div class="tf-strategy">
+      <div class="tf-strategy" style="--strat-c:var(--role-positive)">
+        <span class="tf-strategy__glyph" aria-hidden="true">🔄</span>
+        <div class="tf-strategy__n">03</div>
         <div class="tf-strategy__tag">Strategy C 🔄</div>
         <div class="tf-strategy__name">Overlap + NY Continuation</div>
         <div class="tf-strategy__win">15:00-18:30</div>
@@ -779,16 +886,16 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     <div class="tf-eyebrow tf-reveal">09 · Hard Rules</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">Hard rules.</h2>
     <div class="tf-rules tf-reveal" style="margin-top:36px;">
-      <div class="tf-rule"><div class="tf-rule__id">R01</div><div class="tf-rule__body">NO ENTRIES during Judas window 09:00-09:30 on GBPUSD, EURUSD, GBPJPY. Fakeout probability too high.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R02</div><div class="tf-rule__body">DEAD ZONE after 20:00 Dubai. Zero entries. System hard-stops. Asia session = no edge.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R03</div><div class="tf-rule__body">NO TRADE if high-impact news within 60 minutes of entry. Prop firm: override permanently blocked.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R04</div><div class="tf-rule__body">R:R minimum 1.5. Below that = automatic veto by HEDGE. Card will not be issued.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R05</div><div class="tf-rule__body">No entry mid-range. Requires a clean POI (OB or FVG). Mid-range entries are the fastest way to blow stops.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R06</div><div class="tf-rule__body">After 2 consecutive losses → size drops 50% automatically. Flag: REDUCED SIZING ⚠️</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R07</div><div class="tf-rule__body">Drawdown 3-5% → max 0.5% risk per trade. Drawdown &gt;5% → NO TRADE until <code>drawdown: reset</code> issued.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R08</div><div class="tf-rule__body">CRYPTO = OUT OF SCOPE. No card issued. Response: ⛔ OUT OF DNA.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R09</div><div class="tf-rule__body">Every card expires. Strategy A: +45min. Strategy B: +30min. NY prime: +90min. NY cont: +60min. Expired card = NO TRADE.</div></div>
-      <div class="tf-rule"><div class="tf-rule__id">R10</div><div class="tf-rule__body">AT TP1 — always close 50% of position and move SL to break-even. Non-negotiable. Protect the trade.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R01</div><div class="tf-rule__body">NO ENTRIES during Judas window 09:00-09:30 on GBPUSD, EURUSD, GBPJPY. Fakeout probability too high.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R02</div><div class="tf-rule__body">DEAD ZONE after 20:00 Dubai. Zero entries. System hard-stops. Asia session = no edge.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R03</div><div class="tf-rule__body">NO TRADE if high-impact news within 60 minutes of entry. Prop firm: override permanently blocked.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R04</div><div class="tf-rule__body">R:R minimum 1.5. Below that = automatic veto by HEDGE. Card will not be issued.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R05</div><div class="tf-rule__body">No entry mid-range. Requires a clean POI (OB or FVG). Mid-range entries are the fastest way to blow stops.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R06</div><div class="tf-rule__body">After 2 consecutive losses → size drops 50% automatically. Flag: REDUCED SIZING ⚠️</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R07</div><div class="tf-rule__body">Drawdown 3-5% → max 0.5% risk per trade. Drawdown &gt;5% → NO TRADE until <code>drawdown: reset</code> issued.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R08</div><div class="tf-rule__body">CRYPTO = OUT OF SCOPE. No card issued. Response: ⛔ OUT OF DNA.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R09</div><div class="tf-rule__body">Every card expires. Strategy A: +45min. Strategy B: +30min. NY prime: +90min. NY cont: +60min. Expired card = NO TRADE.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-positive)"><div class="tf-rule__id">R10</div><div class="tf-rule__body">AT TP1 — always close 50% of position and move SL to break-even. Non-negotiable. Protect the trade.</div></div>
     </div>
   </div>
 </section>
@@ -799,13 +906,16 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     <div class="tf-eyebrow tf-reveal">10 · Inside The Discord</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Inside the Discord.</h2>
     <div class="tf-discord tf-reveal" style="margin-top:40px;">
-      <div>
-        <div class="tf-panel__label">Channel Structure</div>
-        <div class="tf-channels" style="margin-top:14px;">
+      <div class="disco__sidebar">
+        <div class="disco__sidebar__head">
+          <div class="disco__sidebar__logo" aria-hidden="true">TF</div>
+          <div class="disco__sidebar__name">The Trading Floor</div>
+        </div>
+        <div class="tf-channels">
           <div class="tf-channels__cat">Information</div>
-          <div class="tf-channels__item">#rules-and-setup</div>
-          <div class="tf-channels__item">#session-timing</div>
-          <div class="tf-channels__item">#announcements</div>
+          <div class="tf-channels__item"># rules-and-setup</div>
+          <div class="tf-channels__item"># session-timing</div>
+          <div class="tf-channels__item"># announcements</div>
         </div>
       </div>
       <div class="tf-legal">
@@ -819,19 +929,20 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
 </section>
 <hr class="tf-divider">
 
-<section class="tf-section" id="ecosystem">
+<section class="tf-section" id="ecosystem" style="padding-top:64px;padding-bottom:64px;text-align:center;">
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">11 · The Ecosystem</div>
-    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">The ecosystem.</h2>
-    <div class="tf-placeholder tf-reveal" style="margin-top:28px;">[PLACEHOLDER — copy TBD. No masterprompt PDF §5 content was provided in this session.]</div>
+    <h2 class="tf-headline tf-reveal" style="margin:16px auto 0;font-size:clamp(28px,3.4vw,42px);max-width:14ch;">The ecosystem.</h2>
+    <div class="tf-placeholder tf-reveal" style="margin:28px auto 0;max-width:60ch;">[PLACEHOLDER — copy TBD. No masterprompt PDF §5 content was provided in this session.]</div>
   </div>
 </section>
 <hr class="tf-divider">
 
 <section class="tf-section tf-join" id="join">
+  <div class="tf-join__glow" aria-hidden="true"></div>
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">12 · Join The Floor</div>
-    <h2 class="tf-headline tf-reveal" style="margin:16px auto 0;">Join the floor.</h2>
+    <h2 class="tf-headline tf-reveal tf-reveal--mask" style="margin:16px auto 0;">Join the floor.</h2>
     <div class="tf-join__cta tf-reveal">
       <a class="tf-btn tf-btn--primary" href="#discord-invite" data-placeholder="DISCORD_INVITE_URL">Join The Discord</a>
     </div>
