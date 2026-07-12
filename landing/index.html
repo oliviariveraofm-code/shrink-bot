@@ -1241,8 +1241,8 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     px2.textAlign = 'left';
   }
 
-  if (reduce || coarse || noWebGL){
-    if (window.__tfDiag) window.__tfDiag('Hero fell back to static image. reduce=' + reduce + ' coarse=' + coarse + ' noWebGL=' + noWebGL);
+  if (reduce || noWebGL){
+    if (window.__tfDiag) window.__tfDiag('Hero fell back to static image. reduce=' + reduce + ' noWebGL=' + noWebGL);
     document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
     root.classList.add('is-fallback');
     return;   // printplaat blijft als statische achtergrond staan
