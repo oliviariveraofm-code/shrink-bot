@@ -105,24 +105,37 @@
     color:var(--text-hi);margin-top:10px;}
   .tf-step__d{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:8px;}
 
-  /* ============ agent grid ============ */
-  .tf-tier-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
-    color:var(--text-low);margin:44px 0 16px;}
-  .tf-tier-label:first-child{margin-top:0;}
-  .tf-agents{display:grid;grid-template-columns:1fr;gap:14px;}
+  /* ============ 03 · THE TWELVE AGENTS — archetype D: immersive grid ============ */
+  .agn{position:relative;overflow:hidden;}
+  .agn__watermark{position:absolute;pointer-events:none;color:var(--text-hi);opacity:.035;z-index:0;}
+  .agn__watermark--a{width:640px;height:640px;top:-160px;right:-160px;}
+  .agn__watermark--b{width:420px;height:420px;bottom:-120px;left:-120px;}
+  .agn__head{position:relative;z-index:1;}
+
+  .tf-tier-label{position:relative;z-index:1;font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-low);margin:56px 0 20px;display:flex;align-items:center;gap:14px;}
+  .tf-tier-label:first-of-type{margin-top:64px;}
+  .tf-tier-label::after{content:'';flex:1;height:1px;background:var(--line);}
+  .tf-agents{position:relative;z-index:1;display:grid;grid-template-columns:1fr;gap:18px;}
   @media (min-width:640px){ .tf-agents{grid-template-columns:1fr 1fr;} }
   @media (min-width:1040px){ .tf-agents{grid-template-columns:repeat(4,1fr);} }
-  .tf-agent{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:22px 20px;
-    border-top:2px solid var(--agent-c, var(--line));}
-  .tf-agent__emblem{width:34px;height:34px;color:var(--agent-c, var(--text-mid));}
-  .tf-agent__name{font-family:var(--font-display);font-weight:800;font-size:19px;letter-spacing:-.01em;
-    color:var(--text-hi);margin-top:14px;}
+  .tf-agent{position:relative;border:1px solid var(--line);border-radius:6px;padding:30px 26px;
+    border-top:2px solid var(--agent-c, var(--line));
+    background:linear-gradient(165deg, rgba(var(--agent-rgb,255,255,255),.13), var(--bg-1) 62%);
+    transition:transform .28s cubic-bezier(.16,1,.3,1), box-shadow .28s ease, border-color .28s ease;}
+  .tf-agent:hover{transform:translateY(-7px);
+    box-shadow:0 28px 52px -22px rgba(var(--agent-rgb,0,0,0),.5), 0 0 0 1px rgba(var(--agent-rgb,255,255,255),.28);}
+  .tf-agent__emblem{width:50px;height:50px;color:var(--agent-c, var(--text-mid));
+    filter:drop-shadow(0 0 18px rgba(var(--agent-rgb,0,0,0),.35));}
+  .tf-agent__name{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.01em;
+    color:var(--text-hi);margin-top:18px;}
   .tf-agent__desk{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--agent-c, var(--text-low));margin-top:4px;}
-  .tf-agent__line{font-size:13.5px;line-height:1.5;color:var(--text-mid);margin-top:12px;font-style:italic;}
+    color:var(--agent-c, var(--text-low));margin-top:5px;}
+  .tf-agent__line{font-size:13.5px;line-height:1.5;color:var(--text-mid);margin-top:14px;font-style:italic;}
 
-  .tf-spotlight{margin-top:36px;border:1px solid var(--line);background:var(--bg-1);border-radius:4px;
-    padding:30px 28px;border-top:2px solid #F0D18C;}
+  .tf-spotlight{position:relative;z-index:1;margin-top:44px;border:1px solid rgba(240,209,140,.35);
+    background:linear-gradient(165deg, rgba(240,209,140,.09), var(--bg-1) 55%);border-radius:6px;
+    padding:34px 32px;border-top:2px solid #F0D18C;}
 
   /* ============ trade card ============ */
   .tf-card-anatomy{display:grid;grid-template-columns:1fr;gap:36px;align-items:start;}
@@ -482,57 +495,59 @@
 </section>
 <hr class="tf-divider">
 
-<section class="tf-section" id="agents">
-  <div class="tf-container">
+<section class="tf-section agn" id="agents">
+  <svg class="agn__watermark agn__watermark--a" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.6"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
+  <svg class="agn__watermark agn__watermark--b" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.6"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
+  <div class="tf-container agn__head">
     <div class="tf-eyebrow tf-reveal">03 · The Twelve Agents</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:10ch;">The floor.</h2>
     <p class="tf-body tf-reveal" style="margin-top:24px;">Twelve desks. Each reads the chart from exactly one angle. Eight vote in the consensus, three weigh context and conviction, one guards the discipline.</p>
 
     <div class="tf-tier-label tf-reveal">Core — 8 Votes</div>
     <div class="tf-agents tf-reveal">
-      <div class="tf-agent" style="--agent-c:rgb(79,209,190)">
+      <div class="tf-agent" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l8-7 8 7"/><path d="M4 13l8-7 8 7"/><path d="M4 7l8-6 8 6"/></svg>
         <div class="tf-agent__name">Rally</div>
         <div class="tf-agent__desk">Bull Desk</div>
         <p class="tf-agent__line">&ldquo;Momentum is your friend.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(224,110,90)">
+      <div class="tf-agent" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8 6 8-6"/><path d="M4 12l8 6 8-6"/><path d="M4 18l8 4 8-4"/></svg>
         <div class="tf-agent__name">Crash</div>
         <div class="tf-agent__desk">Bear Desk</div>
         <p class="tf-agent__line">&ldquo;What goes up can fall.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(111,168,216)">
+      <div class="tf-agent" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>
         <div class="tf-agent__name">Vector</div>
         <div class="tf-agent__desk">Direction Desk</div>
         <p class="tf-agent__line">&ldquo;Trend is direction. Direction is edge.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(220,227,237)">
+      <div class="tf-agent" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h8"/><path d="M9 20L12 4l3 16"/><path d="M12 4v10"/></svg>
         <div class="tf-agent__name">Tempo</div>
         <div class="tf-agent__desk">Timing Desk</div>
         <p class="tf-agent__line">&ldquo;The right moment, not just any moment.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(224,110,90)">
+      <div class="tf-agent" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M9 3l3 9 3-9"/><path d="M9 21l3-9 3 9"/></svg>
         <div class="tf-agent__name">Hunt</div>
         <div class="tf-agent__desk">Liquidity Desk</div>
         <p class="tf-agent__line">&ldquo;Follow the liquidity.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(198,162,83)">
+      <div class="tf-agent" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
         <div class="tf-agent__name">Sniper</div>
         <div class="tf-agent__desk">Entry Desk</div>
         <p class="tf-agent__line">&ldquo;Discipline. Precision. Execution.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(79,209,190)">
+      <div class="tf-agent" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
         <div class="tf-agent__name">Macro</div>
         <div class="tf-agent__desk">Macro Desk</div>
         <p class="tf-agent__line">&ldquo;See the bigger picture.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(156,140,217)">
+      <div class="tf-agent" style="--agent-c:rgb(156,140,217);--agent-rgb:156,140,217">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z"/></svg>
         <div class="tf-agent__name">Hedge</div>
         <div class="tf-agent__desk">Risk Desk</div>
@@ -542,19 +557,19 @@
 
     <div class="tf-tier-label tf-reveal">Context — Conviction &amp; Risk</div>
     <div class="tf-agents tf-reveal">
-      <div class="tf-agent" style="--agent-c:rgb(111,168,216)">
+      <div class="tf-agent" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
         <div class="tf-agent__name">Flow</div>
         <div class="tf-agent__desk">Order Flow Desk</div>
         <p class="tf-agent__line">&ldquo;Capital doesn&rsquo;t lie.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(198,162,83)">
+      <div class="tf-agent" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M12 16l5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>
         <div class="tf-agent__name">Sentiment</div>
         <div class="tf-agent__desk">Sentiment Desk</div>
         <p class="tf-agent__line">&ldquo;Read the mood of the market.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(220,227,237)">
+      <div class="tf-agent" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11L6 5"/><path d="M12 11l6-6"/><path d="M12 15l-4-4"/><path d="M12 15l4-4"/></svg>
         <div class="tf-agent__name">Oracle</div>
         <div class="tf-agent__desk">Probability Desk</div>
@@ -564,7 +579,7 @@
 
     <div class="tf-tier-label tf-reveal">Discipline</div>
     <div class="tf-agents tf-reveal">
-      <div class="tf-agent" style="--agent-c:rgb(255,214,140)">
+      <div class="tf-agent" style="--agent-c:rgb(255,214,140);--agent-rgb:255,214,140">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
         <div class="tf-agent__name">Shrink</div>
         <div class="tf-agent__desk">Psychology Desk</div>
