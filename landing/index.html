@@ -137,16 +137,32 @@
     background:linear-gradient(165deg, rgba(240,209,140,.09), var(--bg-1) 55%);border-radius:6px;
     padding:34px 32px;border-top:2px solid #F0D18C;}
 
-  /* ============ trade card ============ */
-  .tf-card-anatomy{display:grid;grid-template-columns:1fr;gap:36px;align-items:start;}
-  @media (min-width:900px){ .tf-card-anatomy{grid-template-columns:1fr 1fr;} }
-  .tf-tradecard{font-family:var(--font-mono);font-size:13.5px;line-height:1.85;color:var(--text-hi);
-    background:var(--bg-1);border:1px solid var(--line);border-radius:4px;padding:26px 24px;white-space:pre-wrap;}
+  /* ============ 04 · ANATOMY OF A CARD — archetype B: split editorial ============ */
+  .anat{position:relative;}
+  .anat__split{display:grid;grid-template-columns:36% 1fr;gap:64px;align-items:start;position:relative;z-index:1;}
+  .anat__type{position:sticky;top:120px;}
+  @media (max-width:900px){ .anat__type{position:static;} }
+  @media (max-width:900px){ .anat__split{grid-template-columns:1fr;gap:40px;align-items:start;} }
+  .anat__headline{font-family:var(--font-display);font-weight:700;letter-spacing:-0.02em;line-height:1.06;
+    color:var(--text-hi);font-size:clamp(34px,4.4vw,58px);}
+
+  .anat__cardwrap{position:relative;padding:14px;}
+  .anat__bracket{position:absolute;width:22px;height:22px;border-color:var(--accent-gold);opacity:.6;}
+  .anat__bracket--tl{top:0;left:0;border-top:1px solid;border-left:1px solid;}
+  .anat__bracket--br{bottom:0;right:0;border-bottom:1px solid;border-right:1px solid;}
+
+  .tf-tradecard{font-family:var(--font-mono);font-size:14.5px;line-height:1.85;color:var(--text-hi);
+    background:var(--bg-1);border:1px solid rgba(196,160,82,.28);border-radius:4px;padding:34px 30px;
+    white-space:pre-wrap;box-shadow:0 36px 64px -30px rgba(0,0,0,.7);}
   .tf-tradecard b{color:var(--role-positive);}
   .tf-tradecard .tf-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-low);
     margin-top:10px;text-align:right;}
-  .tf-legend{display:flex;flex-direction:column;gap:16px;}
-  .tf-legend__row{border-bottom:1px solid var(--line);padding-bottom:14px;}
+
+  .anat__legend{margin-top:40px;padding-left:26px;border-left:1px dashed var(--line);
+    display:flex;flex-direction:column;gap:16px;}
+  .tf-legend__row{position:relative;border-bottom:1px solid var(--line);padding-bottom:14px;}
+  .tf-legend__row::before{content:'';position:absolute;left:-32.5px;top:5px;width:7px;height:7px;
+    border-radius:50%;background:var(--bg-0);border:1.5px solid var(--accent-gold);}
   .tf-legend__row:last-child{border-bottom:none;}
   .tf-legend__k{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--accent-gold);}
@@ -595,13 +611,18 @@
 </section>
 <hr class="tf-divider">
 
-<section class="tf-section" id="anatomy">
+<section class="tf-section anat" id="anatomy">
   <div class="tf-container">
-    <div class="tf-eyebrow tf-reveal">04 · Anatomy Of A Card</div>
-    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Anatomy of a card.</h2>
-    <div class="tf-card-anatomy tf-reveal" style="margin-top:44px;">
-      <div>
-        <div class="tf-tradecard">🎯 XAUUSD 15M — LONG ⚡ 78%
+    <div class="anat__split">
+      <div class="anat__type tf-reveal">
+        <div class="tf-eyebrow">04 · Anatomy Of A Card</div>
+        <h2 class="anat__headline" style="margin-top:16px;">Anatomy of a card.</h2>
+      </div>
+      <div class="anat__visual">
+        <div class="anat__cardwrap tf-reveal">
+          <div class="anat__bracket anat__bracket--tl" aria-hidden="true"></div>
+          <div class="anat__bracket anat__bracket--br" aria-hidden="true"></div>
+          <div class="tf-tradecard">🎯 XAUUSD 15M — LONG ⚡ 78%
 
 ENTRY <b>2318.50</b> (Bull OB retest)
 SL   2311.00 (Invalidates OB)
@@ -613,17 +634,18 @@ SIZE 1.5% | VALID 16:45 Dubai
 STRATEGY C | KILLZONE STRONG
 CONSENSUS 6/8 BULL
 FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
+        </div>
         <div class="tf-cap">Example card · prices illustrative</div>
-      </div>
-      <div class="tf-legend">
-        <div class="tf-legend__row"><div class="tf-legend__k">Header line</div><div class="tf-legend__v">Asset · timeframe · direction · killzone status · confidence.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">Entry</div><div class="tf-legend__v">Exact price, plus what the level is.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">SL</div><div class="tf-legend__v">Stop placement, plus what breaks if hit.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">TP1 / TP2</div><div class="tf-legend__v">Targets with R:R; at TP1 close 50%, SL to break-even.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">Size / Valid</div><div class="tf-legend__v">Risk as % of account · expiry time.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">Strategy / Killzone</div><div class="tf-legend__v">Which of the three strategies, and window quality.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">Consensus</div><div class="tf-legend__v">How many of the 8 core agents agreed.</div></div>
-        <div class="tf-legend__row"><div class="tf-legend__k">Flags</div><div class="tf-legend__v">Max 3. Every flag is a meaningful condition, not decoration.</div></div>
+        <div class="anat__legend tf-reveal">
+          <div class="tf-legend__row"><div class="tf-legend__k">Header line</div><div class="tf-legend__v">Asset · timeframe · direction · killzone status · confidence.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Entry</div><div class="tf-legend__v">Exact price, plus what the level is.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">SL</div><div class="tf-legend__v">Stop placement, plus what breaks if hit.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">TP1 / TP2</div><div class="tf-legend__v">Targets with R:R; at TP1 close 50%, SL to break-even.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Size / Valid</div><div class="tf-legend__v">Risk as % of account · expiry time.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Strategy / Killzone</div><div class="tf-legend__v">Which of the three strategies, and window quality.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Consensus</div><div class="tf-legend__v">How many of the 8 core agents agreed.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Flags</div><div class="tf-legend__v">Max 3. Every flag is a meaningful condition, not decoration.</div></div>
+        </div>
       </div>
     </div>
   </div>
