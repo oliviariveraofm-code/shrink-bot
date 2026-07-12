@@ -1109,25 +1109,31 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     }catch(e){ return true; } })();
 
   /* ================= PROCEDURELE PRINTPLAAT ================= */
+  var chipNodes = [];   // motherboard "chip/via" glow points -- populated by drawCircuit(), animated in drawPulses()
   function drawCircuit(){
     var cv = document.getElementById('shCircuit');
     var W = cv.width = root.clientWidth * Math.min(devicePixelRatio||1, 2);
     var H = cv.height = root.clientHeight * Math.min(devicePixelRatio||1, 2);
     var x = cv.getContext('2d');
     var teal='79,209,190', ice='190,210,230', gold='198,162,83';
+    var mobile = root.clientWidth < 720;
     x.clearRect(0,0,W,H);
     function rnd(a,b){ return a + Math.random()*(b-a); }
     function snap(v,g){ return Math.round(v/g)*g; }
     var G = Math.max(14, Math.round(W/70));   // rasterafstand
     var paths = [];
-    function trace(x0,y0,steps,col,alpha,w){
+    function trace(x0,y0,steps,col,alpha,w,ortho,turns){
       var px=snap(x0,G), py=snap(y0,G), pts=[[px,py]];
-      var dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+      var dirs = ortho ? [[1,0],[-1,0],[0,1],[0,-1]]
+                       : [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
       var d = dirs[Math.floor(Math.random()*4)];
       for (var i=0;i<steps;i++){
         if (Math.random()<0.45){
           var nd = dirs[Math.floor(Math.random()*dirs.length)];
-          if (!(nd[0]===-d[0]&&nd[1]===-d[1])) d=nd;
+          if (!(nd[0]===-d[0]&&nd[1]===-d[1])){
+            if (ortho && turns && (nd[0]!==d[0]||nd[1]!==d[1])) turns.push([px,py]);
+            d=nd;
+          }
         }
         var len = G*Math.floor(rnd(1,5));
         px+=d[0]*len; py+=d[1]*len;
@@ -1152,6 +1158,27 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     for (var i2=0;i2<52;i2++) trace(rnd(0,W), rnd(0,H), 8, teal, rnd(0.06,0.16), 1);
     for (var i3=0;i3<14;i3++) trace(rnd(0,W), rnd(0,H), 7, ice, rnd(0.05,0.10), 1);
     for (var i4=0;i4<7;i4++)  trace(rnd(0,W), rnd(H*0.55,H), 8, gold, rnd(0.10,0.18), 1);
+
+    // motherboard layer: strict right-angle PCB traces concentrated directly behind the head,
+    // with "chip/via" nodes at their turns -- fewer on mobile for performance.
+    var mbTurns = [];
+    var mbCount = mobile ? 10 : 22;
+    for (var m=0;m<mbCount;m++){
+      trace(W*0.5+rnd(-W*0.22,W*0.22), rnd(H*0.08,H*0.62), mobile?6:10,
+        Math.random()<0.8?teal:ice, rnd(0.09,0.20), rnd(1,2.1), true, mbTurns);
+    }
+    var chipCount = mobile ? 6 : 14;
+    chipNodes.length = 0;
+    for (var c=0; c<chipCount && mbTurns.length; c++){
+      var pick = mbTurns[Math.floor(Math.random()*mbTurns.length)];
+      chipNodes.push({ x:pick[0], y:pick[1], phase:Math.random()*10, cyc:2.6+Math.random()*3.2,
+                        gold:Math.random()<0.2 });
+      // static base square so the node still reads under prefers-reduced-motion (no per-frame glow then)
+      var bc = chipNodes[chipNodes.length-1].gold ? gold : teal;
+      x.fillStyle = 'rgba('+bc+',0.22)'; x.strokeStyle = 'rgba('+bc+',0.4)'; x.lineWidth=1;
+      x.fillRect(pick[0]-3,pick[1]-3,6,6); x.strokeRect(pick[0]-3,pick[1]-3,6,6);
+    }
+
     // mono-labels zoals in de poster
     var labels=['REG 2011','NEB 01B','TF·12','SYNC 88','DAT 73','0x4F','LOG 45','RISK Ø','NODE 7','TAPE 21','EXEC 03','DD 5.0'];
     x.font = Math.round(G*0.62)+'px monospace';
@@ -1171,12 +1198,13 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   sizePulse();
   var px2 = pulseCv.getContext('2d');
   var pulses=[];
-  for (var pi=0; pi<12 && circuitPaths.length; pi++){
+  var pulseCount = (root.clientWidth < 720) ? 10 : 20;
+  for (var pi=0; pi<pulseCount && circuitPaths.length; pi++){
     pulses.push({path:circuitPaths[Math.floor(Math.random()*circuitPaths.length)],
                  t:Math.random(), sp:0.0016+Math.random()*0.003,
                  gold:Math.random()<0.18});
   }
-  function drawPulses(){
+  function drawPulses(t){
     px2.clearRect(0,0,pulseCv.width,pulseCv.height);
     for (var i=0;i<pulses.length;i++){
       var p=pulses[i]; p.t+=p.sp; if(p.t>=1){ p.t=0;
@@ -1188,6 +1216,15 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       var g=px2.createRadialGradient(X,Y,0,X,Y,9);
       g.addColorStop(0,'rgba('+col+',0.85)'); g.addColorStop(1,'rgba('+col+',0)');
       px2.fillStyle=g; px2.beginPath(); px2.arc(X,Y,9,0,7); px2.fill();
+    }
+    // motherboard chip/via nodes -- independent slow glow cycles, "activity lights"
+    for (var ci=0; ci<chipNodes.length; ci++){
+      var cn = chipNodes[ci];
+      var glow = 0.20 + 0.30*(0.5 + 0.5*Math.sin(t*(2*Math.PI/cn.cyc) + cn.phase));
+      var ccol = cn.gold ? '198,162,83' : '79,209,190';
+      var cg = px2.createRadialGradient(cn.x,cn.y,0,cn.x,cn.y,7);
+      cg.addColorStop(0,'rgba('+ccol+','+glow+')'); cg.addColorStop(1,'rgba('+ccol+',0)');
+      px2.fillStyle=cg; px2.beginPath(); px2.arc(cn.x,cn.y,7,0,7); px2.fill();
     }
   }
 
@@ -1748,7 +1785,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     rig.rotation.x += (leanX + lv.glanceY - rig.rotation.x)*0.06;
     rig.rotation.z += (lv.tiltZ - rig.rotation.z)*0.08;
 
-    drawPulses();
+    drawPulses(t);
     drawAgentNodes(t);
     renderer.render(scene,camera);
   })();
