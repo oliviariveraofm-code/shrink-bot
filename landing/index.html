@@ -1523,6 +1523,16 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     inner.position.set(-center.x,-center.y+0.02/s,-center.z);
     holder.add(inner);
 
+    /* ---- re-anchor the rotation pivot to the base of the neck (bottom of the bust
+       bounding box) instead of the geometric center. The model has no skeleton/rig --
+       this is a single fused mesh -- so "rotating the head" really means rotating the
+       whole bust around a hinge point low enough to read as a neck, not a spinning statue.
+       rig.position + holder.position cancel out at rest (rotation=0), so the neutral pose
+       and camera framing are pixel-identical to before; only the pivot moves. ---- */
+    var pivotY = s*(box.min.y - center.y) + 0.02;
+    rig.position.set(0, pivotY, 0);
+    holder.position.set(0, -pivotY, 0);
+
     if (CONFIG.STYLE === 'solid'){
       meshes.forEach(function(m){
         var mat = (m.material && m.material.map) ? m.material :
