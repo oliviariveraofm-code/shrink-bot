@@ -340,6 +340,16 @@
   /* ============ 01 · PHILOSOPHY — archetype A: full-bleed statement ============ */
   .phi{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;
     padding-top:120px;padding-bottom:120px;overflow:hidden;}
+  .phi__img{position:absolute;z-index:-1;right:-4vw;top:50%;transform:translateY(-50%);height:118%;
+    width:auto;max-width:60vw;object-fit:cover;pointer-events:none;opacity:.9;
+    -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 20%, #000 46%);
+    mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 20%, #000 46%);}
+  @media (max-width:760px){
+    .phi__img{right:-14vw;top:auto;bottom:-30px;height:auto;width:82vw;max-width:520px;
+      transform:none;opacity:.42;
+      -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 34%);
+      mask-image:linear-gradient(180deg, transparent 0%, #000 34%);}
+  }
   .phi__mark{position:absolute;left:18px;top:50%;transform:translateY(-50%) rotate(-90deg);
     transform-origin:left center;font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;
     text-transform:uppercase;color:var(--text-low);white-space:nowrap;opacity:.6;}
@@ -527,6 +537,10 @@
 <main>
 
 <section class="phi" id="philosophy">
+  <img class="phi__img" alt="" aria-hidden="true" loading="lazy" width="1600" height="1920"
+    src="assets/renders/philosophy-lg.webp"
+    srcset="assets/renders/philosophy-sm.webp 800w, assets/renders/philosophy-lg.webp 1600w"
+    sizes="(max-width:760px) 82vw, 58vw">
   <div class="phi__mark" aria-hidden="true">01 · Philosophy</div>
   <div class="tf-eyebrow phi__eyebrow tf-reveal">The Philosophy</div>
   <h2 class="phi__headline tf-reveal tf-reveal--mask">No consensus,<br>no call.</h2>
