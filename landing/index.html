@@ -1017,10 +1017,38 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
 
 <div class="tf-watch" aria-hidden="true"></div>
 
+<div id="tfDiag" style="display:none;position:fixed;left:12px;bottom:12px;z-index:9999;max-width:min(560px,90vw);
+  background:#1a0505;border:1px solid #E06E5A;color:#ffb4a8;font:11px/1.6 monospace;
+  padding:12px 16px;border-radius:4px;white-space:pre-wrap;pointer-events:none;box-shadow:0 12px 32px rgba(0,0,0,.6);"></div>
+<script>
+(function(){
+  var box = document.getElementById('tfDiag');
+  var shown = false;
+  function show(msg){
+    if (!box) return;
+    box.style.display = 'block';
+    box.textContent = (shown ? box.textContent + '\n' : '[SHRINK DIAG] ') + msg;
+    shown = true;
+  }
+  window.addEventListener('error', function(e){
+    show('JS error: ' + (e.message || (e.error && e.error.message) || 'unknown') +
+      ' @ ' + (e.filename || '?') + ':' + (e.lineno || '?'));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    show('Unhandled rejection: ' + ((e.reason && e.reason.message) || e.reason));
+  });
+  window.__tfDiag = show;
+})();
+</script>
+
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script>
 (function(){
+  if (typeof THREE === 'undefined'){
+    if (window.__tfDiag) window.__tfDiag('THREE failed to load from vendor/three.min.js -- check the request in Network tab.');
+    return;
+  }
   /* ================= CONFIG ================= */
   var CONFIG = {
     STYLE: "solid",            // "solid" = realistisch belicht | "wire" = lijnennet | "dots" = stippels
@@ -1214,6 +1242,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   }
 
   if (reduce || coarse || noWebGL){
+    if (window.__tfDiag) window.__tfDiag('Hero fell back to static image. reduce=' + reduce + ' coarse=' + coarse + ' noWebGL=' + noWebGL);
     document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
     root.classList.add('is-fallback');
     return;   // printplaat blijft als statische achtergrond staan
@@ -1576,9 +1605,15 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       var meshes=[]; gltf.scene.updateWorldMatrix(true,true);
       gltf.scene.traverse(function(o){ if(o.isMesh) meshes.push(o); });
       if (meshes.length){ buildHead(meshes); loaded=true; }
-      else buildHead(placeholderMeshes());
-    }, undefined, function(){ if(!loaded) showFallback(); });
-  }catch(e){ showFallback(); }
+      else { if (window.__tfDiag) window.__tfDiag('GLTF loaded but contained zero meshes -- using placeholder geometry.'); buildHead(placeholderMeshes()); }
+    }, undefined, function(err){
+      if (window.__tfDiag) window.__tfDiag('GLTFLoader failed to load ' + CONFIG.MODEL_URL + ': ' + (err && (err.message||err.type||err)));
+      if(!loaded) showFallback();
+    });
+  }catch(e){
+    if (window.__tfDiag) window.__tfDiag('Exception during model load setup: ' + e.message);
+    showFallback();
+  }
   function showFallback(){
     document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
     root.classList.add('is-fallback');
