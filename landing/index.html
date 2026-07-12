@@ -58,6 +58,26 @@
     .tf-reveal--mask{clip-path:inset(0)!important;}
   }
 
+  /* ============ site-wide "watching" layer — cursor spotlight over a faint plexus-line texture ============ */
+  .tf-watch{position:fixed;inset:0;z-index:40;pointer-events:none;mix-blend-mode:screen;
+    opacity:0;transition:opacity .5s ease;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(79,209,190,.4) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(60deg, rgba(79,209,190,.28) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(120deg, rgba(79,209,190,.28) 0 1px, transparent 1px 48px);
+    -webkit-mask-image:radial-gradient(380px at var(--mx,50%) var(--my,50%), rgba(0,0,0,.85), transparent 70%);
+    mask-image:radial-gradient(380px at var(--mx,50%) var(--my,50%), rgba(0,0,0,.85), transparent 70%);}
+  .tf-watch.is-on{opacity:1;}
+  .tf-watch.is-static{opacity:.12;-webkit-mask-image:none;mask-image:none;background-size:220px 220px;}
+  @media (prefers-reduced-motion: reduce){ .tf-watch{display:none!important;} }
+
+  /* ============ ambient "watching" status light — nav ============ */
+  .tf-watchdot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;
+    background:var(--role-positive);margin-right:9px;vertical-align:1px;
+    box-shadow:0 0 6px rgba(79,209,190,.7);animation:tfWatchBreathe 4.6s ease-in-out infinite;}
+  @keyframes tfWatchBreathe{0%,100%{opacity:.32;}50%{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){ .tf-watchdot{animation:none;opacity:.7;} }
+
   /* ============ nav ============ */
   .tf-nav{position:sticky;top:0;z-index:50;background:rgba(14,15,19,.82);backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line);}
@@ -230,6 +250,9 @@
   .tf-sessions td{padding:14px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text-mid);
     vertical-align:top;transition:background .15s ease;}
   .tf-sessions tbody tr:hover td{background:rgba(255,255,255,.025);}
+  .tf-sessions tbody tr.tf-row-live td{background:rgba(79,209,190,.07);}
+  .tf-sessions tbody tr.tf-row-live{box-shadow:inset 3px 0 0 0 var(--role-positive);}
+  .tf-sessions tbody tr.tf-row-live td:first-child{color:var(--role-positive);}
   .tf-sessions td:first-child{font-family:var(--font-mono);color:var(--text-hi);white-space:nowrap;}
   .tf-badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
     padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;}
@@ -340,13 +363,14 @@
   /* ============ 01 · PHILOSOPHY — archetype A: full-bleed statement ============ */
   .phi{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;
     padding-top:120px;padding-bottom:120px;overflow:hidden;}
-  .phi__img{position:absolute;z-index:-1;right:-4vw;top:50%;transform:translateY(-50%);height:118%;
+  .phi__img{position:absolute;z-index:-1;right:-4vw;top:50%;
+    transform:translateY(-50%) translate3d(var(--px,0px),var(--py,0px),0);height:118%;
     width:auto;max-width:60vw;object-fit:cover;pointer-events:none;opacity:.9;
     -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 20%, #000 46%);
     mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 20%, #000 46%);}
   @media (max-width:760px){
     .phi__img{right:-14vw;top:auto;bottom:-30px;height:auto;width:82vw;max-width:520px;
-      transform:none;opacity:.42;
+      transform:translate3d(var(--px,0px),var(--py,0px),0);opacity:.42;
       -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 34%);
       mask-image:linear-gradient(180deg, transparent 0%, #000 34%);}
   }
@@ -477,7 +501,7 @@
 
 <nav class="tf-nav" id="top">
   <div class="tf-nav__row">
-    <a class="tf-nav__word" href="#top"><b>THE</b> TRADING FLOOR</a>
+    <a class="tf-nav__word" href="#top"><span class="tf-watchdot" aria-hidden="true"></span><b>THE</b> TRADING FLOOR</a>
     <ul class="tf-nav__links">
       <li><a href="#philosophy">Engine</a></li>
       <li><a href="#agents">Agents</a></li>
@@ -538,6 +562,7 @@
 
 <section class="phi" id="philosophy">
   <img class="phi__img" alt="" aria-hidden="true" loading="lazy" width="1600" height="1920"
+    data-parallax="10"
     src="assets/renders/philosophy-lg.webp"
     srcset="assets/renders/philosophy-sm.webp 800w, assets/renders/philosophy-lg.webp 1600w"
     sizes="(max-width:760px) 82vw, 58vw">
@@ -832,18 +857,18 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       <table class="tf-sessions">
       <thead><tr><th>Dubai Time</th><th>Session</th><th>Assets</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>08:55-09:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GER40</td><td>DAX open. All others dead.</td></tr>
-        <tr><td>09:00-09:30</td><td><span class="tf-badge tf-badge--judas">Judas</span></td><td>GBP/EUR pairs</td><td>NO ENTRIES on GBPUSD / EURUSD / GBPJPY. Fakeout window.</td></tr>
-        <tr><td>09:30-10:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GBPUSD, GBPJPY, XAUUSD</td><td>London Sweep window. XAUUSD: HUNT mode only.</td></tr>
-        <tr><td>10:00-11:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD</td><td>GBPUSD / GBPJPY / XAU active but secondary.</td></tr>
-        <tr><td>11:00-13:00</td><td><span class="tf-badge tf-badge--active">Active</span></td><td>EURUSD, GBPUSD</td><td>Rest dead. Momentum fades. Reduce size.</td></tr>
-        <tr><td>13:00-13:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD (Silver Bullet)</td><td>Strategy B FVG window. Tight timing — 30min only.</td></tr>
-        <tr><td>13:30-15:00</td><td><span class="tf-badge tf-badge--dead">Dead</span></td><td>—</td><td>Lunch dead. No prime setups.</td></tr>
-        <tr><td>15:00-15:30</td><td><span class="tf-badge tf-badge--incoming">Incoming</span></td><td>XAUUSD, USDJPY, NAS100, US30</td><td>NY pre-open. Watch, don&rsquo;t trade yet.</td></tr>
-        <tr><td>15:30-17:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAU, USDJPY, NAS100, US30, GBPJPY</td><td>Best overall window. Forex dead.</td></tr>
-        <tr><td>17:00-18:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAUUSD, USDJPY</td><td>NAS100 / US30 active. First 10 trades = 50% size on cont.</td></tr>
-        <tr><td>18:30-20:00</td><td><span class="tf-badge tf-badge--reduced">Reduced</span></td><td>XAUUSD only</td><td>50% size. All others dead.</td></tr>
-        <tr><td>20:00+</td><td><span class="tf-badge tf-badge--deadzone">Dead Zone</span></td><td>—</td><td>NO ENTRIES. Hard gate. Asia session = dead.</td></tr>
+        <tr data-start="08:55" data-end="09:30"><td>08:55-09:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GER40</td><td>DAX open. All others dead.</td></tr>
+        <tr data-start="09:00" data-end="09:30"><td>09:00-09:30</td><td><span class="tf-badge tf-badge--judas">Judas</span></td><td>GBP/EUR pairs</td><td>NO ENTRIES on GBPUSD / EURUSD / GBPJPY. Fakeout window.</td></tr>
+        <tr data-start="09:30" data-end="10:00"><td>09:30-10:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GBPUSD, GBPJPY, XAUUSD</td><td>London Sweep window. XAUUSD: HUNT mode only.</td></tr>
+        <tr data-start="10:00" data-end="11:00"><td>10:00-11:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD</td><td>GBPUSD / GBPJPY / XAU active but secondary.</td></tr>
+        <tr data-start="11:00" data-end="13:00"><td>11:00-13:00</td><td><span class="tf-badge tf-badge--active">Active</span></td><td>EURUSD, GBPUSD</td><td>Rest dead. Momentum fades. Reduce size.</td></tr>
+        <tr data-start="13:00" data-end="13:30"><td>13:00-13:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD (Silver Bullet)</td><td>Strategy B FVG window. Tight timing — 30min only.</td></tr>
+        <tr data-start="13:30" data-end="15:00"><td>13:30-15:00</td><td><span class="tf-badge tf-badge--dead">Dead</span></td><td>—</td><td>Lunch dead. No prime setups.</td></tr>
+        <tr data-start="15:00" data-end="15:30"><td>15:00-15:30</td><td><span class="tf-badge tf-badge--incoming">Incoming</span></td><td>XAUUSD, USDJPY, NAS100, US30</td><td>NY pre-open. Watch, don&rsquo;t trade yet.</td></tr>
+        <tr data-start="15:30" data-end="17:00"><td>15:30-17:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAU, USDJPY, NAS100, US30, GBPJPY</td><td>Best overall window. Forex dead.</td></tr>
+        <tr data-start="17:00" data-end="18:30"><td>17:00-18:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAUUSD, USDJPY</td><td>NAS100 / US30 active. First 10 trades = 50% size on cont.</td></tr>
+        <tr data-start="18:30" data-end="20:00"><td>18:30-20:00</td><td><span class="tf-badge tf-badge--reduced">Reduced</span></td><td>XAUUSD only</td><td>50% size. All others dead.</td></tr>
+        <tr data-start="20:00" data-end="08:55" data-wrap="1"><td>20:00+</td><td><span class="tf-badge tf-badge--deadzone">Dead Zone</span></td><td>—</td><td>NO ENTRIES. Hard gate. Asia session = dead.</td></tr>
       </tbody>
     </table>
     </div>
@@ -979,6 +1004,8 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     <p class="tf-legal" style="margin-top:24px;max-width:80ch;">Trading forex, indices, metals and CFDs carries a high risk of loss and is not suitable for everyone. Past results are no guarantee of future performance. All content on this site and in the Discord is analytical and educational in nature; no individual investment advice is given. Never trade with money you cannot afford to lose.</p>
   </div>
 </footer>
+
+<div class="tf-watch" aria-hidden="true"></div>
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
@@ -1703,6 +1730,76 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   setTimeout(function(){
     document.querySelectorAll('.tf-reveal:not(.is-visible)').forEach(function(e){ e.classList.add('is-visible'); });
   }, 3500);
+})();
+</script>
+
+<!-- ================= "the floor is watching": cursor spotlight + static-image parallax ================= -->
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var coarse = window.matchMedia('(pointer: coarse)').matches;
+  var watch = document.querySelector('.tf-watch');
+  var pImgs = Array.prototype.slice.call(document.querySelectorAll('[data-parallax]'));
+  if (reduce){
+    if (watch) watch.remove();
+    return;
+  }
+  if (coarse){
+    if (watch) watch.classList.add('is-static');
+    return; // no touch-follow — static low-opacity texture only, no parallax
+  }
+
+  var mx=window.innerWidth/2, my=window.innerHeight/2, cx=mx, cy=my, active=false, hidden=false;
+  window.addEventListener('mousemove', function(e){
+    mx=e.clientX; my=e.clientY;
+    if (!active && watch){ active=true; watch.classList.add('is-on'); }
+  }, {passive:true});
+  window.addEventListener('mouseleave', function(){ if (watch) watch.classList.remove('is-on'); });
+  document.addEventListener('visibilitychange', function(){ hidden = document.hidden; });
+
+  function tick(){
+    requestAnimationFrame(tick);
+    if (hidden) return;
+    cx += (mx-cx)*0.12; cy += (my-cy)*0.12;
+    if (watch){ watch.style.setProperty('--mx', cx+'px'); watch.style.setProperty('--my', cy+'px'); }
+    if (pImgs.length){
+      var nx = (cx/window.innerWidth - 0.5)*2, ny = (cy/window.innerHeight - 0.5)*2;
+      for (var i=0;i<pImgs.length;i++){
+        var el = pImgs[i], mag = parseFloat(el.getAttribute('data-parallax')) || 10;
+        el.style.setProperty('--px', (nx*mag).toFixed(1)+'px');
+        el.style.setProperty('--py', (ny*mag*0.6).toFixed(1)+'px');
+      }
+    }
+  }
+  tick();
+})();
+</script>
+
+<!-- ================= session timing: live-row highlight (Dubai GMT+4, re-checked every minute) ================= -->
+<script>
+(function(){
+  var rows = document.querySelectorAll('#sessions tbody tr[data-start]');
+  if (!rows.length) return;
+  function toMinutes(hhmm){ var p=hhmm.split(':'); return (+p[0])*60 + (+p[1]); }
+  function nowDubaiMinutes(){
+    var parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false
+    }).formatToParts(new Date());
+    var h=0, m=0;
+    parts.forEach(function(p){ if (p.type==='hour') h=+p.value; if (p.type==='minute') m=+p.value; });
+    return h*60+m;
+  }
+  function refresh(){
+    var now = nowDubaiMinutes();
+    rows.forEach(function(row){
+      var start = toMinutes(row.getAttribute('data-start')), end = toMinutes(row.getAttribute('data-end'));
+      var wrap = row.getAttribute('data-wrap') === '1';
+      var live = wrap ? (now >= start || now < end) : (now >= start && now < end);
+      row.classList.toggle('tf-row-live', live);
+    });
+  }
+  refresh();
+  setInterval(refresh, 60000);
 })();
 </script>
 
