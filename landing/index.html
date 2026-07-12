@@ -470,12 +470,25 @@
 
   /* giant wordmark — sits behind the head (DOM order: after pulse, before vig/stage) so the
      stage's WebGL canvas paints over it wherever the model has geometry, and the vignette
-     still dims its edges like everything else in the background layer. */
-  .shrink-holo__type{position:absolute;inset:0;z-index:1;display:flex;align-items:center;
+     still dims its edges like everything else in the background layer.
+     z-index intentionally left at auto (not a positive value) -- DOM order alone gives the
+     correct paint order here; an explicit z-index would promote this above the stage instead. */
+  .shrink-holo__type{position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;pointer-events:none;user-select:none;text-align:center;
     font-family:var(--font-display);font-size:var(--h-hero);font-weight:800;
-    letter-spacing:-0.03em;line-height:0.9;color:var(--text-hi);opacity:.92;white-space:nowrap;}
+    letter-spacing:-0.03em;line-height:0.9;color:var(--text-hi);opacity:.92;white-space:nowrap;
+    transition:opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);}
   .shrink-holo__type span{color:var(--accent-gold);}
+  /* intro-only hidden state -- toggled by the hero script so the wordmark resolves into place
+     in sync with the head landing, instead of always being visible from frame 0. */
+  .shrink-holo__type.tf-intro-hidden{opacity:0;transform:scale(.94);}
+  @media (max-width:640px){
+    /* on narrow screens the head's footprint is nearly the whole viewport width, leaving no
+       room for the wordmark to peek past it on both sides -- narrow the stage and enlarge the
+       type proportionally so "SH" and "K" still clear the head's silhouette. */
+    .shrink-holo__stage{width:min(70vw,860px);}
+    .shrink-holo__type{font-size:clamp(70px,26vw,140px);}
+  }
 
   .shrink-holo__corner{position:absolute;z-index:3;font-family:var(--font-mono);font-size:11px;
     letter-spacing:.2em;text-transform:uppercase;color:var(--text-low);opacity:.55;pointer-events:none;}
@@ -507,16 +520,17 @@
   .tf-hero-cta{margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
 
   /* ============ page-load boot sequence — plays once per session before the hero settles ============
-     .tf-boot's own fade is a CSS animation on opacity only (compositor-driven), running
-     unconditionally from the moment the element exists -- so the overlay is guaranteed to be
-     gone by a fixed wall-clock deadline even if the main thread is busy elsewhere (e.g. parsing
-     the hero's model) and JS-driven timers get delayed. The JS below adds richer detail
-     (lines/scan/word/flash) on top when the thread is free, but the hard-cap disappearance
-     never depends on it. */
+     Short black-screen beat (mono lines + one flash) that hands off to the REAL hero's own
+     entrance choreography (agent nodes flying into formation, head materializing, wordmark
+     resolving into its now-correct depth layering from Part 1) -- see window.__tfIntro below
+     and the hero script further down. This overlay's own fade is a CSS animation on opacity
+     only (compositor-driven), running unconditionally from the moment the element exists, so
+     it's guaranteed gone by a fixed wall-clock deadline even if the main thread is busy
+     elsewhere (e.g. parsing the hero's model) and JS-driven timers get delayed. */
   .tf-boot{position:fixed;inset:0;z-index:9998;background:var(--bg-0);pointer-events:none;
     display:flex;align-items:center;justify-content:center;overflow:hidden;
-    animation:tfBootAutoOut 2.3s ease forwards;}
-  @keyframes tfBootAutoOut{ 0%{opacity:1;} 83%{opacity:1;} 100%{opacity:0;} }
+    animation:tfBootAutoOut 1.1s ease forwards;}
+  @keyframes tfBootAutoOut{ 0%{opacity:1;} 55%{opacity:1;} 100%{opacity:0;} }
   .tf-boot.tf-boot--out{animation:none;opacity:0;}
   .tf-boot__lines{position:absolute;left:28px;top:28px;font-family:var(--font-mono);
     font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--role-positive);
@@ -524,27 +538,10 @@
   .tf-boot__lines div{opacity:0;transform:translateY(4px);
     transition:opacity .12s ease-out, transform .12s ease-out;}
   .tf-boot__lines div.is-on{opacity:1;transform:none;}
-  .tf-boot__scan{position:absolute;inset:0;pointer-events:none;opacity:0;
-    background:linear-gradient(180deg, transparent 0%, rgba(220,227,237,.55) 48%, transparent 100%);
-    mix-blend-mode:screen; transform:translateY(-100%);}
-  .tf-boot__scan.is-active{animation:tfBootScan .22s linear;}
-  @keyframes tfBootScan{
-    0%{opacity:0;transform:translateY(-100%);}
-    15%{opacity:1;} 85%{opacity:1;}
-    100%{opacity:0;transform:translateY(100%);}
-  }
-  .tf-boot__word{font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;
-    font-size:clamp(48px,8vw,120px);color:var(--text-hi);opacity:0;
-    clip-path:inset(0 100% 0 0);
-    transition:clip-path .38s cubic-bezier(.16,1,.3,1), opacity .05s linear;}
-  .tf-boot__word.is-on{opacity:1;clip-path:inset(0 0 0 0);}
-  .tf-boot__word span{color:var(--accent-gold);}
-  .tf-boot__word.is-flash{animation:tfBootFlash .3s ease-out;}
-  @keyframes tfBootFlash{
-    0%{text-shadow:0 0 0 rgba(196,160,82,0);filter:brightness(1);}
-    30%{text-shadow:0 0 50px rgba(196,160,82,.95), 0 0 90px rgba(196,160,82,.6);filter:brightness(1.5);}
-    100%{text-shadow:0 0 0 rgba(196,160,82,0);filter:brightness(1);}
-  }
+  .tf-boot__flash{position:absolute;inset:0;pointer-events:none;opacity:0;
+    background:radial-gradient(circle at 50% 50%, rgba(196,160,82,.95) 0%, rgba(196,160,82,.3) 32%, transparent 68%);}
+  .tf-boot__flash.is-active{animation:tfBootFlashPulse .15s ease-out;}
+  @keyframes tfBootFlashPulse{ 0%{opacity:0;} 40%{opacity:1;} 100%{opacity:0;} }
   @media (prefers-reduced-motion: reduce){ .tf-boot{display:none!important;} }
 </style>
 </head>
@@ -552,8 +549,7 @@
 
 <div class="tf-boot" id="tfBoot" aria-hidden="true">
   <div class="tf-boot__lines" id="tfBootLines"></div>
-  <div class="tf-boot__scan" id="tfBootScan"></div>
-  <div class="tf-boot__word" id="tfBootWord">SH<span>RINK</span></div>
+  <div class="tf-boot__flash" id="tfBootFlash"></div>
 </div>
 <script>
 (function(){
@@ -561,46 +557,48 @@
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var already = false;
   try { already = sessionStorage.getItem('tfBooted') === '1'; } catch(e){}
-  if (reduce || already){ boot.remove(); return; }
+  var play = !reduce && !already;
+  // shared with the hero script further down: whether to run the entrance choreography at
+  // all, a wall-clock zero-point for its timing (independent of the hero's own THREE.Clock,
+  // which may start a beat later), and a single skip flag both sides check every frame.
+  window.__tfIntro = { play: play, t0: performance.now(), skipped: !play };
+  if (!play){ boot.remove(); return; }
   try { sessionStorage.setItem('tfBooted','1'); } catch(e){}
 
-  var lines = ['INIT SHRINK.SYS...', '12 AGENTS ONLINE', 'CONSENSUS ENGINE READY'];
+  var lines = ['INIT SHRINK.SYS...', '12 AGENTS ONLINE'];
   var linesEl = document.getElementById('tfBootLines');
   lines.forEach(function(t){ var d=document.createElement('div'); d.textContent=t; linesEl.appendChild(d); });
   var lineDivs = linesEl.children;
-  var scanEl = document.getElementById('tfBootScan');
-  var wordEl = document.getElementById('tfBootWord');
+  var flashEl = document.getElementById('tfBootFlash');
 
   var timers = [];
   function at(ms, fn){ timers.push(setTimeout(fn, ms)); }
   for (var i=0;i<lineDivs.length;i++){
     (function(i){ at(i*130, function(){ lineDivs[i].classList.add('is-on'); }); })(i);
   }
-  at(480, function(){ scanEl.classList.add('is-active'); });
-  at(650, function(){ wordEl.classList.add('is-on'); });
-  at(1050, function(){ wordEl.classList.add('is-flash'); });
-  at(1600, finish);
+  at(320, function(){ flashEl.classList.add('is-active'); });
+  at(480, bootFinish);
   // hard safety net for DOM cleanup: the overlay's own CSS animation already guarantees it's
-  // visually gone by 2.3s no matter what the main thread is doing, but if something upstream
-  // (e.g. a slow/blocked thread during model load) delayed the staged timers above, make sure
-  // the node still gets torn down rather than lingering forever.
-  at(2400, finish);
+  // visually gone by 1.1s no matter what the main thread is doing, but if something upstream
+  // delayed the staged timers above, make sure the node still gets torn down.
+  at(1100, bootFinish);
 
-  var done = false;
-  function finish(){
-    if (done) return; done = true;
+  var bootDone = false;
+  function bootFinish(){
+    if (bootDone) return; bootDone = true;
     timers.forEach(clearTimeout);
     boot.classList.add('tf-boot--out');
     if (boot.parentNode) boot.remove();
-    window.removeEventListener('click', finish);
-    window.removeEventListener('keydown', finish);
-    window.removeEventListener('touchstart', finish);
-    window.removeEventListener('wheel', finish);
   }
-  window.addEventListener('click', finish, {passive:true});
-  window.addEventListener('keydown', finish);
-  window.addEventListener('touchstart', finish, {passive:true});
-  window.addEventListener('wheel', finish, {passive:true});
+  function skipAll(){
+    if (window.__tfIntro.skipped) return;
+    window.__tfIntro.skipped = true;
+    bootFinish();
+  }
+  window.addEventListener('click', skipAll, {passive:true, once:true});
+  window.addEventListener('keydown', skipAll, {once:true});
+  window.addEventListener('touchstart', skipAll, {passive:true, once:true});
+  window.addEventListener('wheel', skipAll, {passive:true, once:true});
 })();
 </script>
 
@@ -1189,6 +1187,23 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   var AGENT_HUB_Y = 0.20;          // brain/crown area the feed-lines converge on
   var AGENT_PARALLAX_X = 0.14, AGENT_PARALLAX_Y = 0.12;
 
+  /* ---- page-load "explosive assembly" choreography -- agent nodes fly out from the hub/flash
+     point to their seeded positions, the head scales up from nothing, and the wordmark fades
+     in, all driven off window.__tfIntro (set by the boot overlay near the top of <body>) so the
+     two separately-loaded scripts share one timeline. When the intro isn't playing (repeat
+     visit this session, prefers-reduced-motion, or already skipped) every progress helper below
+     returns 1 immediately -- so this adds zero behavior difference from the pre-existing
+     settled-state rendering. */
+  var introCfg = window.__tfIntro || {play:false, t0:performance.now(), skipped:true};
+  var INTRO_PLAY = !!introCfg.play;
+  var INTRO_AGENT_DELAY = 420, INTRO_AGENT_STAGGER = 28, INTRO_AGENT_DUR = 520, INTRO_LINE_DUR = 240;
+  var INTRO_HEAD_DELAY = 470, INTRO_HEAD_DUR = 820;
+  var INTRO_WORD_DELAY = 1180;
+  var INTRO_END = 2000;
+  function easeOutQuint(x){ x=Math.max(0,Math.min(1,x)); return 1-Math.pow(1-x,5); }
+  function introElapsed(){ return performance.now() - introCfg.t0; }
+  function introFinished(){ return !INTRO_PLAY || introCfg.skipped || introElapsed() > INTRO_END; }
+
   var root = document.getElementById('shrinkHolo');
   var mount = document.getElementById('shrinkHoloCanvas');
   // hash-overrides voor tests: #debug | style=wire/dots/solid | lite (schaduw uit)
@@ -1352,23 +1367,35 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       var baseY = (mobile && a.my !== undefined) ? a.my : a.y;
       var nx = baseX*AW + dx + px, ny = baseY*AH + dy + py;
 
-      var pulse = 0.55 + 0.45*Math.sin(t*(2*Math.PI/a.cyc) + a.seed*3.0);
-      px2.strokeStyle = 'rgba('+a.color+','+(0.22*pulse).toFixed(3)+')';
-      px2.lineWidth = 1;
-      px2.beginPath(); px2.moveTo(hubX,hubY); px2.lineTo(nx,ny); px2.stroke();
+      // intro fly-in: each node starts stacked at the hub (the flash's origin point) and eases
+      // out to its seeded position, staggered per node; arriveProg/lineProg both default to 1
+      // (fully settled, line fully drawn) whenever the intro isn't playing.
+      var arriveProg = 1, lineProg = 1;
+      if (!introFinished()){
+        var el = introElapsed();
+        var start = INTRO_AGENT_DELAY + idx*INTRO_AGENT_STAGGER;
+        arriveProg = easeOutQuint((el - start) / INTRO_AGENT_DUR);
+        lineProg = Math.max(0, Math.min(1, (el - (start + INTRO_AGENT_DUR)) / INTRO_LINE_DUR));
+      }
+      var fx = hubX + (nx - hubX) * arriveProg, fy = hubY + (ny - hubY) * arriveProg;
 
-      var rPx = ((mobile?30:34) + a.z*24) * 0.5 * scalePx;
-      hexPath(px2, nx, ny, rPx);
-      px2.fillStyle = 'rgba('+a.color+',0.07)'; px2.fill();
-      px2.strokeStyle = 'rgba('+a.color+',0.62)'; px2.lineWidth = 1.1; px2.stroke();
-      px2.beginPath(); px2.arc(nx,ny,rPx*0.22,0,7);
-      px2.fillStyle = 'rgba('+a.color+',0.5)'; px2.fill();
+      var pulse = 0.55 + 0.45*Math.sin(t*(2*Math.PI/a.cyc) + a.seed*3.0);
+      px2.strokeStyle = 'rgba('+a.color+','+(0.22*pulse*lineProg).toFixed(3)+')';
+      px2.lineWidth = 1;
+      px2.beginPath(); px2.moveTo(hubX,hubY); px2.lineTo(fx,fy); px2.stroke();
+
+      var rPx = ((mobile?30:34) + a.z*24) * 0.5 * scalePx * (0.35 + 0.65*arriveProg);
+      hexPath(px2, fx, fy, rPx);
+      px2.fillStyle = 'rgba('+a.color+','+(0.07*arriveProg).toFixed(3)+')'; px2.fill();
+      px2.strokeStyle = 'rgba('+a.color+','+(0.62*arriveProg).toFixed(3)+')'; px2.lineWidth = 1.1; px2.stroke();
+      px2.beginPath(); px2.arc(fx,fy,rPx*0.22,0,7);
+      px2.fillStyle = 'rgba('+a.color+','+(0.5*arriveProg).toFixed(3)+')'; px2.fill();
 
       var fontPx = Math.max(8, Math.round(rPx*0.42));
       px2.font = fontPx+'px monospace';
       px2.textAlign = 'center';
-      px2.fillStyle = 'rgba('+a.color+',0.55)';
-      px2.fillText(a.name, nx, ny + rPx + fontPx + 2);
+      px2.fillStyle = 'rgba('+a.color+','+(0.55*arriveProg).toFixed(3)+')';
+      px2.fillText(a.name, fx, fy + rPx + fontPx + 2);
     });
     px2.textAlign = 'left';
   }
@@ -1605,6 +1632,36 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     return sp;
   }
 
+  /* ---- head materialize (scale-up from nothing) + wordmark resolve, synced to the same
+     intro timeline the agent nodes use above ---- */
+  var headHolder = null;
+  function headIntroProgress(){
+    if (introFinished()) return 1;
+    return easeOutQuint((introElapsed() - INTRO_HEAD_DELAY) / INTRO_HEAD_DUR);
+  }
+  function applyHeadIntroScale(){
+    if (!headHolder) return;
+    var p = Math.max(0.001, headIntroProgress());
+    headHolder.scale.setScalar(headHolder.userData.baseScale * p);
+  }
+  var typeEl = document.querySelector('.shrink-holo__type');
+  var wordmarkRevealed = !INTRO_PLAY;
+  if (INTRO_PLAY && typeEl) typeEl.classList.add('tf-intro-hidden');
+  function updateWordmarkReveal(){
+    if (wordmarkRevealed || !typeEl) return;
+    if (introFinished() || introElapsed() >= INTRO_WORD_DELAY){
+      typeEl.classList.remove('tf-intro-hidden');
+      wordmarkRevealed = true;
+    }
+  }
+  if (location.hash.indexOf('debug') >= 0){
+    window.__introDebug = {
+      elapsed: introElapsed, finished: introFinished,
+      headScale: function(){ return headHolder ? headHolder.scale.x : null; },
+      wordRevealed: function(){ return wordmarkRevealed; }
+    };
+  }
+
   function buildHead(meshes){
     var box = new THREE.Box3();
     meshes.forEach(function(m){ box.expandByObject(m); });
@@ -1731,6 +1788,9 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
         });
       }
     }
+    holder.userData.baseScale = s;
+    headHolder = holder;
+    applyHeadIntroScale();
     rig.add(holder);
   }
 
@@ -1883,6 +1943,8 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     rig.rotation.x += (leanX + lv.glanceY - rig.rotation.x)*0.06;
     rig.rotation.z += (lv.tiltZ - rig.rotation.z)*0.08;
 
+    applyHeadIntroScale();
+    updateWordmarkReveal();
     drawPulses(t);
     drawAgentNodes(t);
     renderer.render(scene,camera);
