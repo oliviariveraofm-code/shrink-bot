@@ -1610,13 +1610,15 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
         eyePts.forEach(function(e, ei){
           if (CONFIG.STYLE === 'solid'){
             // drie lagen licht: fluisterzachte bloom + iris-gloed + hete kern (geen randen)
-            var bloom=glowSprite('warm', size.y*0.105);
+            // -- gold accent (CONFIG.GOLD, the site's existing amber/gold token), not a generic
+            // pale-warm color, so the eye reads as a distinct bright anchor point against the head.
+            var bloom=glowSprite(CONFIG.GOLD, size.y*0.105);
             bloom.material.depthTest=false; bloom.material.opacity=0.18;
             bloom.position.set(e[0],e[1],e[2]+0.055); bloom.renderOrder=3; inner.add(bloom);
-            var mid=glowSprite('warm', size.y*0.032);
+            var mid=glowSprite(CONFIG.GOLD, size.y*0.032);
             mid.material.depthTest=false; mid.material.opacity=0.42;
             mid.position.set(e[0],e[1],e[2]+0.06); mid.renderOrder=4; inner.add(mid);
-            var core=glowSprite('warm', size.y*0.012);
+            var core=glowSprite(CONFIG.GOLD, size.y*0.012);
             core.material.depthTest=false; core.material.opacity=1.0;
             core.position.set(e[0],e[1],e[2]+0.065); core.renderOrder=5; inner.add(core);
             eyeRigs.push({ base:new THREE.Vector3(e[0],e[1],e[2]),
@@ -1760,20 +1762,11 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       rig.rotation.x += (tx - rig.rotation.x)*0.07;
       rig.position.y = Math.sin(t*0.5)*0.03;
     } else {
-      // The Shrink is always watching: gloed volgt de cursor binnen de oogkas
-      // blik vasthouden zolang de cursor op de pagina staat
-      var txE = hasPointer ? Math.max(-1, Math.min(1, mx * CONFIG.EYE_SENS)) : 0;
-      var tyE = hasPointer ? Math.max(-1, Math.min(1, -my * CONFIG.EYE_SENS)) : 0;
-      var exT = txE * CONFIG.EYE_RANGE_X, eyT = tyE * CONFIG.EYE_RANGE_Y;
-      var spd = hasPointer ? 0.22 : 0.05;
-      if (window.__frames !== undefined){ window.__dbg = {t:t, lm:lastMove, idle:!hasPointer, mx:mx, txE:txE, exT:exT, off0: eyeRigs.length? [eyeRigs[0].off.x, eyeRigs[0].off.y] : null}; }                // volgen: snel | terug naar rust: traag glijden
+      // Eyes are rigid with the head -- no independent tracking/offset. They move only as
+      // part of the head's own neck-pivot rotation below; the only eye-only behavior is the
+      // blink/eye-pulse opacity modulation already computed in updateLife().
       for (var ei2=0; ei2<eyeRigs.length; ei2++){
         var er = eyeRigs[ei2];
-        er.off.x += (exT - er.off.x)*spd;
-        er.off.y += (eyT - er.off.y)*spd;
-        er.bloom.position.set(er.base.x + er.off.x*0.6, er.base.y + er.off.y*0.6, er.base.z + 0.055);
-        er.mid.position.set(er.base.x + er.off.x, er.base.y + er.off.y, er.base.z + 0.06);
-        er.core.position.set(er.base.x + er.off.x, er.base.y + er.off.y, er.base.z + 0.065);
         er.bloom.material.opacity = BLOOM_BASE * lv.blinkMul * lv.eyePulse;
         er.mid.material.opacity   = MID_BASE   * lv.blinkMul * lv.eyePulse;
         er.core.material.opacity  = CORE_BASE  * lv.blinkMul * lv.eyePulse;
