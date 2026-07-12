@@ -260,6 +260,50 @@
   .phi__closing{font-size:19px;line-height:1.6;color:var(--text-hi);font-style:italic;margin-top:60px;
     max-width:46ch;padding-left:22px;border-left:2px solid var(--accent-gold);}
 
+  /* ============ 02 · HOW A CARD IS MADE — archetype C: horizontal flow ============ */
+  .flow{position:relative;overflow:hidden;padding:100px 0;}
+  .flow__grid{position:absolute;inset:0;pointer-events:none;opacity:.14;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 70% 65% at 50% 50%, black 35%, transparent 88%);
+    mask-image:radial-gradient(ellipse 70% 65% at 50% 50%, black 35%, transparent 88%);}
+  .flow__bracket{position:absolute;width:22px;height:22px;border-color:var(--text-low);opacity:.45;}
+  .flow__bracket--tl{top:28px;left:28px;border-top:1px solid;border-left:1px solid;}
+  .flow__bracket--tr{top:28px;right:28px;border-top:1px solid;border-right:1px solid;}
+  .flow__bracket--bl{bottom:28px;left:28px;border-bottom:1px solid;border-left:1px solid;}
+  .flow__bracket--br{bottom:28px;right:28px;border-bottom:1px solid;border-right:1px solid;}
+
+  .flow__head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;
+    flex-wrap:wrap;gap:24px;}
+  .flow__headline{font-family:var(--font-display);font-weight:700;letter-spacing:-0.02em;line-height:1.05;
+    color:var(--text-hi);font-size:clamp(34px,4.2vw,56px);max-width:14ch;}
+  .flow__meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--text-low);text-align:right;max-width:22ch;}
+
+  .flow__rail{position:relative;z-index:1;margin-top:100px;}
+  .flow__line{position:absolute;top:96px;left:0;right:0;height:1px;background:var(--line);}
+  .flow__pulse{position:absolute;top:-2.5px;left:0;width:6px;height:6px;border-radius:50%;
+    background:var(--accent-gold);box-shadow:0 0 12px 1px rgba(196,160,82,.7);
+    animation:flowPulse 7s linear infinite;}
+  @keyframes flowPulse{0%{left:0%;opacity:0;}6%{opacity:1;}94%{opacity:1;}100%{left:100%;opacity:0;}}
+  @media (prefers-reduced-motion:reduce){ .flow__pulse{animation:none;opacity:0;} }
+
+  .flow__steps{display:grid;grid-template-columns:repeat(5,1fr);}
+  .flow__step{padding-right:18px;}
+  .flow__step:last-child{padding-right:0;}
+  .flow__num{height:96px;display:flex;align-items:flex-end;font-family:var(--font-display);font-weight:800;
+    font-size:clamp(36px,4vw,60px);letter-spacing:-0.02em;color:var(--text-low);opacity:.4;line-height:1;}
+  .flow__dot{position:relative;width:12px;height:12px;border-radius:50%;margin-top:-6px;
+    background:var(--bg-0);border:2px solid var(--accent-gold);}
+  .flow__t{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-hi);margin-top:26px;}
+  .flow__d{font-size:13.5px;line-height:1.55;color:var(--text-mid);margin-top:8px;}
+  @media (max-width:900px){
+    .flow__steps{grid-template-columns:1fr;gap:36px;}
+    .flow__line, .flow__dot{display:none;}
+    .flow__num{height:auto;}
+  }
+
   /* ============ SHRINK CIRCUIT-HOLO SECTION (drop-in) ============ */
   .shrink-holo{position:relative;min-height:100vh;display:flex;align-items:center;
     justify-content:center;overflow:hidden;background:var(--bg2);}
@@ -398,16 +442,41 @@
 </section>
 <hr class="tf-divider">
 
-<section class="tf-section" id="card-flow">
+<section class="flow" id="card-flow">
+  <div class="flow__grid" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--tl" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--tr" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--bl" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--br" aria-hidden="true"></div>
   <div class="tf-container">
-    <div class="tf-eyebrow tf-reveal">02 · How A Card Is Made</div>
-    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">How a card is made.</h2>
-    <div class="tf-steps tf-reveal" style="margin-top:48px;">
-      <div class="tf-step"><div class="tf-step__n">01</div><div class="tf-step__t">Chart In</div><div class="tf-step__d">One chart, one timeframe set: 15M + 5M, cross-ref 1H + 4H.</div></div>
-      <div class="tf-step"><div class="tf-step__n">02</div><div class="tf-step__t">12 Agents Read</div><div class="tf-step__d">Every desk analyses independently. No one sees each other&rsquo;s work.</div></div>
-      <div class="tf-step"><div class="tf-step__n">03</div><div class="tf-step__t">Silent Debate</div><div class="tf-step__d">Votes are weighed. Vetoes count hard.</div></div>
-      <div class="tf-step"><div class="tf-step__n">04</div><div class="tf-step__t">Consensus Gate</div><div class="tf-step__d">Below 65%? Automatic NO TRADE.</div></div>
-      <div class="tf-step"><div class="tf-step__n">05</div><div class="tf-step__t">One Card</div><div class="tf-step__d">TRADE or NO TRADE. Nothing in between.</div></div>
+    <div class="flow__head">
+      <h2 class="flow__headline tf-reveal">How a card is made.</h2>
+      <div class="flow__meta tf-reveal">02 · How A Card Is Made<br>Five steps · one outcome</div>
+    </div>
+    <div class="flow__rail tf-reveal">
+      <div class="flow__line"><i class="flow__pulse"></i></div>
+      <div class="flow__steps">
+        <div class="flow__step">
+          <div class="flow__num">01</div><div class="flow__dot"></div>
+          <div class="flow__t">Chart In</div><div class="flow__d">One chart, one timeframe set: 15M + 5M, cross-ref 1H + 4H.</div>
+        </div>
+        <div class="flow__step">
+          <div class="flow__num">02</div><div class="flow__dot"></div>
+          <div class="flow__t">12 Agents Read</div><div class="flow__d">Every desk analyses independently. No one sees each other&rsquo;s work.</div>
+        </div>
+        <div class="flow__step">
+          <div class="flow__num">03</div><div class="flow__dot"></div>
+          <div class="flow__t">Silent Debate</div><div class="flow__d">Votes are weighed. Vetoes count hard.</div>
+        </div>
+        <div class="flow__step">
+          <div class="flow__num">04</div><div class="flow__dot"></div>
+          <div class="flow__t">Consensus Gate</div><div class="flow__d">Below 65%? Automatic NO TRADE.</div>
+        </div>
+        <div class="flow__step">
+          <div class="flow__num">05</div><div class="flow__dot"></div>
+          <div class="flow__t">One Card</div><div class="flow__d">TRADE or NO TRADE. Nothing in between.</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
