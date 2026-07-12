@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SHRINK — The Trading Floor</title>
 <style>
+  /* self-hosted display/mono faces (variable-weight woff2, latin subset) — falls back to
+     system-ui/monospace instantly via font-display:swap while these load. */
+  @font-face{
+    font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;
+    src:url('vendor/fonts/inter-latin.woff2') format('woff2-variations'), url('vendor/fonts/inter-latin.woff2') format('woff2');
+  }
+  @font-face{
+    font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;
+    src:url('vendor/fonts/jetbrains-mono-latin-400.woff2') format('woff2');
+  }
   :root{
     /* hero-native tokens (unchanged — still what the 3D scene / agent nodes / original hero styles use) */
     --bg:#0E0F13; --bg2:#07090C; --gold:#C6A253; --teal:#4FD1BE;
@@ -561,10 +571,10 @@
 <main>
 
 <section class="phi" id="philosophy">
-  <img class="phi__img" alt="" aria-hidden="true" loading="lazy" width="1600" height="1920"
+  <img class="phi__img" alt="" aria-hidden="true" loading="lazy" width="2400" height="2880"
     data-parallax="10"
     src="assets/renders/philosophy-lg.webp"
-    srcset="assets/renders/philosophy-sm.webp 800w, assets/renders/philosophy-lg.webp 1600w"
+    srcset="assets/renders/philosophy-sm.webp 1100w, assets/renders/philosophy-lg.webp 2400w"
     sizes="(max-width:760px) 82vw, 58vw">
   <div class="phi__mark" aria-hidden="true">01 · Philosophy</div>
   <div class="tf-eyebrow phi__eyebrow tf-reveal">The Philosophy</div>
