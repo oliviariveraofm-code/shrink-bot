@@ -41,9 +41,66 @@
     --space-section-mobile: 90px;
     --space-section-desktop: 160px;
     --container-max: 1280px;
+
+    /* ============ unified motion system — one easing curve, three duration tiers ============
+       Every transition/animation added or touched below pulls from these instead of inventing
+       its own curve, so the whole site reads as one engineered system rather than a pile of
+       one-off effects. cubic-bezier(.16,1,.3,1) ("ease-out-expo"-ish: fast start, long precise
+       settle, never overshoots) was already the de facto standard in a few places pre-existing
+       in this file (tf-reveal--mask, tf-agent/tf-dna hover) -- formalized here and applied
+       everywhere else that previously used a plain `ease`. */
+    --ease: cubic-bezier(.16,1,.3,1);
+    --dur-micro: 200ms;      /* hovers, focus states, small toggles */
+    --dur-standard: 420ms;   /* card elevation, panel reveals, nav state */
+    --dur-hero: 1000ms;      /* headline reveals, hero-scale moments */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg-0);color:var(--txt);font-family:var(--font-display);}
+
+  /* ============ page-wide ambient background — sits behind every section (fixed, z-index:-1,
+     so it paints just above the plain canvas color and below all normal content) so the page
+     never reads as a flat static color between the hero and the opaque cards/panels. Every
+     layer here is transform/opacity-only (already-blurred, non-animating blur radius) so it's
+     compositor-driven and effectively free per frame, even running for the full page scroll. ============ */
+  .tf-ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  .tf-ambient__blob{position:absolute;border-radius:50%;filter:blur(64px);will-change:transform;
+    opacity:var(--amb-boost, .8);transition:opacity 1.2s linear;}
+  .tf-ambient__blob--a{width:58vw;height:58vw;left:-16vw;top:-14vw;
+    background:radial-gradient(circle, rgba(79,209,190,.11), transparent 70%);
+    animation:ambBlobA 48s ease-in-out infinite;}
+  .tf-ambient__blob--b{width:50vw;height:50vw;right:-14vw;top:30vh;
+    background:radial-gradient(circle, rgba(198,162,83,.09), transparent 70%);
+    animation:ambBlobB 60s ease-in-out infinite;}
+  .tf-ambient__blob--c{width:46vw;height:46vw;left:18vw;bottom:-18vw;
+    background:radial-gradient(circle, rgba(224,110,90,.06), transparent 70%);
+    animation:ambBlobC 54s ease-in-out infinite;}
+  @keyframes ambBlobA{0%,100%{transform:translate(0,0);}50%{transform:translate(6vw,7vh);}}
+  @keyframes ambBlobB{0%,100%{transform:translate(0,0);}50%{transform:translate(-7vw,-5vh);}}
+  @keyframes ambBlobC{0%,100%{transform:translate(0,0);}50%{transform:translate(5vw,-6vh);}}
+
+  .tf-ambient__grid{position:absolute;inset:-64px;opacity:.045;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:64px 64px;animation:ambGrid 100s linear infinite;}
+  @keyframes ambGrid{from{transform:translate(0,0);}to{transform:translate(64px,64px);}}
+
+  .tf-ambient__lines{position:absolute;inset:-30%;opacity:.4;mix-blend-mode:screen;
+    will-change:transform;
+    background:
+      linear-gradient(100deg, transparent 46%, rgba(79,209,190,.05) 49%, transparent 53%),
+      linear-gradient(80deg, transparent 62%, rgba(198,162,83,.04) 65%, transparent 69%);
+    /* oversized (inset:-30%) and moved with transform, not background-position, so this stays
+       compositor-only -- no repaint per frame even though it's a full-viewport gradient. */
+    animation:ambLines 75s ease-in-out infinite alternate;}
+  @keyframes ambLines{from{transform:translate(0,0);}to{transform:translate(-8%,4%);}}
+
+  @media (prefers-reduced-motion: reduce){
+    .tf-ambient__blob, .tf-ambient__grid, .tf-ambient__lines{animation:none;}
+  }
+  @media (max-width:640px){
+    .tf-ambient__blob{filter:blur(40px);}
+    .tf-ambient__lines{display:none;} /* two more animated layers is unnecessary cost on small/lower-power screens */
+  }
 
   /* ============ page-wide layout utilities (used by sections below the hero) ============ */
   .tf-container{max-width:var(--container-max);margin:0 auto;padding-left:24px;padding-right:24px;}
@@ -57,20 +114,49 @@
     letter-spacing:-0.02em;line-height:1.05;color:var(--text-hi);}
   .tf-body{font-size:16px;line-height:1.6;color:var(--text-mid);max-width:60ch;}
   .tf-divider{border:none;border-top:1px solid var(--line);margin:0;}
-  .tf-reveal{opacity:0;transform:translateY(8px);transition:opacity .3s ease-out, transform .3s ease-out;}
+  .tf-reveal{opacity:0;transform:translateY(8px);
+    transition:opacity var(--dur-standard) var(--ease), transform var(--dur-standard) var(--ease);}
   .tf-reveal.is-visible{opacity:1;transform:translateY(0);}
   /* slower, deliberate clip-reveal for the big "hero moment" headlines (§6 motion upgrade) */
   .tf-reveal.tf-reveal--mask{opacity:1;transform:none;clip-path:inset(0 100% 0 0);
-    transition:clip-path 1s cubic-bezier(.16,1,.3,1);}
+    transition:clip-path var(--dur-hero) var(--ease);}
   .tf-reveal.tf-reveal--mask.is-visible{clip-path:inset(0 0 0 0);}
   @media (prefers-reduced-motion: reduce){
     .tf-reveal{opacity:1!important;transform:none!important;transition:none!important;}
     .tf-reveal--mask{clip-path:inset(0)!important;}
   }
 
+  /* one-shot "power-on" brightness settle, layered on top of the opacity/transform reveal
+     transition above -- reinforces the "systems initializing as you scroll" narrative without
+     being a literal flicker (kept to a single gentle overshoot, same easing as everything
+     else, never bouncy). Toggled by the reveal script alongside .is-visible. */
+  .tf-reveal.is-flicker{animation:tfPowerOn var(--dur-hero) var(--ease);}
+  @keyframes tfPowerOn{ 0%{ filter:brightness(1.55); } 100%{ filter:brightness(1); } }
+  @media (prefers-reduced-motion: reduce){ .tf-reveal.is-flicker{animation:none;} }
+
+  /* ============ shared "floating glass terminal" card treatment ============
+     One hover mechanic (elevation + directional sheen sweep), reused by every card-like
+     surface on the page (agent cards, DNA cards, strategy cards, philosophy panels, terminal
+     windows) instead of five hand-tuned duplicates. Per-surface files still own their own
+     accent-colored box-shadow/border-color where relevant -- this only owns the shared part. */
+  .tf-glass{position:relative;overflow:hidden;
+    transition:transform var(--dur-standard) var(--ease), box-shadow var(--dur-standard) var(--ease),
+      border-color var(--dur-standard) var(--ease);}
+  .tf-glass::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+    background:linear-gradient(115deg, transparent 32%, rgba(255,255,255,.05) 45%,
+      rgba(255,255,255,.10) 50%, rgba(255,255,255,.05) 55%, transparent 68%);
+    transform:translateX(-130%);transition:transform var(--dur-hero) var(--ease);}
+  .tf-glass:hover{transform:translateY(-6px);}
+  .tf-glass:hover::before{transform:translateX(130%);}
+  @media (prefers-reduced-motion: reduce){
+    .tf-glass{transition:box-shadow var(--dur-micro) linear, border-color var(--dur-micro) linear;}
+    .tf-glass:hover{transform:none;}
+    .tf-glass::before{display:none;}
+  }
+
   /* ============ site-wide "watching" layer — cursor spotlight over a faint plexus-line texture ============ */
   .tf-watch{position:fixed;inset:0;z-index:40;pointer-events:none;mix-blend-mode:screen;
-    opacity:0;transition:opacity .5s ease;
+    opacity:0;transition:opacity var(--dur-standard) var(--ease);
     background-image:
       repeating-linear-gradient(0deg, rgba(79,209,190,.4) 0 1px, transparent 1px 48px),
       repeating-linear-gradient(60deg, rgba(79,209,190,.28) 0 1px, transparent 1px 48px),
@@ -98,7 +184,8 @@
   .tf-nav__word b{color:var(--accent-gold);font-weight:700;}
   .tf-nav__links{display:none;gap:22px;list-style:none;}
   .tf-nav__links a{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;
-    text-transform:uppercase;color:var(--text-mid);text-decoration:none;transition:color .15s ease;}
+    text-transform:uppercase;color:var(--text-mid);text-decoration:none;
+    transition:color var(--dur-micro) var(--ease);}
   .tf-nav__links a:hover{color:var(--text-hi);}
   @media (min-width:960px){ .tf-nav__links{display:flex;align-items:center;} }
   .tf-nav__cta{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
@@ -149,11 +236,10 @@
   .tf-agents{position:relative;z-index:1;display:grid;grid-template-columns:1fr;gap:18px;}
   @media (min-width:640px){ .tf-agents{grid-template-columns:1fr 1fr;} }
   @media (min-width:1040px){ .tf-agents{grid-template-columns:repeat(4,1fr);} }
-  .tf-agent{position:relative;border:1px solid var(--line);border-radius:6px;padding:30px 26px;
+  .tf-agent{border:1px solid var(--line);border-radius:6px;padding:30px 26px;
     border-top:2px solid var(--agent-c, var(--line));
-    background:linear-gradient(165deg, rgba(var(--agent-rgb,255,255,255),.13), var(--bg-1) 62%);
-    transition:transform .28s cubic-bezier(.16,1,.3,1), box-shadow .28s ease, border-color .28s ease;}
-  .tf-agent:hover{transform:translateY(-7px);
+    background:linear-gradient(165deg, rgba(var(--agent-rgb,255,255,255),.13), var(--bg-1) 62%);}
+  .tf-agent:hover{
     box-shadow:0 28px 52px -22px rgba(var(--agent-rgb,0,0,0),.5), 0 0 0 1px rgba(var(--agent-rgb,255,255,255),.28);}
   .tf-agent__emblem{width:50px;height:50px;color:var(--agent-c, var(--text-mid));
     filter:drop-shadow(0 0 18px rgba(var(--agent-rgb,0,0,0),.35));}
@@ -199,8 +285,10 @@
   .tf-legend__v{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:6px;}
 
   /* ============ 05 · CONFIDENCE & SIZING — archetype E: terminal readout ============ */
-  .term__window{border:1px solid var(--line);border-radius:8px;background:var(--bg-1);overflow:hidden;
+  .term__window{border:1px solid var(--line);border-radius:8px;background:var(--bg-1);
     box-shadow:0 32px 64px -30px rgba(0,0,0,.7);}
+  .term__window:hover{border-color:rgba(79,209,190,.3);
+    box-shadow:0 40px 76px -30px rgba(0,0,0,.75), 0 0 0 1px rgba(79,209,190,.14);}
   .term__bar{display:flex;align-items:center;gap:7px;padding:13px 18px;background:var(--bg-0);
     border-bottom:1px solid var(--line);}
   .term__dot{width:9px;height:9px;border-radius:50%;display:inline-block;opacity:.85;}
@@ -229,9 +317,9 @@
   /* ============ 06 · TRADING DNA — archetype D variant: immersive grid by asset strength ============ */
   .tf-dna{display:grid;grid-template-columns:1fr;gap:18px;}
   @media (min-width:760px){ .tf-dna{grid-template-columns:1fr 1fr;} }
-  .tf-dna__p{position:relative;overflow:hidden;border:1px solid var(--line);background:var(--bg-1);
-    border-radius:6px;padding:28px 26px;transition:transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;}
-  .tf-dna__p:hover{transform:translateY(-5px);box-shadow:0 24px 44px -22px rgba(0,0,0,.55);}
+  .tf-dna__p{border:1px solid var(--line);background:var(--bg-1);
+    border-radius:6px;padding:28px 26px;}
+  .tf-dna__p:hover{box-shadow:0 24px 44px -22px rgba(0,0,0,.55);}
   .tf-dna__pct{position:absolute;right:10px;bottom:-26px;font-family:var(--font-display);font-weight:800;
     font-size:110px;line-height:1;color:var(--text-hi);opacity:.05;pointer-events:none;}
   .tf-dna__p--positive{background:linear-gradient(155deg, rgba(79,209,190,.10), var(--bg-1) 60%);
@@ -258,7 +346,7 @@
   .tf-sessions th{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--text-low);text-align:left;padding:0 12px 12px;border-bottom:1px solid var(--line);font-weight:400;}
   .tf-sessions td{padding:14px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text-mid);
-    vertical-align:top;transition:background .15s ease;}
+    vertical-align:top;transition:background var(--dur-micro) var(--ease);}
   .tf-sessions tbody tr:hover td{background:rgba(255,255,255,.025);}
   .tf-sessions tbody tr.tf-row-live td{background:rgba(79,209,190,.07);}
   .tf-sessions tbody tr.tf-row-live{box-shadow:inset 3px 0 0 0 var(--role-positive);}
@@ -295,8 +383,9 @@
 
   .tf-strategies{display:grid;grid-template-columns:1fr;gap:16px;}
   @media (min-width:820px){ .tf-strategies{grid-template-columns:repeat(3,1fr);} }
-  .tf-strategy{position:relative;overflow:hidden;border:1px solid var(--line);border-left:2px solid var(--strat-c,var(--line));
+  .tf-strategy{border:1px solid var(--line);border-left:2px solid var(--strat-c,var(--line));
     background:var(--bg-1);border-radius:4px;padding:26px 24px;}
+  .tf-strategy:hover{box-shadow:0 26px 48px -24px rgba(0,0,0,.6), 0 0 0 1px rgba(var(--strat-rgb,255,255,255),.16);}
   .tf-strategy__glyph{position:absolute;right:-6px;bottom:-16px;font-size:96px;line-height:1;opacity:.08;
     pointer-events:none;filter:grayscale(1);}
   .tf-strategy__n{font-family:var(--font-display);font-weight:800;font-size:34px;color:var(--strat-c,var(--text-low));
@@ -313,7 +402,7 @@
   .tf-rules{border-top:1px solid var(--line);}
   .tf-rule{position:relative;display:grid;grid-template-columns:74px 1fr;gap:18px;padding:20px 0 20px 18px;
     border-bottom:1px solid var(--line);border-left:3px solid var(--rule-c, var(--line));
-    transition:background .15s ease;}
+    transition:background var(--dur-micro) var(--ease);}
   .tf-rule:hover{background:rgba(255,255,255,.02);}
   .tf-rule__id{font-family:var(--font-mono);font-weight:700;font-size:15px;letter-spacing:.04em;
     color:var(--rule-c, var(--accent-gold));}
@@ -324,8 +413,10 @@
   /* ============ 10 · INSIDE THE DISCORD — archetype B variant: split + sidebar mockup ============ */
   .tf-discord{display:grid;grid-template-columns:1fr;gap:40px;align-items:start;}
   @media (min-width:840px){ .tf-discord{grid-template-columns:minmax(0,320px) 1fr;} }
-  .disco__sidebar{background:var(--bg-1);border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  .disco__sidebar{background:var(--bg-1);border:1px solid var(--line);border-radius:8px;
     box-shadow:0 28px 56px -26px rgba(0,0,0,.65);}
+  .disco__sidebar:hover{border-color:rgba(196,160,82,.3);
+    box-shadow:0 34px 64px -26px rgba(0,0,0,.7), 0 0 0 1px rgba(196,160,82,.14);}
   .disco__sidebar__head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
   .disco__sidebar__logo{width:26px;height:26px;border-radius:7px;background:var(--accent-gold);
     display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;
@@ -336,7 +427,7 @@
     color:var(--text-low);margin:14px 0 4px 6px;}
   .tf-channels__cat:first-child{margin-top:2px;}
   .tf-channels__item{font-family:var(--font-mono);font-size:13px;color:var(--text-mid);padding:6px 10px;
-    border-radius:5px;transition:background .15s ease, color .15s ease;}
+    border-radius:5px;transition:background var(--dur-micro) var(--ease), color var(--dur-micro) var(--ease);}
   .tf-channels__item:hover{background:rgba(255,255,255,.045);color:var(--text-hi);}
   .tf-legal{font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-low);}
   .tf-legal p{margin-top:14px;}
@@ -355,7 +446,7 @@
     justify-content:center;align-items:center;}
   .tf-btn{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
     text-decoration:none;padding:15px 36px;border-radius:2px;display:inline-block;
-    transition:transform .18s ease, box-shadow .18s ease;}
+    transition:transform var(--dur-micro) var(--ease), box-shadow var(--dur-micro) var(--ease);}
   .tf-btn--primary{color:var(--bg-0);background:var(--accent-gold);box-shadow:0 0 22px rgba(196,160,82,.28);}
   .tf-btn--primary:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(196,160,82,.44);}
   .tf-btn--ghost{color:var(--text-hi);border:1px solid var(--line);background:transparent;}
@@ -397,12 +488,14 @@
     margin-left:auto;margin-right:0;text-align:left;}
   .phi__panels{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;margin-top:56px;}
   @media (max-width:760px){ .phi__panels{grid-template-columns:1fr;} }
-  .phi__panel{border:1px solid var(--line);border-radius:4px;padding:32px 28px;position:relative;
+  .phi__panel{border:1px solid var(--line);border-radius:4px;padding:32px 28px;
     box-shadow:0 24px 48px -24px rgba(0,0,0,.6);}
   .phi__panel--positive{background:linear-gradient(160deg, rgba(79,209,190,.10), var(--bg-1) 60%);
     border-color:rgba(79,209,190,.28);}
+  .phi__panel--positive:hover{box-shadow:0 30px 56px -24px rgba(0,0,0,.65), 0 0 0 1px rgba(79,209,190,.22);}
   .phi__panel--negative{background:linear-gradient(160deg, rgba(224,110,90,.10), var(--bg-1) 60%);
     border-color:rgba(224,110,90,.28);margin-top:34px;}
+  .phi__panel--negative:hover{box-shadow:0 30px 56px -24px rgba(0,0,0,.65), 0 0 0 1px rgba(224,110,90,.22);}
   @media (max-width:760px){ .phi__panel--negative{margin-top:0;} }
   .phi__panel--positive .tf-panel__label{color:var(--role-positive);}
   .phi__panel--negative .tf-panel__label{color:var(--role-negative);}
@@ -460,7 +553,53 @@
   .shrink-holo__vig{position:absolute;inset:0;pointer-events:none;
     background:radial-gradient(900px 640px at 50% 40%, rgba(79,209,190,.055), transparent 60%),
                radial-gradient(140% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.72) 100%);}
-  .shrink-holo__stage{position:relative;width:min(92vw,860px);height:min(88vh,860px);}
+
+  /* ---- cheap stand-ins for volumetric light / bloom / fog: layered gradients + slow CSS
+     keyframes instead of a raymarched shader pass or a real postprocessing bloom composer.
+     A prior heavier animation feature in this project was pulled entirely for causing load
+     lag -- these are deliberately transform/opacity-only so they cost near nothing per frame,
+     even stacked three deep behind the WebGL canvas. ---- */
+  .shrink-holo__beams{position:absolute;inset:-10% -10%;pointer-events:none;mix-blend-mode:screen;
+    background:
+      conic-gradient(from 200deg at 38% 108%, transparent 0deg, rgba(79,209,190,.10) 8deg, transparent 20deg, transparent 340deg),
+      conic-gradient(from 160deg at 66% 112%, transparent 0deg, rgba(198,162,83,.08) 10deg, transparent 24deg, transparent 336deg);
+    animation:shrinkBeamRotate 140s linear infinite, shrinkBeamPulse 9s ease-in-out infinite;
+    transform-origin:50% 88%;}
+  @keyframes shrinkBeamRotate{ to{ transform:rotate(360deg); } }
+  @keyframes shrinkBeamPulse{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+
+  .shrink-holo__bloom{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+    background:radial-gradient(38% 46% at 50% 38%, rgba(198,162,83,.16), transparent 70%);
+    animation:shrinkBloomBreathe 6.5s ease-in-out infinite;}
+  @keyframes shrinkBloomBreathe{ 0%,100%{ opacity:.7; } 50%{ opacity:1; } }
+
+  .shrink-holo__fog{position:absolute;left:-8%;right:-8%;bottom:-6%;height:46%;pointer-events:none;
+    background:radial-gradient(60% 100% at 50% 100%, rgba(180,196,210,.09), transparent 72%);
+    filter:blur(2px);animation:shrinkFogDrift 16s ease-in-out infinite alternate;}
+  @keyframes shrinkFogDrift{ 0%{ transform:translateX(-2%) scaleX(1); } 100%{ transform:translateX(2%) scaleX(1.04); } }
+
+  .shrink-holo__stage{position:relative;width:min(92vw,860px);height:min(88vh,860px);
+    /* floor reflection: cheap progressive enhancement (webkit/blink only; Firefox just shows
+       no reflection, which is a fine, harmless degrade for a decorative flourish). */
+    -webkit-box-reflect:below 14px linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.55) 78%, rgba(0,0,0,.85));}
+
+  /* holographic scan lines -- sit above the whole stage (including the head) for the classic
+     "projected hologram" read; a single repeating-gradient translated exactly one tile per
+     loop so it reads as an endless scan with no visible seam. */
+  .shrink-holo__scan{position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:overlay;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0px, transparent 1px, transparent 3px);
+    opacity:.5;animation:shrinkScanMove 7s linear infinite;}
+  @keyframes shrinkScanMove{ from{ background-position-y:0; } to{ background-position-y:120px; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .shrink-holo__beams, .shrink-holo__bloom, .shrink-holo__fog, .shrink-holo__scan{animation:none;}
+    .shrink-holo__beams{opacity:.7;} .shrink-holo__bloom{opacity:.85;}
+  }
+  @media (max-width:760px){
+    /* the beam/bloom/fog stack is a background flourish behind an already-heavy WebGL scene;
+       drop it on narrow/likely-lower-powered viewports rather than risk the frame budget. */
+    .shrink-holo__beams, .shrink-holo__fog{display:none;}
+  }
   .shrink-holo__canvas{position:absolute;inset:0;}
   .shrink-holo__canvas canvas{display:block;width:100%;height:100%;}
   .shrink-holo__fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;}
@@ -506,6 +645,22 @@
     font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.34em;pointer-events:none;
     color:var(--teal);text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 20px rgba(0,0,0,.8);}
 
+  /* ---- floating HUD readouts around the hologram -- reinforces the "control room" read.
+     Static content (like the pre-existing corner labels), each drifting on its own slow,
+     staggered idle float so the group never reads as one mechanical unit. ---- */
+  .shrink-holo__hud{position:absolute;z-index:3;font-family:var(--font-mono);font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--text-low);pointer-events:none;
+    text-shadow:0 2px 8px rgba(0,0,0,.85);opacity:.7;
+    animation:shrinkHudFloat 8s ease-in-out infinite;}
+  .shrink-holo__hud b{display:block;color:var(--teal);font-weight:400;font-size:12px;letter-spacing:.06em;margin-top:2px;}
+  .shrink-holo__hud--1{top:27%;left:2%;animation-delay:0s;}
+  .shrink-holo__hud--2{top:64%;left:1.5%;animation-delay:-2.6s;}
+  .shrink-holo__hud--3{top:50%;right:3%;animation-delay:-5.2s;}
+  .shrink-holo__hud--4{top:70%;right:2%;animation-delay:-1.3s;}
+  @keyframes shrinkHudFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+  @media (max-width:900px){ .shrink-holo__hud{display:none;} }
+  @media (prefers-reduced-motion: reduce){ .shrink-holo__hud{animation:none;} }
+
   /* ============ hero copy block — clean typographic beat directly below the visual hero,
      NOT layered over the head/wordmark, so the (long, verbatim) headline/sub/CTA never collides
      with the "subject through type" treatment above. ============ */
@@ -517,6 +672,14 @@
 </style>
 </head>
 <body>
+
+<div class="tf-ambient" aria-hidden="true">
+  <div class="tf-ambient__grid"></div>
+  <div class="tf-ambient__blob tf-ambient__blob--a"></div>
+  <div class="tf-ambient__blob tf-ambient__blob--b"></div>
+  <div class="tf-ambient__blob tf-ambient__blob--c"></div>
+  <div class="tf-ambient__lines"></div>
+</div>
 
 <nav class="tf-nav" id="top">
   <div class="tf-nav__row">
@@ -539,15 +702,23 @@
 <section class="shrink-holo" id="shrinkHolo">
   <canvas class="shrink-holo__circuit" id="shCircuit"></canvas>
   <canvas class="shrink-holo__pulse" id="shPulse"></canvas>
+  <div class="shrink-holo__beams" aria-hidden="true"></div>
   <div class="shrink-holo__type" aria-hidden="true">SH<span>RINK</span></div>
   <div class="shrink-holo__vig"></div>
+  <div class="shrink-holo__bloom" aria-hidden="true"></div>
+  <div class="shrink-holo__fog" aria-hidden="true"></div>
   <div class="shrink-holo__stage">
     <div class="shrink-holo__canvas" id="shrinkHoloCanvas"></div>
     <div class="shrink-holo__fallback"><img id="shrinkHoloImg" alt="SHRINK — The Brain"></div>
   </div>
+  <div class="shrink-holo__scan" aria-hidden="true"></div>
   <div class="shrink-holo__corner shrink-holo__corner--tl">01 / 07</div>
   <div class="shrink-holo__corner shrink-holo__corner--tr">Node · 12</div>
   <div class="shrink-holo__kicker">The Trading Floor · Dubai GMT+4</div>
+  <div class="shrink-holo__hud shrink-holo__hud--1" aria-hidden="true">LATENCY<b>4MS</b></div>
+  <div class="shrink-holo__hud shrink-holo__hud--2" aria-hidden="true">SYNC<b>100%</b></div>
+  <div class="shrink-holo__hud shrink-holo__hud--3" aria-hidden="true">AGENTS ONLINE<b>12/12</b></div>
+  <div class="shrink-holo__hud shrink-holo__hud--4" aria-hidden="true">THROUGHPUT<b>2.4K/S</b></div>
   <div class="shrink-holo__scroll" aria-hidden="true"><span>Scroll</span><i></i></div>
 </section>
 
@@ -591,11 +762,11 @@
   <div class="phi__lower">
     <p class="phi__intro tf-reveal">Every agent reads the chart from one angle — structure, liquidity, timing, macro, order flow, psychology. They debate in silence. If they don&rsquo;t agree, there is no setup. Period.</p>
     <div class="phi__panels tf-reveal">
-      <div class="phi__panel phi__panel--positive">
+      <div class="phi__panel phi__panel--positive tf-glass">
         <div class="tf-panel__label">Trade Card</div>
         <p class="tf-body">Consensus reached. One card with exact entry, SL, TP1, TP2, size and expiry.</p>
       </div>
-      <div class="phi__panel phi__panel--negative">
+      <div class="phi__panel phi__panel--negative tf-glass">
         <div class="tf-panel__label">No Trade</div>
         <p class="tf-body">No consensus. That&rsquo;s an outcome too — with the exact level to watch and the trigger that would still produce a card. Not trading is a position.</p>
       </div>
@@ -655,49 +826,49 @@
 
     <div class="tf-tier-label tf-reveal">Core — 8 Votes</div>
     <div class="tf-agents tf-reveal">
-      <div class="tf-agent" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l8-7 8 7"/><path d="M4 13l8-7 8 7"/><path d="M4 7l8-6 8 6"/></svg>
         <div class="tf-agent__name">Rally</div>
         <div class="tf-agent__desk">Bull Desk</div>
         <p class="tf-agent__line">&ldquo;Momentum is your friend.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8 6 8-6"/><path d="M4 12l8 6 8-6"/><path d="M4 18l8 4 8-4"/></svg>
         <div class="tf-agent__name">Crash</div>
         <div class="tf-agent__desk">Bear Desk</div>
         <p class="tf-agent__line">&ldquo;What goes up can fall.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>
         <div class="tf-agent__name">Vector</div>
         <div class="tf-agent__desk">Direction Desk</div>
         <p class="tf-agent__line">&ldquo;Trend is direction. Direction is edge.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h8"/><path d="M9 20L12 4l3 16"/><path d="M12 4v10"/></svg>
         <div class="tf-agent__name">Tempo</div>
         <div class="tf-agent__desk">Timing Desk</div>
         <p class="tf-agent__line">&ldquo;The right moment, not just any moment.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M9 3l3 9 3-9"/><path d="M9 21l3-9 3 9"/></svg>
         <div class="tf-agent__name">Hunt</div>
         <div class="tf-agent__desk">Liquidity Desk</div>
         <p class="tf-agent__line">&ldquo;Follow the liquidity.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
         <div class="tf-agent__name">Sniper</div>
         <div class="tf-agent__desk">Entry Desk</div>
         <p class="tf-agent__line">&ldquo;Discipline. Precision. Execution.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
         <div class="tf-agent__name">Macro</div>
         <div class="tf-agent__desk">Macro Desk</div>
         <p class="tf-agent__line">&ldquo;See the bigger picture.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(156,140,217);--agent-rgb:156,140,217">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(156,140,217);--agent-rgb:156,140,217">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z"/></svg>
         <div class="tf-agent__name">Hedge</div>
         <div class="tf-agent__desk">Risk Desk</div>
@@ -707,19 +878,19 @@
 
     <div class="tf-tier-label tf-reveal">Context — Conviction &amp; Risk</div>
     <div class="tf-agents tf-reveal">
-      <div class="tf-agent" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
         <div class="tf-agent__name">Flow</div>
         <div class="tf-agent__desk">Order Flow Desk</div>
         <p class="tf-agent__line">&ldquo;Capital doesn&rsquo;t lie.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M12 16l5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>
         <div class="tf-agent__name">Sentiment</div>
         <div class="tf-agent__desk">Sentiment Desk</div>
         <p class="tf-agent__line">&ldquo;Read the mood of the market.&rdquo;</p>
       </div>
-      <div class="tf-agent" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11L6 5"/><path d="M12 11l6-6"/><path d="M12 15l-4-4"/><path d="M12 15l4-4"/></svg>
         <div class="tf-agent__name">Oracle</div>
         <div class="tf-agent__desk">Probability Desk</div>
@@ -729,7 +900,7 @@
 
     <div class="tf-tier-label tf-reveal">Discipline</div>
     <div class="tf-agents tf-reveal">
-      <div class="tf-agent" style="--agent-c:rgb(255,214,140);--agent-rgb:255,214,140">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(255,214,140);--agent-rgb:255,214,140">
         <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
         <div class="tf-agent__name">Shrink</div>
         <div class="tf-agent__desk">Psychology Desk</div>
@@ -756,7 +927,7 @@
         <div class="anat__cardwrap tf-reveal">
           <div class="anat__bracket anat__bracket--tl" aria-hidden="true"></div>
           <div class="anat__bracket anat__bracket--br" aria-hidden="true"></div>
-          <div class="tf-tradecard">🎯 XAUUSD 15M — LONG ⚡ 78%
+          <div class="tf-tradecard tf-glass">🎯 XAUUSD 15M — LONG ⚡ 78%
 
 ENTRY <b>2318.50</b> (Bull OB retest)
 SL   2311.00 (Invalidates OB)
@@ -790,7 +961,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">05 · Confidence &amp; Sizing</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Confidence &amp; sizing.</h2>
-    <div class="term__window tf-reveal" style="margin-top:44px;">
+    <div class="term__window tf-glass tf-reveal" style="margin-top:44px;">
       <div class="term__bar">
         <span class="term__dot term__dot--r"></span><span class="term__dot term__dot--y"></span><span class="term__dot term__dot--g"></span>
         <span class="term__title">confidence.sys — read only</span>
@@ -839,22 +1010,22 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       <span class="tf-chip tf-chip--out">CRYPTO → OUT OF SCOPE</span>
     </div>
     <div class="tf-dna tf-reveal" style="margin-top:32px;">
-      <div class="tf-dna__p tf-dna__p--positive">
+      <div class="tf-dna__p tf-dna__p--positive tf-glass">
         <div class="tf-dna__pct" aria-hidden="true">88</div>
         <div class="tf-dna__label">XAUUSD — Strongest (88%)</div>
         <p class="tf-dna__body">ADR 150-300p. London 09:30-11:00 = HUNT only (sweep risk high). <b style="color:var(--text-hi)">Best window: NY 15:30-17:00.</b> Inverse DXY always applies.</p>
       </div>
-      <div class="tf-dna__p tf-dna__p--accent">
+      <div class="tf-dna__p tf-dna__p--accent tf-glass">
         <div class="tf-dna__pct" aria-hidden="true">75</div>
         <div class="tf-dna__label">EURUSD — Cleanest (75%)</div>
         <p class="tf-dna__body">Small ADR. Prime: 09:30-11:00 + 13:00-13:30 Silver Bullet. <b style="color:var(--text-hi)">Closed after 14:00. No NY trades.</b></p>
       </div>
-      <div class="tf-dna__p tf-dna__p--negative">
+      <div class="tf-dna__p tf-dna__p--negative tf-glass">
         <div class="tf-dna__pct" aria-hidden="true">50</div>
         <div class="tf-dna__label">GBPUSD — Weakest (50%)</div>
         <p class="tf-dna__body">Prime window: <b style="color:var(--text-hi)">09:30-10:00 ONLY.</b> Closed after 13:00. Requires 5+ confluences minimum. Handle with care.</p>
       </div>
-      <div class="tf-dna__p tf-dna__p--warning">
+      <div class="tf-dna__p tf-dna__p--warning tf-glass">
         <div class="tf-dna__label">NAS100 / US30 — Indices</div>
         <p class="tf-dna__body">Small sample. Prime: <b style="color:var(--text-hi)">15:30-17:00.</b> NAS100 inverse VIX. US30 = 1H OBs most reliable. Avoid Fed/CPI windows.</p>
       </div>
@@ -868,7 +1039,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   <div class="tf-container">
     <div class="tf-eyebrow tf-reveal">07 · Session Timing</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">Session timing (Dubai GMT+4).</h2>
-    <div class="term__window tf-reveal" style="margin-top:36px;">
+    <div class="term__window tf-glass tf-reveal" style="margin-top:36px;">
       <div class="term__bar">
         <span class="term__dot term__dot--r"></span><span class="term__dot term__dot--y"></span><span class="term__dot term__dot--g"></span>
         <span class="term__title">sessions.log — live</span>
@@ -910,7 +1081,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     </div>
 
     <div class="tf-strategies tf-reveal" style="margin-top:48px;">
-      <div class="tf-strategy" style="--strat-c:var(--role-negative)">
+      <div class="tf-strategy tf-glass" style="--strat-c:var(--role-negative);--strat-rgb:224,110,90">
         <span class="tf-strategy__glyph" aria-hidden="true">⛔</span>
         <div class="tf-strategy__n">01</div>
         <div class="tf-strategy__tag">Strategy A ⛔</div>
@@ -918,7 +1089,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
         <div class="tf-strategy__win">09:30-11:00</div>
         <p class="tf-strategy__d">Sweep of prior high/low → rejection → return to OB. Needs clean displacement + confirmed sweep. XAU sweep must be 70%+ clean.</p>
       </div>
-      <div class="tf-strategy" style="--strat-c:var(--role-warning)">
+      <div class="tf-strategy tf-glass" style="--strat-c:var(--role-warning);--strat-rgb:198,162,83">
         <span class="tf-strategy__glyph" aria-hidden="true">🎯</span>
         <div class="tf-strategy__n">02</div>
         <div class="tf-strategy__tag">Strategy B 🎯</div>
@@ -926,7 +1097,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
         <div class="tf-strategy__win">13:00-14:00</div>
         <p class="tf-strategy__d">15M FVG from last 3 candles. Must be HTF aligned. 30-min window only. EURUSD primary. Expires fast — watch valid-until time.</p>
       </div>
-      <div class="tf-strategy" style="--strat-c:var(--role-positive)">
+      <div class="tf-strategy tf-glass" style="--strat-c:var(--role-positive);--strat-rgb:79,209,190">
         <span class="tf-strategy__glyph" aria-hidden="true">🔄</span>
         <div class="tf-strategy__n">03</div>
         <div class="tf-strategy__tag">Strategy C 🔄</div>
@@ -964,7 +1135,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     <div class="tf-eyebrow tf-reveal">10 · Inside The Discord</div>
     <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Inside the Discord.</h2>
     <div class="tf-discord tf-reveal" style="margin-top:40px;">
-      <div class="disco__sidebar">
+      <div class="disco__sidebar tf-glass">
         <div class="disco__sidebar__head">
           <div class="disco__sidebar__logo" aria-hidden="true">TF</div>
           <div class="disco__sidebar__name">The Trading Floor</div>
@@ -1237,6 +1408,39 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     }
   }
 
+  /* ---- floating market particles: small data motes drifting upward through the scene, like
+     ticks rising off a feed. Drawn on the same pulse canvas as everything else above -- one
+     extra pass of cheap arc() fills, no new canvas/element needed. ---- */
+  var marketParticles = (function(){
+    var mobile = root.clientWidth < 720;
+    var n = mobile ? 12 : 24;
+    var out = [];
+    for (var i=0; i<n; i++){
+      out.push({
+        x: Math.random(), y: Math.random(),
+        sp: 0.00028 + Math.random()*0.00055,
+        drift: (Math.random()-0.5)*0.00022,
+        r: 0.9 + Math.random()*1.6,
+        gold: Math.random() < 0.22
+      });
+    }
+    return out;
+  })();
+  function drawMarketParticles(t){
+    var AW=pulseCv.width, AH=pulseCv.height, scalePx = AW/root.clientWidth;
+    for (var i=0; i<marketParticles.length; i++){
+      var p = marketParticles[i];
+      p.y -= p.sp; p.x += p.drift;
+      if (p.y < -0.04){ p.y = 1.04; p.x = Math.random(); }
+      var x = p.x*AW, y = p.y*AH;
+      var edgeFade = Math.min(1, Math.min(p.y/0.06, (1.04-p.y)/0.14));
+      var alpha = 0.4 * Math.max(0, edgeFade);
+      var col = p.gold ? '198,162,83' : '79,209,190';
+      px2.beginPath(); px2.arc(x, y, p.r*scalePx, 0, 7);
+      px2.fillStyle = 'rgba('+col+','+alpha.toFixed(3)+')'; px2.fill();
+    }
+  }
+
   /* ---- the eleven agents: hexagon nodes feeding the head, drawn on the same pulse canvas ---- */
   function hexPath(ctx,cx,cy,r){
     ctx.beginPath();
@@ -1309,7 +1513,14 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   }
   var scene = new THREE.Scene();
   var camera = new THREE.PerspectiveCamera(33, W/H, 0.1, 60);
-  camera.position.set(0, 0.1, 5.6);
+  var CAM_BASE = {x:0, y:0.1, z:5.6};
+  camera.position.set(CAM_BASE.x, CAM_BASE.y, CAM_BASE.z);
+  /* camera-space breathing + mouse parallax -- kept entirely separate from the head rig's own
+     rotation below, so the parallax reads as the *camera* drifting through the scene (the
+     background circuit/pulse layers and the head shift against each other) rather than just
+     the head turning. Values are deliberately tiny -- this should feel like held breath, not
+     a swaying camera operator. */
+  var camPar = {x:0, y:0};
   var rig = new THREE.Group(); scene.add(rig);
   if (location.hash.indexOf('debug') >= 0){ window.__rig = rig; window.__lock = false; window.__frames = 0; }
   var eyeRigs = [];
@@ -1328,6 +1539,11 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     rim.position.set(-3.2, 1.2, -2.4); scene.add(rim);
     var fill = new THREE.DirectionalLight(0xbfd0e2, 0.35);
     fill.position.set(-1.4, 0.4, 3.2); scene.add(fill);
+    /* base intensities/positions captured so the render loop can modulate them subtly with
+       cursor position ("dynamic holographic lighting") and always ease back to these exact
+       values -- never drifting further from the original look. */
+    var keyBaseX = key.position.x, keyBaseY = key.position.y;
+    var rimBaseI = rim.intensity, keyBaseI = key.intensity;
     var ec = document.createElement('canvas'); ec.width=256; ec.height=128;
     var eg = ec.getContext('2d');
     eg.fillStyle='#0c0e12'; eg.fillRect(0,0,256,128);
@@ -1797,7 +2013,30 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     rig.rotation.x += (leanX + lv.glanceY - rig.rotation.x)*0.06;
     rig.rotation.z += (lv.tiltZ - rig.rotation.z)*0.08;
 
+    /* ---- camera breathing + mouse parallax (distinct from the head's own lean above) ----
+       A slow sinusoidal dolly on Z reads as the camera quietly breathing; a small lerped
+       offset toward the cursor shifts the whole view laterally, so the head and the flat
+       background layers behind it slide against each other slightly -- a real depth cue
+       instead of just the head turning. Both are tiny and slow by design. */
+    var camTargetX = hasPointer ? mx*0.10 : 0;
+    var camTargetY = hasPointer ? -my*0.06 : 0;
+    camPar.x += (camTargetX - camPar.x)*0.035;
+    camPar.y += (camTargetY - camPar.y)*0.035;
+    camera.position.x = CAM_BASE.x + camPar.x;
+    camera.position.y = CAM_BASE.y + camPar.y;
+    camera.position.z = CAM_BASE.z + Math.sin(t*0.18)*0.05;
+
+    /* ---- dynamic holographic lighting: rim/key respond a little to cursor position, always
+       easing back toward their base values so the look never drifts far from the original. ---- */
+    if (rim){ rim.intensity += (rimBaseI + mx*0.16 - rim.intensity)*0.04; }
+    if (key){
+      key.intensity += (keyBaseI + (-my)*0.10 - key.intensity)*0.04;
+      key.position.x += (keyBaseX + mx*0.5 - key.position.x)*0.04;
+      key.position.y += (keyBaseY + my*0.3 - key.position.y)*0.04;
+    }
+
     drawPulses(t);
+    drawMarketParticles(t);
     drawAgentNodes(t);
     renderer.render(scene,camera);
   })();
@@ -1814,7 +2053,10 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   }
   var io = new IntersectionObserver(function(entries){
     entries.forEach(function(en){
-      if (en.isIntersecting){ en.target.classList.add('is-visible'); io.unobserve(en.target); }
+      if (en.isIntersecting){
+        en.target.classList.add('is-visible', 'is-flicker');
+        io.unobserve(en.target);
+      }
     });
   }, {threshold:0.15, rootMargin:'0px 0px -40px 0px'});
   els.forEach(function(e){ io.observe(e); });
@@ -1824,6 +2066,30 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   setTimeout(function(){
     document.querySelectorAll('.tf-reveal:not(.is-visible)').forEach(function(e){ e.classList.add('is-visible'); });
   }, 3500);
+})();
+</script>
+
+<!-- ================= scroll storytelling: the ambient background very gradually intensifies
+     as you descend the page, so depth of scroll reads as depth of "power-on" -- one continuous
+     ramp rather than a per-section gimmick. rAF-throttled scroll listener, transform/opacity
+     only on the receiving end (.tf-ambient__blob's own transition), skipped entirely under
+     reduced motion. ================= -->
+<script>
+(function(){
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var amb = document.querySelector('.tf-ambient');
+  if (!amb) return;
+  var ticking = false;
+  function update(){
+    ticking = false;
+    var max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    var p = Math.min(1, Math.max(0, window.scrollY / max));
+    amb.style.setProperty('--amb-boost', (0.65 + p*0.65).toFixed(3));
+  }
+  window.addEventListener('scroll', function(){
+    if (!ticking){ ticking = true; requestAnimationFrame(update); }
+  }, {passive:true});
+  update();
 })();
 </script>
 
