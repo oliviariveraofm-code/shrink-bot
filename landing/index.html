@@ -475,15 +475,15 @@
      correct paint order here; an explicit z-index would promote this above the stage instead. */
   .shrink-holo__type{position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;pointer-events:none;user-select:none;text-align:center;
-    font-family:var(--font-display);font-size:var(--h-hero);font-weight:800;
+    font-family:var(--font-display);font-size:clamp(96px,19vw,300px);font-weight:800;
     letter-spacing:-0.03em;line-height:0.9;color:var(--text-hi);opacity:.92;white-space:nowrap;}
   .shrink-holo__type span{color:var(--accent-gold);}
   @media (max-width:640px){
-    /* on narrow screens the head's footprint is nearly the whole viewport width, leaving no
-       room for the wordmark to peek past it on both sides -- narrow the stage and enlarge the
-       type proportionally so "SH" and "K" still clear the head's silhouette. */
-    .shrink-holo__stage{width:min(70vw,860px);}
-    .shrink-holo__type{font-size:clamp(70px,26vw,140px);}
+    /* on narrow screens the head's footprint would otherwise be nearly the whole viewport
+       width, leaving no room for the wordmark to clear it on either side -- narrow the stage
+       and size the type so most of "SHRINK" stays legible past the head's silhouette. */
+    .shrink-holo__stage{width:min(40vw,860px);}
+    .shrink-holo__type{font-size:clamp(76px,26vw,120px);}
   }
 
   .shrink-holo__corner{position:absolute;z-index:3;font-family:var(--font-mono);font-size:11px;
