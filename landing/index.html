@@ -614,8 +614,12 @@
        drop it on narrow/likely-lower-powered viewports rather than risk the frame budget. */
     .shrink-holo__beams, .shrink-holo__fog{display:none;}
   }
-  .shrink-holo__video{position:absolute;inset:0;width:100%;height:100%;
-    display:block;object-fit:cover;object-position:50% 50%;background:var(--bg2);}
+  .shrink-holo__canvas{position:absolute;inset:0;}
+  .shrink-holo__canvas canvas{display:block;width:100%;height:100%;}
+  .shrink-holo__fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;}
+  .shrink-holo__fallback img{max-width:92%;max-height:92%;object-fit:contain;}
+  .shrink-holo.is-fallback .shrink-holo__fallback{display:flex;}
+  .shrink-holo.is-fallback .shrink-holo__canvas{display:none;}
 
   /* giant wordmark — sits behind the head (DOM order: after pulse, before vig/stage) so the
      stage's WebGL canvas paints over it wherever the model has geometry, and the vignette
@@ -718,20 +722,8 @@
   <div class="shrink-holo__bloom" aria-hidden="true"></div>
   <div class="shrink-holo__fog" aria-hidden="true"></div>
   <div class="shrink-holo__stage">
-    <video
-      class="shrink-holo__video"
-      id="shrinkHoloVideo"
-      autoplay
-      muted
-      loop
-      playsinline
-      preload="auto"
-      poster="assets/video/hero-poster.jpg"
-      aria-hidden="true"
-    >
-      <source src="assets/video/hero-loop.webm" type="video/webm" />
-      <source src="assets/video/hero-loop.mp4" type="video/mp4" />
-    </video>
+    <div class="shrink-holo__canvas" id="shrinkHoloCanvas"></div>
+    <div class="shrink-holo__fallback"><img id="shrinkHoloImg" alt="SHRINK — The Brain"></div>
   </div>
   <div class="shrink-holo__scan" aria-hidden="true"></div>
   <div class="shrink-holo__corner shrink-holo__corner--tl">01 / 07</div>
@@ -1243,13 +1235,43 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
 })();
 </script>
 
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
 <script>
 (function(){
-  /* ---- the eleven agents: fixed, seeded positions so the cluster reads as composed, not
-     random. x,y are fractions of the canvas; z is a fake depth (0=far/small/subtle, 1=near/
-     large/bold) used for size, drift range and parallax strength; cyc/seed stagger each
-     node's line-pulse. Unchanged from the WebGL-hero version -- this array only ever fed the
-     2D hex-node overlay below, never the 3D scene. ---- */
+  if (typeof THREE === 'undefined'){
+    if (window.__tfDiag) window.__tfDiag('THREE failed to load from vendor/three.min.js -- check the request in Network tab.');
+    return;
+  }
+  /* ================= CONFIG ================= */
+  var CONFIG = {
+    STYLE: "solid",            // "solid" = realistisch belicht | "wire" = lijnennet | "dots" = stippels
+    MODEL_URL: "assets/shrink-head.glb",        // detail-mesh (occluder + brein)
+    WIRE_URL:  "assets/shrink-head-wire.glb",   // low-poly mesh voor het lijnennet
+    FALLBACK_IMG: "assets/shrink-hologram-still.jpg",
+    POINTS: 46000,
+    LINE_OPACITY: 0.55,
+    EYE_HERO: 0,               // welk oog fel gloeit (0 of 1), ander oog blijft subtiel
+    CROWN: false,              // stippel-gloed op de kruin (uit op verzoek)
+    FRESNEL: 0.10,             // subtiele teal randgloed in solid-stijl (0 = uit)
+    MOTION: "eyes",            // "eyes" = model stil, ogen volgen cursor | "head" = hele model volgt
+    EYE_POS: [[-0.1522,0.3755,0.4042],[0.1532,0.3699,0.4065]],  // exact uit de emissive-map berekend
+    EYE_SENS: 2.2,             // gevoeligheid: max bereik al bij ~45% schermafstand
+    EYE_RANGE_X: 0.034,        // horizontale reis: de volle iris-breedte
+    EYE_RANGE_Y: 0.014,        // verticale reis: duidelijk zichtbaar mee omhoog/omlaag
+    TEAL: 0x4FD1BE, ICE: 0xDCE3ED, GOLD: 0xC6A253,
+    PITCH: 0.05,               // vrijwel rechtuit, zoals de wireframe-referentie
+    SWAY: 0.12,                // idle sway als de muis stilstaat
+    TRACK: {x:0.50, y:0.30},   // hoe sterk het hoofd de cursor volgt
+    FIT_HEIGHT: 3.0,
+    MODEL_ROT_Y: 0,            // voorkant van het model = +z (gecorrigeerd)
+    BRAIN_FRAC: 0.10,          // kruin van de schedel = brein-gloed (fel + puls)
+    EYES: true
+  };
+
+  /* ---- the eleven agents: fixed, seeded positions so the cluster reads as composed, not random ----
+     x,y are fractions of the canvas; z is a fake depth (0=far/small/subtle, 1=near/large/bold) used
+     for size, drift range and parallax strength; cyc/seed stagger each node's line-pulse. */
   var AGENTS = [
     {name:'RALLY',     color:'79,209,190',  x:0.115, y:0.34,  z:0.85, seed:0.4, cyc:3.4, keepMobile:true, mx:0.03 },
     {name:'CRASH',     color:'224,110,90',  x:0.075, y:0.19,  z:0.55, seed:1.7, cyc:4.1, keepMobile:true },
@@ -1263,10 +1285,22 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     {name:'SENTIMENT', color:'198,162,83',  x:0.80,  y:0.41,  z:0.65, seed:12.5,cyc:3.7, keepMobile:false},
     {name:'ORACLE',    color:'220,227,237', x:0.50,  y:0.015, z:0.90, seed:13.9,cyc:4.5, keepMobile:true }
   ];
-  var AGENT_HUB_Y = 0.20;
+  var AGENT_HUB_Y = 0.20;          // brain/crown area the feed-lines converge on
+  var AGENT_PARALLAX_X = 0.14, AGENT_PARALLAX_Y = 0.12;
 
   var root = document.getElementById('shrinkHolo');
+  var mount = document.getElementById('shrinkHoloCanvas');
+  // hash-overrides voor tests: #debug | style=wire/dots/solid | lite (schaduw uit)
+  var HS = location.hash || '';
+  var mStyle = HS.match(/style=(wire|dots|solid)/); if (mStyle) CONFIG.STYLE = mStyle[1];
+  var LITE = /lite/.test(HS);
+
+  /* ---- fallback ---- */
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var coarse = window.matchMedia('(pointer: coarse)').matches;
+  var noWebGL = (function(){ try{ var c=document.createElement('canvas');
+      return !(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')));
+    }catch(e){ return true; } })();
 
   /* ================= PROCEDURELE PRINTPLAAT ================= */
   var chipNodes = [];   // motherboard "chip/via" glow points -- populated by drawCircuit(), animated in drawPulses()
@@ -1421,11 +1455,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     }
   }
 
-  /* ---- the eleven agents: hexagon nodes feeding the head, drawn on the same pulse canvas.
-     The hub used to drift with the 3D head's rig rotation for a parallax feel; there's no rig
-     any more, so the hub just sits at its fixed anchor point (AW*0.5, AH*AGENT_HUB_Y) -- the
-     nodes still get their own idle drift/pulse, so the cluster is still alive, just no longer
-     nudged by (the now-absent) head motion. ---- */
+  /* ---- the eleven agents: hexagon nodes feeding the head, drawn on the same pulse canvas ---- */
   function hexPath(ctx,cx,cy,r){
     ctx.beginPath();
     for (var i=0;i<6;i++){
@@ -1439,16 +1469,20 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     var scalePx = AW / root.clientWidth;
     var mobile = root.clientWidth < 720;
     var list = mobile ? AGENTS.filter(function(a){ return a.keepMobile; }) : AGENTS;
-    var hubX = AW*0.5, hubY = AH*AGENT_HUB_Y;
+    var rotY = rig ? rig.rotation.y : 0, rotX = rig ? rig.rotation.x : 0;
+    var hubX = AW*0.5 + rotY*AW*AGENT_PARALLAX_X;
+    var hubY = AH*AGENT_HUB_Y + rotX*AH*AGENT_PARALLAX_Y;
 
     list.forEach(function(a, idx){
       var driftPh = t*0.12 + idx*1.7 + a.seed;
       var driftR = Math.min(AW,AH) * 0.012 * (0.5 + a.z);
       var dx = Math.cos(driftPh) * driftR;
       var dy = Math.sin(driftPh*1.3) * driftR * 0.6;
+      var px = rotY * a.z * AW * AGENT_PARALLAX_X;
+      var py = rotX * a.z * AH * AGENT_PARALLAX_Y;
       var baseX = (mobile && a.mx !== undefined) ? a.mx : a.x;
       var baseY = (mobile && a.my !== undefined) ? a.my : a.y;
-      var nx = baseX*AW + dx, ny = baseY*AH + dy;
+      var nx = baseX*AW + dx + px, ny = baseY*AH + dy + py;
 
       var pulse = 0.55 + 0.45*Math.sin(t*(2*Math.PI/a.cyc) + a.seed*3.0);
       px2.strokeStyle = 'rgba('+a.color+','+(0.22*pulse).toFixed(3)+')';
@@ -1471,49 +1505,832 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     px2.textAlign = 'left';
   }
 
-  /* ================= hero video =================
-     Replaces the old GLTF/Three.js head entirely. Reduced-motion visitors never get autoplay
-     (the poster frame stands in, same contract the WebGL path used to honor); everyone else
-     gets play/pause tied to tab visibility and section scroll position via IntersectionObserver,
-     same pattern used on the standalone hero prototype this was ported from. */
-  var video = document.getElementById('shrinkHoloVideo');
-  var running = true, inView = true;
-
-  function syncVideo(){
-    if (reduce) return;
-    if (running && inView) video.play().catch(function(){});
-    else video.pause();
+  if (reduce || noWebGL){
+    if (window.__tfDiag) window.__tfDiag('Hero fell back to static image. reduce=' + reduce + ' noWebGL=' + noWebGL);
+    document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
+    root.classList.add('is-fallback');
+    return;   // printplaat blijft als statische achtergrond staan
   }
 
-  if (reduce){
-    video.removeAttribute('autoplay');
-    video.pause();
-  } else {
-    video.play().catch(function(){});
+  /* ================= THREE ================= */
+  var W = mount.clientWidth, H = mount.clientHeight;
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setSize(W, H);
+  mount.appendChild(renderer.domElement);
+  if (CONFIG.STYLE === 'solid'){
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = !LITE;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   }
-  video.addEventListener('error', function(){
-    if (window.__tfDiag) window.__tfDiag('Hero video failed to load from assets/video/ -- check the request in Network tab.');
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(33, W/H, 0.1, 60);
+  var CAM_BASE = {x:0, y:0.1, z:5.6};
+  camera.position.set(CAM_BASE.x, CAM_BASE.y, CAM_BASE.z);
+  /* camera-space breathing + mouse parallax -- kept entirely separate from the head rig's own
+     rotation below, so the parallax reads as the *camera* drifting through the scene (the
+     background circuit/pulse layers and the head shift against each other) rather than just
+     the head turning. Values are deliberately tiny -- this should feel like held breath, not
+     a swaying camera operator. */
+  var camPar = {x:0, y:0};
+  var rig = new THREE.Group(); scene.add(rig);
+  if (location.hash.indexOf('debug') >= 0){ window.__rig = rig; window.__lock = false; window.__frames = 0; }
+  var eyeRigs = [];
+  if (location.hash.indexOf('debug') >= 0){ window.__eyeRigs = eyeRigs; window.__cfg = CONFIG; }
+
+  if (CONFIG.STYLE === 'solid'){
+    var hemi = new THREE.HemisphereLight(0x9fb2c4, 0x0a0c10, 0.75); scene.add(hemi);
+    var key = new THREE.DirectionalLight(0xfff1dd, 1.25);
+    key.position.set(2.4, 3.2, 3.0); key.castShadow = !LITE;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.left=-3; key.shadow.camera.right=3;
+    key.shadow.camera.top=3.5; key.shadow.camera.bottom=-3;
+    key.shadow.bias = -0.0006;
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0x4FD1BE, 0.85);
+    rim.position.set(-3.2, 1.2, -2.4); scene.add(rim);
+    var fill = new THREE.DirectionalLight(0xbfd0e2, 0.35);
+    fill.position.set(-1.4, 0.4, 3.2); scene.add(fill);
+    /* base intensities/positions captured so the render loop can modulate them subtly with
+       cursor position ("dynamic holographic lighting") and always ease back to these exact
+       values -- never drifting further from the original look. */
+    var keyBaseX = key.position.x, keyBaseY = key.position.y;
+    var rimBaseI = rim.intensity, keyBaseI = key.intensity;
+    var ec = document.createElement('canvas'); ec.width=256; ec.height=128;
+    var eg = ec.getContext('2d');
+    eg.fillStyle='#0c0e12'; eg.fillRect(0,0,256,128);
+    var grd = eg.createLinearGradient(0,6,0,40);
+    grd.addColorStop(0,'rgba(255,252,244,0.95)'); grd.addColorStop(1,'rgba(255,252,244,0)');
+    eg.fillStyle=grd; eg.fillRect(0,6,256,34);
+    eg.fillStyle='rgba(79,209,190,0.18)'; eg.fillRect(0,74,256,14);
+    eg.fillStyle='rgba(198,162,83,0.10)'; eg.fillRect(150,90,70,10);
+    var envTex = new THREE.CanvasTexture(ec);
+    envTex.mapping = THREE.EquirectangularReflectionMapping;
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromEquirectangular(envTex).texture;
+  }
+
+  /* ---- materialen ---- */
+  var occluderMat = new THREE.MeshBasicMaterial({color:0x05070a});
+  occluderMat.polygonOffset = true; occluderMat.polygonOffsetFactor = 1; occluderMat.polygonOffsetUnits = 1;
+
+  var fresnelMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uTeal:{value:new THREE.Color(CONFIG.TEAL)},
+      uStrength:{value:(CONFIG.STYLE==='solid' ? CONFIG.FRESNEL : 0.40)} },
+    vertexShader:[
+      'varying vec3 vN;','varying vec3 vV;','varying float vY;',
+      'void main(){',
+      '  vN = normalize(normalMatrix * normal);',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  vV = normalize(-mv.xyz);',
+      '  vY = (modelMatrix * vec4(position,1.0)).y;',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uTeal;','uniform float uStrength;',
+      'varying vec3 vN;','varying vec3 vV;','varying float vY;',
+      'void main(){',
+      '  float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.6);',
+      '  float scan = 0.85 + 0.15*sin(vY*30.0 - uTime*2.0);',
+      '  gl_FragColor = vec4(uTeal, fr * uStrength * scan);','}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending
   });
 
-  document.addEventListener('visibilitychange', function(){ running = !document.hidden; syncVideo(); });
-  if ('IntersectionObserver' in window){
-    new IntersectionObserver(function(en){ inView = en[0].isIntersecting; syncVideo(); }, {threshold:0.05}).observe(root);
+  var dotMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+      uTeal:{value:new THREE.Color(CONFIG.TEAL)}, uIce:{value:new THREE.Color(CONFIG.ICE)} },
+    vertexShader:[
+      'attribute float aSize;','attribute float aPhase;','attribute float aBright;',
+      'attribute vec3 aNormal;',
+      'uniform float uTime;','uniform float uPR;',
+      'varying float vPhase;','varying float vBright;','varying float vY;',
+      'varying float vLit;','varying float vRim;',
+      'void main(){',
+      '  vPhase=aPhase; vBright=aBright;',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  vY = (modelMatrix * vec4(position,1.0)).y;',
+      '  vec3 N = normalize(normalMatrix * aNormal);',
+      '  vec3 V = normalize(-mv.xyz);',
+      '  vec3 L = normalize(vec3(-0.22, 0.62, 0.75));', // licht van boven-voor (camera-locked)
+      '  float lam = max(dot(N, L), 0.0);',
+      '  vLit = pow(lam, 2.2);',
+      '  vRim = pow(1.0 - abs(dot(N, V)), 3.0);',
+      '  gl_PointSize = aSize * uPR * (54.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uTeal;','uniform vec3 uIce;',
+      'varying float vPhase;','varying float vBright;','varying float vY;',
+      'varying float vLit;','varying float vRim;',
+      'void main(){',
+      '  vec2 uv = gl_PointCoord - 0.5;',
+      '  float disc = smoothstep(0.5, 0.14, length(uv));',
+      '  float scan = 0.86 + 0.14 * sin(vY*30.0 - uTime*2.0);',
+      '  float flick = 0.9 + 0.1 * sin(uTime*8.0 + vPhase*40.0);',
+      '  float pulse = (vBright > 0.9) ? (0.74 + 0.36*sin(uTime*1.5 + vPhase*2.0)) : 1.0;',
+      '  float shade = 0.03 + 1.45*vLit + 1.15*vRim;',        // vorm-belichting
+      '  float e = shade * vBright * pulse;',
+      '  vec3 col = mix(uTeal, uIce, clamp(e*0.55, 0.0, 1.0));',
+      '  float a = disc * scan * flick * clamp(e, 0.0, 1.6);',
+      '  gl_FragColor = vec4(col * (0.35 + 0.9*e), a);',
+      '}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+  });
+
+  var nodeMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+      uIce:{value:new THREE.Color(CONFIG.ICE)} },
+    vertexShader:[
+      'attribute float aSize;','attribute float aPhase;',
+      'uniform float uTime;','uniform float uPR;','varying float vPhase;',
+      'void main(){',
+      '  vPhase=aPhase;',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  gl_PointSize = aSize * uPR * (44.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uIce;','varying float vPhase;',
+      'void main(){',
+      '  float disc = smoothstep(0.5, 0.1, length(gl_PointCoord - 0.5));',
+      '  float tw = 0.55 + 0.45*sin(uTime*2.2 + vPhase*40.0);',
+      '  gl_FragColor = vec4(uIce, disc * tw * 0.85);','}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+  });
+
+  /* ================= POSTPROCESSING: hand-rolled bloom + depth-of-field =================
+     A small, self-contained EffectComposer-lite -- no external addon scripts, so it works
+     with the plain vendored three.min.js build (no module loader/bundler in this project).
+     Pipeline: render scene -> extract bright pixels -> two-pass gaussian blur (a few
+     iterations, at half/quarter resolution) -> composite bloom back over a depth-of-field
+     pass that blurs everything outside a focus band around the head, using the real depth
+     buffer. Every pass is a full-screen textured quad + shader, same technique
+     EffectComposer/UnrealBloomPass use internally, just inlined for this project.
+     Desktop gets the full pipeline; mobile keeps bloom (cheap) but skips the per-pixel DOF
+     sampling loop (meaningfully more texture reads per pixel) to protect the frame budget on
+     weaker GPUs -- this is a correctness/safety concern, not a spectacle trade-off. */
+  var POST_MOBILE = root.clientWidth < 720;
+  var POST_DOF = !POST_MOBILE && !LITE;
+  var postW = Math.max(2, W), postH = Math.max(2, H);
+  var rtParams = {minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, format:THREE.RGBAFormat, type:THREE.UnsignedByteType};
+  var sceneRT = new THREE.WebGLRenderTarget(postW, postH, rtParams);
+  if (POST_DOF){
+    sceneRT.depthTexture = new THREE.DepthTexture(postW, postH);
+    sceneRT.depthTexture.type = THREE.UnsignedShortType;
+  }
+  var BLOOM_DIV = POST_MOBILE ? 3 : 2; // coarser bloom buffer on mobile = fewer pixels to blur
+  var bloomW = Math.max(2, Math.floor(postW/BLOOM_DIV)), bloomH = Math.max(2, Math.floor(postH/BLOOM_DIV));
+  var brightRT = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+  var pingRT   = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+  var pongRT   = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+
+  var postScene = new THREE.Scene();
+  var postCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  var postQuadGeom = new THREE.PlaneGeometry(2,2);
+  var postQuad = new THREE.Mesh(postQuadGeom, new THREE.MeshBasicMaterial());
+  postScene.add(postQuad);
+
+  var POST_VERT = ['varying vec2 vUv;','void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }'].join('\n');
+
+  var brightMat = new THREE.ShaderMaterial({
+    uniforms:{ tDiffuse:{value:null}, uThreshold:{value:0.6} },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;','uniform sampler2D tDiffuse;','uniform float uThreshold;','varying vec2 vUv;',
+      'void main(){',
+      '  vec4 c = texture2D(tDiffuse, vUv);',
+      '  float lum = dot(c.rgb, vec3(0.2126,0.7152,0.0722));',
+      '  float f = smoothstep(uThreshold, uThreshold+0.35, lum);',
+      '  gl_FragColor = vec4(c.rgb*f, 1.0);','}'
+    ].join('\n')
+  });
+  var blurMat = new THREE.ShaderMaterial({
+    uniforms:{ tDiffuse:{value:null}, uDir:{value:new THREE.Vector2(1,0)}, uRes:{value:new THREE.Vector2(bloomW,bloomH)} },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;','uniform sampler2D tDiffuse;','uniform vec2 uDir;','uniform vec2 uRes;','varying vec2 vUv;',
+      'void main(){',
+      '  vec2 texel = uDir / uRes;',
+      '  vec4 sum = texture2D(tDiffuse, vUv) * 0.227027;',
+      '  sum += texture2D(tDiffuse, vUv + texel*1.3846153846) * 0.3162162162;',
+      '  sum += texture2D(tDiffuse, vUv - texel*1.3846153846) * 0.3162162162;',
+      '  sum += texture2D(tDiffuse, vUv + texel*3.2307692308) * 0.0702702703;',
+      '  sum += texture2D(tDiffuse, vUv - texel*3.2307692308) * 0.0702702703;',
+      '  gl_FragColor = sum;','}'
+    ].join('\n')
+  });
+  var compositeMat = new THREE.ShaderMaterial({
+    uniforms:{
+      tScene:{value:null}, tDepth:{value:null}, tBloom:{value:null},
+      uUseDof:{value:POST_DOF?1.0:0.0},
+      uFocusDist:{value:CAM_BASE.z}, uFocusRange:{value:1.8}, uDofPx:{value:3.0},
+      uCameraNear:{value:camera.near}, uCameraFar:{value:camera.far},
+      uBloomStrength:{value:0.65}, uSceneRes:{value:new THREE.Vector2(postW,postH)}
+    },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;',
+      'uniform sampler2D tScene;','uniform sampler2D tDepth;','uniform sampler2D tBloom;',
+      'uniform float uUseDof;','uniform float uFocusDist;','uniform float uFocusRange;','uniform float uDofPx;',
+      'uniform float uCameraNear;','uniform float uCameraFar;','uniform float uBloomStrength;',
+      'uniform vec2 uSceneRes;',
+      'varying vec2 vUv;',
+      'float linearDepth(float d){',
+      '  float z = d*2.0-1.0;',
+      '  return (2.0*uCameraNear*uCameraFar)/(uCameraFar+uCameraNear-z*(uCameraFar-uCameraNear));',
+      '}',
+      'void main(){',
+      '  vec4 base = texture2D(tScene, vUv);',
+      '  vec3 outc = base.rgb;',
+      '  if (uUseDof > 0.5){',
+      '    float d = texture2D(tDepth, vUv).r;',
+      '    float dist = linearDepth(d);',
+      '    float coc = clamp(abs(dist - uFocusDist) / uFocusRange, 0.0, 1.0);',
+      '    if (coc > 0.03){',
+      '      vec2 texel = vec2(uDofPx) / uSceneRes;',
+      '      vec3 sum = vec3(0.0);',
+      '      const int TAPS = 8;',
+      '      for (int i=0; i<TAPS; i++){',
+      '        float ang = float(i) * 0.7853982;',
+      '        vec2 off = vec2(cos(ang), sin(ang)) * texel * coc;',
+      '        sum += texture2D(tScene, vUv+off).rgb;',
+      '      }',
+      '      sum /= float(TAPS);',
+      '      outc = mix(base.rgb, sum, coc);',
+      '    }',
+      '  }',
+      '  vec3 bloom = texture2D(tBloom, vUv).rgb;',
+      '  outc += bloom * uBloomStrength;',
+      '  gl_FragColor = vec4(outc, base.a);','}'
+    ].join('\n')
+  });
+
+  function postResize(w,h){
+    postW=Math.max(2,w); postH=Math.max(2,h);
+    sceneRT.setSize(postW, postH);
+    if (sceneRT.depthTexture){ sceneRT.depthTexture.dispose(); sceneRT.depthTexture=new THREE.DepthTexture(postW,postH); sceneRT.depthTexture.type=THREE.UnsignedShortType; }
+    bloomW=Math.max(2,Math.floor(postW/BLOOM_DIV)); bloomH=Math.max(2,Math.floor(postH/BLOOM_DIV));
+    brightRT.setSize(bloomW,bloomH); pingRT.setSize(bloomW,bloomH); pongRT.setSize(bloomW,bloomH);
+    blurMat.uniforms.uRes.value.set(bloomW,bloomH);
+    compositeMat.uniforms.uSceneRes.value.set(postW,postH);
   }
 
+  function renderPost(){
+    // 1) base scene, with its own depth buffer for DOF
+    renderer.setRenderTarget(sceneRT);
+    renderer.render(scene, camera);
+
+    // 2) bright-pass extraction (downsampled -- cheaper blur, and a soft, wide bloom kernel
+    //    is exactly what a downsampled source gives you for free)
+    postQuad.material = brightMat;
+    brightMat.uniforms.tDiffuse.value = sceneRT.texture;
+    renderer.setRenderTarget(brightRT);
+    renderer.render(postScene, postCam);
+
+    // 3) separable gaussian blur, ping-ponged a couple of iterations for a soft falloff
+    var src = brightRT, dst = pingRT, other = pongRT;
+    var iterations = POST_MOBILE ? 1 : 2;
+    for (var i=0; i<iterations; i++){
+      postQuad.material = blurMat;
+      blurMat.uniforms.tDiffuse.value = src.texture;
+      blurMat.uniforms.uDir.value.set(1,0);
+      renderer.setRenderTarget(dst);
+      renderer.render(postScene, postCam);
+
+      blurMat.uniforms.tDiffuse.value = dst.texture;
+      blurMat.uniforms.uDir.value.set(0,1);
+      renderer.setRenderTarget(other);
+      renderer.render(postScene, postCam);
+      src = other;
+    }
+
+    // 4) composite: DOF-blurred base (desktop only) + bloom, straight to the screen canvas
+    postQuad.material = compositeMat;
+    compositeMat.uniforms.tScene.value = sceneRT.texture;
+    compositeMat.uniforms.tDepth.value = sceneRT.depthTexture || null;
+    compositeMat.uniforms.tBloom.value = src.texture;
+    renderer.setRenderTarget(null);
+    renderer.render(postScene, postCam);
+  }
+
+  /* ================= GPU energy-particle field =================
+     A real GPU-driven THREE.Points cloud orbiting the hologram -- every particle's position,
+     twinkle and size falloff is computed in the vertex/fragment shader from a single uTime
+     uniform plus per-particle attributes baked in once at creation. No per-particle JS math
+     per frame (unlike the 2D canvas market-tick layer behind the scene, which is a separate,
+     flatter effect). Lives in its own group (not the head rig) so it drifts independently of
+     the head's cursor-lean, and sits inside the WebGL scene proper so it's genuinely lit by
+     depth (occludes/is occluded by the head) and participates in the bloom/DOF pass above. */
+  var energyField = new THREE.Group(); scene.add(energyField);
+  (function buildEnergyField(){
+    var count = POST_MOBILE ? 700 : 2200;
+    var base = new Float32Array(count*3);
+    var seed = new Float32Array(count);
+    var speed = new Float32Array(count);
+    var size = new Float32Array(count);
+    var mix = new Float32Array(count);
+    for (var i=0;i<count;i++){
+      // scattered in a loose shell around the head, biased toward mid-radius (not a hard sphere)
+      var r = 1.3 + Math.pow(Math.random(), 0.6) * 2.4;
+      var theta = Math.random()*Math.PI*2;
+      var phi = Math.acos(1 - 2*Math.random());
+      base[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+      base[i*3+1] = r*Math.cos(phi)*0.75 + 0.3; // flattened + lifted to roughly head height
+      base[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+      seed[i] = Math.random()*100.0;
+      speed[i] = 0.05 + Math.random()*0.12;
+      size[i] = 0.8 + Math.random()*1.8;
+      mix[i] = Math.random();
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(base,3));
+    geo.setAttribute('aSeed', new THREE.BufferAttribute(seed,1));
+    geo.setAttribute('aSpeed', new THREE.BufferAttribute(speed,1));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(size,1));
+    geo.setAttribute('aMix', new THREE.BufferAttribute(mix,1));
+    var mat = new THREE.ShaderMaterial({
+      uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+        uTeal:{value:new THREE.Color(CONFIG.TEAL)}, uGold:{value:new THREE.Color(CONFIG.GOLD)} },
+      vertexShader:[
+        'attribute float aSeed;','attribute float aSpeed;','attribute float aSize;','attribute float aMix;',
+        'uniform float uTime;','uniform float uPR;',
+        'varying float vMix;','varying float vTwinkle;',
+        'void main(){',
+        '  vMix = aMix;',
+        '  float ang = uTime * aSpeed + aSeed;',
+        '  float c = cos(ang*0.3), s = sin(ang*0.3);',
+        '  vec3 p = position;',
+        '  vec3 orbited = vec3(p.x*c - p.z*s, p.y + sin(ang*0.7)*0.12, p.x*s + p.z*c);',
+        '  vTwinkle = 0.5 + 0.5*sin(uTime*1.6 + aSeed*7.0);',
+        '  vec4 mv = modelViewMatrix * vec4(orbited, 1.0);',
+        '  gl_PointSize = aSize * uPR * (70.0 / -mv.z);',
+        '  gl_Position = projectionMatrix * mv;','}'
+      ].join('\n'),
+      fragmentShader:[
+        'precision highp float;',
+        'uniform vec3 uTeal;','uniform vec3 uGold;',
+        'varying float vMix;','varying float vTwinkle;',
+        'void main(){',
+        '  float d = length(gl_PointCoord - 0.5);',
+        '  float disc = smoothstep(0.5, 0.05, d);',
+        '  vec3 col = mix(uTeal, uGold, vMix);',
+        '  gl_FragColor = vec4(col, disc * vTwinkle * 0.4);','}'
+      ].join('\n'),
+      transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+    });
+    var pts = new THREE.Points(geo, mat);
+    energyField.add(pts);
+    energyField.userData.mat = mat;
+  })();
+
+  /* ================= energy rings around the hologram =================
+     Three thin glowing rings at different radii/tilts/speeds -- a fresnel-style edge glow
+     (brightest where the ring's surface grazes the view direction) rather than a flat-shaded
+     torus, so they read as light rather than plastic. */
+  var energyRings = new THREE.Group(); scene.add(energyRings);
+  (function buildEnergyRings(){
+    var ringMat = new THREE.ShaderMaterial({
+      uniforms:{ uColor:{value:new THREE.Color(CONFIG.GOLD)}, uOpacity:{value:0.5} },
+      vertexShader:[
+        'varying vec3 vN;','varying vec3 vV;',
+        'void main(){',
+        '  vN = normalize(normalMatrix * normal);',
+        '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+        '  vV = normalize(-mv.xyz);',
+        '  gl_Position = projectionMatrix * mv;','}'
+      ].join('\n'),
+      fragmentShader:[
+        'precision highp float;','uniform vec3 uColor;','uniform float uOpacity;',
+        'varying vec3 vN;','varying vec3 vV;',
+        'void main(){',
+        '  float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.8);',
+        '  gl_FragColor = vec4(uColor, fr*uOpacity);','}'
+      ].join('\n'),
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide
+    });
+    /* radii/position tuned against this camera's actual framing (fov 33 deg, z=5.6 -> ~1.66
+       world-units of vertical half-frame, head fills nearly all of it) so the rings visibly
+       hug the head's silhouette instead of mostly falling outside the visible frame. */
+    var configs = [
+      {r:1.05, tube:0.007, tilt:0.22, color:CONFIG.GOLD, op:0.6, spin:0.05},
+      {r:1.28, tube:0.005, tilt:-0.32, color:CONFIG.TEAL, op:0.45, spin:-0.035},
+      {r:1.5,  tube:0.004, tilt:0.1, color:CONFIG.GOLD, op:0.32, spin:0.022}
+    ];
+    configs.forEach(function(cfg){
+      var geo = new THREE.TorusGeometry(cfg.r, cfg.tube, 8, 96);
+      var m = ringMat.clone();
+      m.uniforms.uColor.value = new THREE.Color(cfg.color);
+      m.uniforms.uOpacity.value = cfg.op;
+      var mesh = new THREE.Mesh(geo, m);
+      mesh.rotation.x = Math.PI/2 + cfg.tilt;
+      mesh.position.y = 0.28;
+      mesh.userData.spin = cfg.spin;
+      energyRings.add(mesh);
+    });
+  })();
+
+  /* ---- surface sampling met normal-offset + helderheid per zone ---- */
+  function sampleMeshes(meshes, count, box){
+    var tris=[], areas=[], total=0, tmp=new THREE.Vector3();
+    meshes.forEach(function(m){
+      var g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
+      var pos = g.attributes.position; m.updateWorldMatrix(true,false);
+      for (var i=0;i<pos.count;i+=3){
+        var a=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);
+        var b=new THREE.Vector3().fromBufferAttribute(pos,i+1).applyMatrix4(m.matrixWorld);
+        var c=new THREE.Vector3().fromBufferAttribute(pos,i+2).applyMatrix4(m.matrixWorld);
+        var ar = tmp.copy(b).sub(a).cross(new THREE.Vector3().copy(c).sub(a)).length()*0.5;
+        if (ar>0){ tris.push([a,b,c]); areas.push(ar); total+=ar; }
+      }
+    });
+    var cum=[], run=0; for (var q=0;q<areas.length;q++){ run+=areas[q]; cum.push(run); }
+    function pick(){ var r=Math.random()*total, lo=0, hi=cum.length-1;
+      while(lo<hi){ var mid=(lo+hi)>>1; if (cum[mid]<r) lo=mid+1; else hi=mid; } return tris[lo]; }
+    var sy = box.max.y-box.min.y, brainY = box.max.y - sy*CONFIG.BRAIN_FRAC;
+    var pos3=new Float32Array(count*3), nrm3=new Float32Array(count*3),
+        sizes=new Float32Array(count),
+        phase=new Float32Array(count), bright=new Float32Array(count);
+    var n=new THREE.Vector3(), e1=new THREE.Vector3(), e2=new THREE.Vector3();
+    for (var k=0;k<count;k++){
+      var t=pick(), r1=Math.random(), r2=Math.random();
+      if (r1+r2>1){ r1=1-r1; r2=1-r2; }
+      e1.copy(t[1]).sub(t[0]); e2.copy(t[2]).sub(t[0]);
+      n.copy(e1).cross(e2).normalize();
+      var p=new THREE.Vector3().copy(t[0]).addScaledVector(e1,r1).addScaledVector(e2,r2)
+             .addScaledVector(n, 0.012);
+      pos3[k*3]=p.x; pos3[k*3+1]=p.y; pos3[k*3+2]=p.z;
+      nrm3[k*3]=n.x; nrm3[k*3+1]=n.y; nrm3[k*3+2]=n.z;
+      var isBrain = p.y > brainY;
+      var isBand  = !isBrain && p.y > (brainY - sy*0.07);
+      bright[k] = isBrain ? (1.05+Math.random()*0.4)
+                : isBand  ? (0.62+Math.random()*0.2)
+                :           (0.34+Math.random()*0.14);
+      sizes[k]  = isBrain ? (0.95+Math.random()*1.15)
+                : isBand  ? (0.75+Math.random()*0.85)
+                :           (0.6+Math.random()*0.7);
+      phase[k]=Math.random();
+    }
+    var g2=new THREE.BufferGeometry();
+    g2.setAttribute('position', new THREE.BufferAttribute(pos3,3));
+    g2.setAttribute('aNormal', new THREE.BufferAttribute(nrm3,3));
+    g2.setAttribute('aSize', new THREE.BufferAttribute(sizes,1));
+    g2.setAttribute('aPhase', new THREE.BufferAttribute(phase,1));
+    g2.setAttribute('aBright', new THREE.BufferAttribute(bright,1));
+    return g2;
+  }
+
+  function estimateEyes(geom, box){
+    var pos=geom.attributes.position, sy=box.max.y-box.min.y,
+        sz=box.max.z-box.min.z, sx=box.max.x-box.min.x;
+    var yLo=box.min.y+sy*0.70, yHi=box.min.y+sy*0.80, zTh=box.max.z-sz*0.20; // front = +z
+    var L=[0,0,0,0], R=[0,0,0,0];
+    for (var i=0;i<pos.count;i++){
+      var X=pos.getX(i), Y=pos.getY(i), Z=pos.getZ(i);
+      if (Y>yLo && Y<yHi && Z>zTh){
+        if (X < -sx*0.05){ L[0]+=X;L[1]+=Y;L[2]+=Z;L[3]++; }
+        else if (X > sx*0.05){ R[0]+=X;R[1]+=Y;R[2]+=Z;R[3]++; }
+      }
+    }
+    if (L[3]<40 || R[3]<40) return null;
+    return [[L[0]/L[3],L[1]/L[3],L[2]/L[3]+0.05],[R[0]/R[3],R[1]/R[3],R[2]/R[3]+0.05]];
+  }
+
+  function glowSprite(color, size){
+    var c=document.createElement('canvas'); c.width=c.height=128;
+    var g=c.getContext('2d'), gr=g.createRadialGradient(64,64,0,64,64,62);
+    var col=(color===CONFIG.GOLD)?'198,162,83':(color==='warm')?'255,238,200':(color==='pupil')?'24,15,6':'140,235,220';
+    var A=(color==='pupil')?0.92:0.95;
+    // gaussische val: onzichtbare rand, alleen licht
+    [[0,1.00],[0.08,0.66],[0.16,0.42],[0.26,0.25],[0.38,0.135],[0.50,0.068],[0.63,0.030],[0.77,0.011],[0.89,0.003],[1,0]]
+      .forEach(function(st){ gr.addColorStop(st[0], 'rgba('+col+','+(A*st[1]).toFixed(3)+')'); });
+    g.fillStyle=gr; g.fillRect(0,0,128,128);
+    var tex=new THREE.CanvasTexture(c);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
+        blending:(color==='pupil')?THREE.NormalBlending:THREE.AdditiveBlending,
+        depthTest:true, depthWrite:false}));
+    sp.scale.setScalar(size);
+    return sp;
+  }
+
+  function buildHead(meshes){
+    var box = new THREE.Box3();
+    meshes.forEach(function(m){ box.expandByObject(m); });
+    var size=box.getSize(new THREE.Vector3()), center=box.getCenter(new THREE.Vector3());
+    var s = CONFIG.FIT_HEIGHT/Math.max(size.y,1e-6);
+    var holder=new THREE.Group();
+    holder.rotation.y = CONFIG.MODEL_ROT_Y||0;
+    holder.rotation.x = CONFIG.PITCH||0;
+    holder.scale.setScalar(s);
+    var inner=new THREE.Group();
+    inner.position.set(-center.x,-center.y+0.02/s,-center.z);
+    holder.add(inner);
+
+    /* ---- re-anchor the rotation pivot to the base of the neck (bottom of the bust
+       bounding box) instead of the geometric center. The model has no skeleton/rig --
+       this is a single fused mesh -- so "rotating the head" really means rotating the
+       whole bust around a hinge point low enough to read as a neck, not a spinning statue.
+       rig.position + holder.position cancel out at rest (rotation=0), so the neutral pose
+       and camera framing are pixel-identical to before; only the pivot moves. ---- */
+    var pivotY = s*(box.min.y - center.y) + 0.02;
+    rig.position.set(0, pivotY, 0);
+    holder.position.set(0, -pivotY, 0);
+
+    if (CONFIG.STYLE === 'solid'){
+      meshes.forEach(function(m){
+        var mat = (m.material && m.material.map) ? m.material :
+          new THREE.MeshStandardMaterial({color:0xeef1f5, roughness:0.30, metalness:0.22});
+        if (mat.isMeshStandardMaterial) mat.envMapIntensity = 1.0;
+        if (mat.emissiveMap) mat.emissiveIntensity = 1.10;
+        var solid = new THREE.Mesh(m.geometry, mat);
+        solid.castShadow = true; solid.receiveShadow = true;
+        solid.matrixAutoUpdate=false; solid.matrix.copy(m.matrixWorld); solid.renderOrder=0; inner.add(solid);
+        if (CONFIG.FRESNEL > 0){
+          var gh=new THREE.Mesh(m.geometry, fresnelMat);
+          gh.matrixAutoUpdate=false; gh.matrix.copy(m.matrixWorld); gh.renderOrder=2; inner.add(gh);
+        }
+      });
+    } else {
+      meshes.forEach(function(m){
+        var occ=new THREE.Mesh(m.geometry, occluderMat);
+        occ.matrixAutoUpdate=false; occ.matrix.copy(m.matrixWorld); occ.renderOrder=0; inner.add(occ);
+        var gh=new THREE.Mesh(m.geometry, fresnelMat);
+        gh.matrixAutoUpdate=false; gh.matrix.copy(m.matrixWorld); gh.renderOrder=2; inner.add(gh);
+      });
+    }
+    var sampleN = (CONFIG.STYLE === 'solid' && !CONFIG.CROWN) ? 9000 : CONFIG.POINTS;
+    var dotsGeom = sampleMeshes(meshes, sampleN, box);
+    if (CONFIG.STYLE === 'wire'){
+      // alleen het brein als stippels; de rest wordt lijnennet
+      var sy2 = box.max.y-box.min.y, brainY2 = box.max.y - sy2*CONFIG.BRAIN_FRAC;
+      var P=dotsGeom.attributes.position, N=dotsGeom.attributes.aNormal,
+          S=dotsGeom.attributes.aSize, F=dotsGeom.attributes.aPhase, B=dotsGeom.attributes.aBright;
+      if (CONFIG.CROWN){
+        var keep=[];
+        for (var di=0; di<P.count; di++){ if (P.getY(di) > brainY2 - sy2*0.05) keep.push(di); }
+        var g3=new THREE.BufferGeometry();
+        function sub(att,it){ var out=new Float32Array(keep.length*it);
+          for (var q2=0;q2<keep.length;q2++) for (var c2=0;c2<it;c2++) out[q2*it+c2]=att.array[keep[q2]*it+c2];
+          return new THREE.BufferAttribute(out,it); }
+        g3.setAttribute('position', sub(P,3)); g3.setAttribute('aNormal', sub(N,3));
+        g3.setAttribute('aSize', sub(S,1)); g3.setAttribute('aPhase', sub(F,1)); g3.setAttribute('aBright', sub(B,1));
+        var bd=new THREE.Points(g3, dotMat); bd.renderOrder=2; inner.add(bd);
+      }
+
+      new THREE.GLTFLoader().load(CONFIG.WIRE_URL, function(g){
+        g.scene.updateWorldMatrix(true,true);
+        g.scene.traverse(function(o){
+          if(!o.isMesh) return;
+          var wf = new THREE.WireframeGeometry(o.geometry);
+          var lines = new THREE.LineSegments(wf, new THREE.LineBasicMaterial({
+            color: CONFIG.ICE, transparent:true, opacity: CONFIG.LINE_OPACITY,
+            blending: THREE.AdditiveBlending, depthTest:true, depthWrite:false }));
+          lines.matrixAutoUpdate=false; lines.matrix.copy(o.matrixWorld);
+          lines.renderOrder=1; inner.add(lines);
+          // sparks op de knopen van het net
+          var vp = o.geometry.attributes.position, nn = vp.count;
+          var np=new Float32Array(nn*3), ns=new Float32Array(nn), nf=new Float32Array(nn);
+          for (var vi=0; vi<nn; vi++){
+            np[vi*3]=vp.getX(vi); np[vi*3+1]=vp.getY(vi); np[vi*3+2]=vp.getZ(vi);
+            ns[vi]=0.5+Math.random()*0.9; nf[vi]=Math.random();
+          }
+          var ng=new THREE.BufferGeometry();
+          ng.setAttribute('position', new THREE.BufferAttribute(np,3));
+          ng.setAttribute('aSize', new THREE.BufferAttribute(ns,1));
+          ng.setAttribute('aPhase', new THREE.BufferAttribute(nf,1));
+          var nodes=new THREE.Points(ng, nodeMat);
+          nodes.matrixAutoUpdate=false; nodes.matrix.copy(o.matrixWorld);
+          nodes.renderOrder=2; inner.add(nodes);
+        });
+      });
+    } else if (CONFIG.STYLE === 'dots') {
+      var dots=new THREE.Points(dotsGeom, dotMat); dots.renderOrder=1; inner.add(dots);
+    }
+
+    if (CONFIG.EYES){
+      var eyePts = CONFIG.EYE_POS || estimateEyes(dotsGeom, box);
+      if (eyePts){
+        eyePts.forEach(function(e, ei){
+          if (CONFIG.STYLE === 'solid'){
+            // drie lagen licht: fluisterzachte bloom + iris-gloed + hete kern (geen randen)
+            // -- gold accent (CONFIG.GOLD, the site's existing amber/gold token), not a generic
+            // pale-warm color, so the eye reads as a distinct bright anchor point against the head.
+            var bloom=glowSprite(CONFIG.GOLD, size.y*0.105);
+            bloom.material.depthTest=false; bloom.material.opacity=0.18;
+            bloom.position.set(e[0],e[1],e[2]+0.055); bloom.renderOrder=3; inner.add(bloom);
+            var mid=glowSprite(CONFIG.GOLD, size.y*0.032);
+            mid.material.depthTest=false; mid.material.opacity=0.42;
+            mid.position.set(e[0],e[1],e[2]+0.06); mid.renderOrder=4; inner.add(mid);
+            var core=glowSprite(CONFIG.GOLD, size.y*0.012);
+            core.material.depthTest=false; core.material.opacity=1.0;
+            core.position.set(e[0],e[1],e[2]+0.065); core.renderOrder=5; inner.add(core);
+            eyeRigs.push({ base:new THREE.Vector3(e[0],e[1],e[2]),
+                           bloom:bloom, mid:mid, core:core, off:new THREE.Vector2() });
+            return;
+          }
+          var hero = (ei === (CONFIG.EYE_HERO||0));
+          var sp=glowSprite(CONFIG.TEAL, size.y*(hero?0.075:0.030));
+          sp.material.opacity = hero ? 1.0 : 0.38;
+          sp.position.set(e[0],e[1],e[2]); sp.renderOrder=3; inner.add(sp);
+          if (hero){
+            var core=glowSprite(CONFIG.ICE, size.y*0.028);
+            core.position.set(e[0],e[1],e[2]+0.02); core.renderOrder=4; inner.add(core);
+          }
+        });
+      }
+    }
+    rig.add(holder);
+  }
+
+  function placeholderMeshes(){
+    var mat=new THREE.MeshBasicMaterial();
+    var skull=new THREE.Mesh(new THREE.SphereGeometry(1,56,40), mat);
+    skull.scale.set(0.92,1.18,1.0); skull.position.y=0.42;
+    var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.46,0.9,32), mat);
+    neck.position.y=-1.1;
+    var grp=new THREE.Group(); grp.add(skull,neck); grp.updateWorldMatrix(true,true);
+    return [skull,neck];
+  }
+  var loaded=false;
+  try{
+    new THREE.GLTFLoader().load(CONFIG.MODEL_URL, function(gltf){
+      var meshes=[]; gltf.scene.updateWorldMatrix(true,true);
+      gltf.scene.traverse(function(o){ if(o.isMesh) meshes.push(o); });
+      if (meshes.length){ buildHead(meshes); loaded=true; }
+      else { if (window.__tfDiag) window.__tfDiag('GLTF loaded but contained zero meshes -- using placeholder geometry.'); buildHead(placeholderMeshes()); }
+    }, undefined, function(err){
+      if (window.__tfDiag) window.__tfDiag('GLTFLoader failed to load ' + CONFIG.MODEL_URL + ': ' + (err && (err.message||err.type||err)));
+      if(!loaded) showFallback();
+    });
+  }catch(e){
+    if (window.__tfDiag) window.__tfDiag('Exception during model load setup: ' + e.message);
+    showFallback();
+  }
+  function showFallback(){
+    document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
+    root.classList.add('is-fallback');
+  }
+
+  /* ---- interactie & loop ---- */
+  var mx=0,my=0, running=true, inView=true, lastMove=-10, hasPointer=false;
+  function onMove(e){
+    mx=(e.clientX/window.innerWidth)*2-1; my=(e.clientY/window.innerHeight)*2-1;
+    hasPointer = true;
+    lastMove = clock ? clock.getElapsedTime() : 0;
+    if (window.__frames !== undefined){ window.__mx=mx; window.__my=my; window.__lastMove=lastMove; }
+  }
+  window.addEventListener('mousemove', onMove, {passive:true});
+  window.addEventListener('pointermove', onMove, {passive:true});
+  window.addEventListener('mouseout', function(e){ if (!e.relatedTarget) hasPointer = false; }, {passive:true});
+  window.addEventListener('blur', function(){ hasPointer = false; });
+  document.addEventListener('visibilitychange', function(){ running=!document.hidden; });
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(function(en){ inView=en[0].isIntersecting; },{threshold:0.05}).observe(root);
+  }
   window.addEventListener('resize', function(){
+    W=mount.clientWidth; H=mount.clientHeight;
+    camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+    postResize(W,H);
     circuitPaths = drawCircuit(); sizePulse();
   });
 
-  if (reduce) return;   /* printplaat blijft als statische achtergrond staan; poster frame in de video */
+  /* ---- life: blink / glance / micro-tilt — additive layer of small involuntary motion on top
+     of the cursor-tracking above. Randomized intervals per-cycle so nothing reads as a fixed loop. ---- */
+  var BLOOM_BASE=0.18, MID_BASE=0.42, CORE_BASE=1.0;
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function smooth01(x){ x=Math.max(0,Math.min(1,x)); return x*x*(3-2*x); }
+  var life = {
+    blinkAt: rand(6,14), blinking:false, blinkStart:0, blinkDur:0.22,
+    glanceAt: rand(10,18), glancing:false, glanceStart:0, glanceDur:0, glanceHold:0,
+      gx:0, gy:0, goX:0, goY:0,
+    tiltAt: rand(20,30), tilting:false, tiltStart:0, tiltDur:0, tiltMag:0, tz:0
+  };
+  function updateLife(t){
+    // blink — quick eye-glow dip, eased, not linear
+    if (!life.blinking && t >= life.blinkAt){ life.blinking=true; life.blinkStart=t; life.blinkDur=rand(0.20,0.25); }
+    var blinkMul = 1;
+    if (life.blinking){
+      var bt=(t-life.blinkStart)/life.blinkDur;
+      if (bt>=1){ life.blinking=false; life.blinkAt=t+rand(6,14); }
+      else { var p = bt<0.5 ? bt*2 : (1-bt)*2; blinkMul = 1 - smooth01(p)*0.92; }
+    }
+    // eye glow pulse — slow, subtle, independent period from everything else (unsynced)
+    var eyePulse = 1 + 0.07*Math.sin(t*1.13 + 1.7);
 
-  var startedAt = performance.now();
+    // glance — deliberate extra look toward a random nearby point, holds, eases back
+    if (!life.glancing && t >= life.glanceAt){
+      life.glancing = true; life.glanceStart = t;
+      life.glanceDur = rand(0.5,0.8); life.glanceHold = rand(0.4,0.9);
+      life.gx = rand(-1,1)*0.09; life.gy = rand(-1,1)*0.05;
+    }
+    if (life.glancing){
+      var gt=t-life.glanceStart, dIn=life.glanceDur, dHold=life.glanceHold, dOut=life.glanceDur*0.9, tot=dIn+dHold+dOut;
+      var w;
+      if (gt<dIn) w=smooth01(gt/dIn);
+      else if (gt<dIn+dHold) w=1;
+      else if (gt<tot) w=1-smooth01((gt-dIn-dHold)/dOut);
+      else { w=0; life.glancing=false; life.glanceAt=t+rand(10,18); }
+      life.goX = life.gx*w; life.goY = life.gy*w;
+    }
+
+    // micro head-tilt — occasional roll, larger than baseline sway, non-mechanical timing
+    if (!life.tilting && t >= life.tiltAt){
+      life.tilting=true; life.tiltStart=t; life.tiltDur=rand(1.6,2.6);
+      life.tiltMag = rand(0.035,0.07) * (Math.random()<0.5?-1:1);
+    }
+    if (life.tilting){
+      var tt=(t-life.tiltStart)/life.tiltDur;
+      if (tt>=1){ life.tilting=false; life.tiltAt=t+rand(20,30); life.tz=0; }
+      else { life.tz = life.tiltMag * Math.sin(tt*Math.PI); }
+    }
+    return { blinkMul:blinkMul, eyePulse:eyePulse, glanceX:life.goX, glanceY:life.goY, tiltZ:life.tz };
+  }
+
+  var clock=new THREE.Clock();
   (function loop(){
     requestAnimationFrame(loop);
-    if (!running || !inView) return;
-    var t = (performance.now() - startedAt) / 1000;
+    if(!running || !inView) return;
+    if (window.__lock){ dotMat.uniforms.uTime.value=clock.getElapsedTime(); nodeMat.uniforms.uTime.value=clock.getElapsedTime(); fresnelMat.uniforms.uTime.value=clock.getElapsedTime(); renderer.render(scene,camera); return; }
+    var t=clock.getElapsedTime();
+    if (window.__frames !== undefined) window.__frames++;
+    dotMat.uniforms.uTime.value=t;
+    nodeMat.uniforms.uTime.value=t;
+    fresnelMat.uniforms.uTime.value=t;
+    var lv = updateLife(t);
+    if (CONFIG.MOTION === 'head'){
+      var idle = (t - lastMove) > 2.5;
+      var ty, tx;
+      if (idle){ ty = Math.sin(t*0.24)*CONFIG.SWAY; tx = Math.sin(t*0.31)*0.02; }
+      else { ty = mx*CONFIG.TRACK.x; tx = my*CONFIG.TRACK.y - 0.04; }
+      rig.rotation.y += (ty - rig.rotation.y)*0.07;
+      rig.rotation.x += (tx - rig.rotation.x)*0.07;
+      rig.position.y = Math.sin(t*0.5)*0.03;
+    } else {
+      // Eyes are rigid with the head -- no independent tracking/offset. They move only as
+      // part of the head's own neck-pivot rotation below; the only eye-only behavior is the
+      // blink/eye-pulse opacity modulation already computed in updateLife().
+      for (var ei2=0; ei2<eyeRigs.length; ei2++){
+        var er = eyeRigs[ei2];
+        er.bloom.material.opacity = BLOOM_BASE * lv.blinkMul * lv.eyePulse;
+        er.mid.material.opacity   = MID_BASE   * lv.blinkMul * lv.eyePulse;
+        er.core.material.opacity  = CORE_BASE  * lv.blinkMul * lv.eyePulse;
+      }
+    }
+
+    /* ---- cursor-reactive head lean: additive layer on top of the eye tracking above ---- */
+    var leanIdle = !hasPointer || (t - lastMove) > 2.0;
+    var leanY, leanX;
+    if (leanIdle){
+      leanY = Math.sin(t*0.24)*CONFIG.SWAY;
+      leanX = Math.sin(t*0.31)*0.02;
+    } else {
+      var lx = Math.max(-1, Math.min(1, mx)), ly = Math.max(-1, Math.min(1, -my));
+      leanY = lx * 0.16;
+      leanX = ly * 0.10;
+    }
+    rig.rotation.y += (leanY + lv.glanceX - rig.rotation.y)*0.06;
+    rig.rotation.x += (leanX + lv.glanceY - rig.rotation.x)*0.06;
+    rig.rotation.z += (lv.tiltZ - rig.rotation.z)*0.08;
+
+    /* ---- camera breathing + mouse parallax (distinct from the head's own lean above) ----
+       A slow sinusoidal dolly on Z reads as the camera quietly breathing; a small lerped
+       offset toward the cursor shifts the whole view laterally, so the head and the flat
+       background layers behind it slide against each other slightly -- a real depth cue
+       instead of just the head turning. Both are tiny and slow by design. */
+    var camTargetX = hasPointer ? mx*0.10 : 0;
+    var camTargetY = hasPointer ? -my*0.06 : 0;
+    camPar.x += (camTargetX - camPar.x)*0.035;
+    camPar.y += (camTargetY - camPar.y)*0.035;
+    camera.position.x = CAM_BASE.x + camPar.x;
+    camera.position.y = CAM_BASE.y + camPar.y;
+    camera.position.z = CAM_BASE.z + Math.sin(t*0.18)*0.05;
+
+    /* ---- dynamic holographic lighting: rim/key respond a little to cursor position, always
+       easing back toward their base values so the look never drifts far from the original. ---- */
+    if (rim){ rim.intensity += (rimBaseI + mx*0.16 - rim.intensity)*0.04; }
+    if (key){
+      key.intensity += (keyBaseI + (-my)*0.10 - key.intensity)*0.04;
+      key.position.x += (keyBaseX + mx*0.5 - key.position.x)*0.04;
+      key.position.y += (keyBaseY + my*0.3 - key.position.y)*0.04;
+    }
+
+    if (energyField.userData.mat) energyField.userData.mat.uniforms.uTime.value = t;
+    for (var eri=0; eri<energyRings.children.length; eri++){
+      var ringMesh = energyRings.children[eri];
+      ringMesh.rotation.z = t * ringMesh.userData.spin;
+    }
+
     drawPulses(t);
     drawMarketParticles(t);
     drawAgentNodes(t);
+    renderPost();
   })();
 })();
 </script>
