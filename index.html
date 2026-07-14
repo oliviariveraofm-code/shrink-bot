@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>The Trading Floor</title>
+<style>
+  /* ============ tokens — PLACEHOLDER hex values, pending confirmation ============ */
+  :root{
+    --onyx:        #0A0B0D;  /* Onyx Black */
+    --stone:       #86898E;  /* Stone Gray */
+    --frost:       #F2F3F5;  /* Frost White */
+    --electric:    #2E6BFF;  /* Electric Blue */
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html, body{
+    width:100%; height:100%;
+    background:var(--onyx);
+  }
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Inter","Helvetica Neue",Arial,sans-serif;
+    color:var(--frost);
+    overflow:hidden;
+  }
+
+  .hero{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+  }
+
+  .hero__bg{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:50% 50%;
+    background:var(--onyx);
+  }
+
+  .hero__scrim{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(
+      0deg,
+      rgba(10,11,13,.86) 0%,
+      rgba(10,11,13,.40) 30%,
+      rgba(10,11,13,.10) 55%,
+      rgba(10,11,13,.30) 100%
+    );
+  }
+
+  .hero__content{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    text-align:center;
+    padding:6vh 6vw 9vh;
+  }
+
+  .hero__word{
+    font-size:clamp(2.1rem, 6vw, 4.6rem);
+    font-weight:600;
+    letter-spacing:-0.02em;
+    line-height:1.02;
+    color:var(--frost);
+    margin:0;
+  }
+
+  .hero__line{
+    margin:1.1rem 0 0;
+    max-width:36ch;
+    font-size:clamp(0.95rem, 1.5vw, 1.15rem);
+    font-weight:400;
+    line-height:1.55;
+    color:var(--stone);
+  }
+
+  .hero__cta{
+    margin-top:2.2rem;
+    display:inline-flex;
+    align-items:center;
+    gap:0.6rem;
+    padding:0.9rem 2rem;
+    border-radius:2px;
+    background:var(--electric);
+    color:var(--frost);
+    font-size:0.85rem;
+    font-weight:600;
+    letter-spacing:0.02em;
+    text-decoration:none;
+    transition:filter 200ms ease, transform 200ms ease;
+  }
+
+  .hero__cta:hover{
+    filter:brightness(1.12);
+  }
+
+  .hero__cta:active{
+    transform:translateY(1px);
+  }
+
+  @media (max-width:640px){
+    .hero__content{ padding:5vh 7vw 8vh; }
+    .hero__word{ font-size:clamp(1.9rem, 8.5vw, 2.6rem); }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <video
+    class="hero__bg"
+    id="heroVideo"
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="auto"
+    poster="assets/hero-poster.jpg"
+    aria-hidden="true"
+  >
+    <source src="assets/hero-loop.webm" type="video/webm" />
+    <source src="assets/hero-loop.mp4" type="video/mp4" />
+  </video>
+
+  <div class="hero__scrim" aria-hidden="true"></div>
+
+  <div class="hero__content">
+    <h1 class="hero__word">The Trading Floor</h1>
+    <p class="hero__line">The market isn&rsquo;t your biggest opponent. Your own behavior is.</p>
+    <a class="hero__cta" href="#">Join the Floor</a>
+  </div>
+</section>
+
+<script>
+  var video = document.getElementById('heroVideo');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduce) {
+    video.removeAttribute('autoplay');
+    video.pause();
+  } else {
+    video.play().catch(function(){});
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if (reduce) return;
+    if (document.hidden) video.pause();
+    else video.play().catch(function(){});
+  });
+</script>
+
+</body>
+</html>
