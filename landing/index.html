@@ -1,0 +1,2487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHRINK — The Trading Floor</title>
+<style>
+  /* self-hosted display/mono faces (variable-weight woff2, latin subset) — falls back to
+     system-ui/monospace instantly via font-display:swap while these load. */
+  @font-face{
+    font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;
+    src:url('vendor/fonts/inter-latin.woff2') format('woff2-variations'), url('vendor/fonts/inter-latin.woff2') format('woff2');
+  }
+  @font-face{
+    font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;
+    src:url('vendor/fonts/jetbrains-mono-latin-400.woff2') format('woff2');
+  }
+  :root{
+    /* hero-native tokens (unchanged — still what the 3D scene / agent nodes / original hero styles use) */
+    --bg:#0E0F13; --bg2:#07090C; --gold:#C6A253; --teal:#4FD1BE;
+    --ice:#DCE3ED; --txt:#EDF0F4; --dim:#A3A9B4;
+
+    /* refined page-wide design tokens (Trading Floor spec) */
+    --bg-0:#0E0F13; --bg-1:#14161C; --line:#262A33;
+    --text-hi:#F2F3F5; --text-mid:#9AA1AD; --text-low:#787E8A;
+    --accent-gold:#C4A052;
+
+    /* semantic color ROLES — every one of these points at a hex already used elsewhere in the
+       project (agent-node colors from the hero JS, or the existing teal/gold/ice tokens above).
+       No new hex introduced here, per the content spec. */
+    --role-positive:#4FD1BE;   /* = --teal, also RALLY/MACRO agent color */
+    --role-negative:#E06E5A;   /* = CRASH/HUNT agent color (224,110,90) */
+    --role-warning:#C6A253;    /* = --gold, also SNIPER/SENTIMENT agent color */
+    --role-accent:#DCE3ED;     /* = --ice, also TEMPO/ORACLE agent color */
+
+    --font-display:'Inter',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+
+    --h-hero: clamp(72px,14vw,220px);
+    --h-section: clamp(40px,6vw,88px);
+    --space-section-mobile: 90px;
+    --space-section-desktop: 160px;
+    --container-max: 1280px;
+
+    /* ============ unified motion system — one easing curve, three duration tiers ============
+       Every transition/animation added or touched below pulls from these instead of inventing
+       its own curve, so the whole site reads as one engineered system rather than a pile of
+       one-off effects. cubic-bezier(.16,1,.3,1) ("ease-out-expo"-ish: fast start, long precise
+       settle, never overshoots) was already the de facto standard in a few places pre-existing
+       in this file (tf-reveal--mask, tf-agent/tf-dna hover) -- formalized here and applied
+       everywhere else that previously used a plain `ease`. */
+    --ease: cubic-bezier(.16,1,.3,1);
+    --dur-micro: 200ms;      /* hovers, focus states, small toggles */
+    --dur-standard: 420ms;   /* card elevation, panel reveals, nav state */
+    --dur-hero: 1000ms;      /* headline reveals, hero-scale moments */
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  /* custom keyboard-focus ring -- brand gold, replaces the default blue browser outline
+     everywhere, so keyboard navigation feels like part of the same engineered system rather
+     than a generic browser default. :focus-visible only, so mouse clicks stay clean. */
+  :focus-visible{outline:2px solid var(--accent-gold);outline-offset:3px;
+    transition:outline-offset var(--dur-micro) var(--ease);}
+  body{background:var(--bg-0);color:var(--txt);font-family:var(--font-display);}
+
+  /* ============ page-wide ambient background — sits behind every section (fixed, z-index:-1,
+     so it paints just above the plain canvas color and below all normal content) so the page
+     never reads as a flat static color between the hero and the opaque cards/panels. Every
+     layer here is transform/opacity-only (already-blurred, non-animating blur radius) so it's
+     compositor-driven and effectively free per frame, even running for the full page scroll. ============ */
+  .tf-ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  .tf-ambient__blob{position:absolute;border-radius:50%;filter:blur(64px);will-change:transform;
+    opacity:var(--amb-boost, .8);transition:opacity 1.2s linear;}
+  .tf-ambient__blob--a{width:58vw;height:58vw;left:-16vw;top:-14vw;
+    background:radial-gradient(circle, rgba(79,209,190,.11), transparent 70%);
+    animation:ambBlobA 48s ease-in-out infinite;}
+  .tf-ambient__blob--b{width:50vw;height:50vw;right:-14vw;top:30vh;
+    background:radial-gradient(circle, rgba(198,162,83,.09), transparent 70%);
+    animation:ambBlobB 60s ease-in-out infinite;}
+  .tf-ambient__blob--c{width:46vw;height:46vw;left:18vw;bottom:-18vw;
+    background:radial-gradient(circle, rgba(224,110,90,.06), transparent 70%);
+    animation:ambBlobC 54s ease-in-out infinite;}
+  @keyframes ambBlobA{0%,100%{transform:translate(0,0);}50%{transform:translate(6vw,7vh);}}
+  @keyframes ambBlobB{0%,100%{transform:translate(0,0);}50%{transform:translate(-7vw,-5vh);}}
+  @keyframes ambBlobC{0%,100%{transform:translate(0,0);}50%{transform:translate(5vw,-6vh);}}
+
+  .tf-ambient__grid{position:absolute;inset:-64px;opacity:.045;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:64px 64px;animation:ambGrid 100s linear infinite;}
+  @keyframes ambGrid{from{transform:translate(0,0);}to{transform:translate(64px,64px);}}
+
+  .tf-ambient__lines{position:absolute;inset:-30%;opacity:.4;mix-blend-mode:screen;
+    will-change:transform;
+    background:
+      linear-gradient(100deg, transparent 46%, rgba(79,209,190,.05) 49%, transparent 53%),
+      linear-gradient(80deg, transparent 62%, rgba(198,162,83,.04) 65%, transparent 69%);
+    /* oversized (inset:-30%) and moved with transform, not background-position, so this stays
+       compositor-only -- no repaint per frame even though it's a full-viewport gradient. */
+    animation:ambLines 75s ease-in-out infinite alternate;}
+  @keyframes ambLines{from{transform:translate(0,0);}to{transform:translate(-8%,4%);}}
+
+  @media (prefers-reduced-motion: reduce){
+    .tf-ambient__blob, .tf-ambient__grid, .tf-ambient__lines{animation:none;}
+  }
+  @media (max-width:640px){
+    .tf-ambient__blob{filter:blur(40px);}
+    .tf-ambient__lines{display:none;} /* two more animated layers is unnecessary cost on small/lower-power screens */
+  }
+
+  /* ============ page-wide layout utilities (used by sections below the hero) ============ */
+  .tf-container{max-width:var(--container-max);margin:0 auto;padding-left:24px;padding-right:24px;}
+  .tf-section{padding-top:var(--space-section-mobile);padding-bottom:var(--space-section-mobile);}
+  @media (min-width:900px){
+    .tf-section{padding-top:var(--space-section-desktop);padding-bottom:var(--space-section-desktop);}
+  }
+  .tf-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-low);}
+  .tf-headline{font-family:var(--font-display);font-size:var(--h-section);font-weight:700;
+    letter-spacing:-0.02em;line-height:1.05;color:var(--text-hi);}
+  .tf-body{font-size:16px;line-height:1.6;color:var(--text-mid);max-width:60ch;}
+  /* "energy seam" between scenes -- a plain flat <hr> reads as a hard section break; this
+     keeps the same thin line but adds a soft glow at its center that breathes slowly, so the
+     boundary reads as a live connection between scenes rather than a wall between sections. */
+  .tf-divider{border:none;height:1px;margin:0;position:relative;overflow:visible;
+    background:var(--line);}
+  .tf-divider::before{content:'';position:absolute;top:50%;left:50%;height:1px;
+    width:200px;transform:translate(-50%,-50%);pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(79,209,190,.6), transparent);
+    animation:tfSeamPulse 7s ease-in-out infinite;}
+  @keyframes tfSeamPulse{0%,100%{opacity:.3;width:140px;}50%{opacity:.85;width:260px;}}
+  @media (prefers-reduced-motion: reduce){ .tf-divider::before{animation:none;opacity:.5;} }
+  .tf-reveal{opacity:0;transform:translateY(8px);
+    transition:opacity var(--dur-standard) var(--ease), transform var(--dur-standard) var(--ease);}
+  .tf-reveal.is-visible{opacity:1;transform:translateY(0);}
+  /* slower, deliberate clip-reveal for the big "hero moment" headlines (§6 motion upgrade) */
+  .tf-reveal.tf-reveal--mask{opacity:1;transform:none;clip-path:inset(0 100% 0 0);
+    transition:clip-path var(--dur-hero) var(--ease);}
+  .tf-reveal.tf-reveal--mask.is-visible{clip-path:inset(0 0 0 0);}
+  @media (prefers-reduced-motion: reduce){
+    .tf-reveal{opacity:1!important;transform:none!important;transition:none!important;}
+    .tf-reveal--mask{clip-path:inset(0)!important;}
+  }
+
+  /* one-shot "power-on" brightness settle, layered on top of the opacity/transform reveal
+     transition above -- reinforces the "systems initializing as you scroll" narrative without
+     being a literal flicker (kept to a single gentle overshoot, same easing as everything
+     else, never bouncy). Toggled by the reveal script alongside .is-visible. */
+  .tf-reveal.is-flicker{animation:tfPowerOn var(--dur-hero) var(--ease);}
+  @keyframes tfPowerOn{ 0%{ filter:brightness(1.55); } 100%{ filter:brightness(1); } }
+  @media (prefers-reduced-motion: reduce){ .tf-reveal.is-flicker{animation:none;} }
+
+  /* ============ shared "floating glass terminal" card treatment ============
+     One hover mechanic (elevation + directional sheen sweep), reused by every card-like
+     surface on the page (agent cards, DNA cards, strategy cards, philosophy panels, terminal
+     windows) instead of five hand-tuned duplicates. Per-surface files still own their own
+     accent-colored box-shadow/border-color where relevant -- this only owns the shared part. */
+  .tf-glass{position:relative;overflow:hidden;
+    transition:transform var(--dur-standard) var(--ease), box-shadow var(--dur-standard) var(--ease),
+      border-color var(--dur-standard) var(--ease);}
+  .tf-glass::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+    background:linear-gradient(115deg, transparent 32%, rgba(255,255,255,.05) 45%,
+      rgba(255,255,255,.10) 50%, rgba(255,255,255,.05) 55%, transparent 68%);
+    transform:translateX(-130%);transition:transform var(--dur-hero) var(--ease);}
+  .tf-glass:hover{transform:translateY(-6px);}
+  .tf-glass:hover::before{transform:translateX(130%);}
+  @media (prefers-reduced-motion: reduce){
+    .tf-glass{transition:box-shadow var(--dur-micro) linear, border-color var(--dur-micro) linear;}
+    .tf-glass:hover{transform:none;}
+    .tf-glass::before{display:none;}
+  }
+
+  /* ============ site-wide "watching" layer — cursor spotlight over a faint plexus-line texture ============ */
+  .tf-watch{position:fixed;inset:0;z-index:40;pointer-events:none;mix-blend-mode:screen;
+    opacity:0;transition:opacity var(--dur-standard) var(--ease);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(79,209,190,.4) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(60deg, rgba(79,209,190,.28) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(120deg, rgba(79,209,190,.28) 0 1px, transparent 1px 48px);
+    -webkit-mask-image:radial-gradient(380px at var(--mx,50%) var(--my,50%), rgba(0,0,0,.85), transparent 70%);
+    mask-image:radial-gradient(380px at var(--mx,50%) var(--my,50%), rgba(0,0,0,.85), transparent 70%);}
+  .tf-watch.is-on{opacity:1;}
+  .tf-watch.is-static{opacity:.12;-webkit-mask-image:none;mask-image:none;background-size:220px 220px;}
+  @media (prefers-reduced-motion: reduce){ .tf-watch{display:none!important;} }
+
+  /* ============ ambient "watching" status light — nav ============ */
+  .tf-watchdot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;
+    background:var(--role-positive);margin-right:9px;vertical-align:1px;
+    box-shadow:0 0 6px rgba(79,209,190,.7);animation:tfWatchBreathe 4.6s ease-in-out infinite;}
+  @keyframes tfWatchBreathe{0%,100%{opacity:.32;}50%{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){ .tf-watchdot{animation:none;opacity:.7;} }
+
+  /* ============ nav ============ */
+  .tf-nav{position:sticky;top:0;z-index:50;background:rgba(14,15,19,.82);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);}
+  .tf-nav__row{max-width:var(--container-max);margin:0 auto;padding:16px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;}
+  .tf-nav__word{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-hi);text-decoration:none;white-space:nowrap;}
+  .tf-nav__word b{color:var(--accent-gold);font-weight:700;}
+  .tf-nav__links{display:none;gap:22px;list-style:none;}
+  .tf-nav__links a{position:relative;font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--text-mid);text-decoration:none;padding-bottom:3px;
+    transition:color var(--dur-micro) var(--ease);}
+  .tf-nav__links a::after{content:'';position:absolute;left:0;right:100%;bottom:0;height:1px;
+    background:var(--accent-gold);transition:right var(--dur-standard) var(--ease);}
+  .tf-nav__links a:hover{color:var(--text-hi);}
+  .tf-nav__links a:hover::after{right:0;}
+  @media (prefers-reduced-motion: reduce){ .tf-nav__links a::after{transition:none;} }
+  @media (min-width:960px){ .tf-nav__links{display:flex;align-items:center;} }
+  .tf-nav__cta{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    text-decoration:none;color:var(--bg-0);background:var(--accent-gold);padding:9px 18px;border-radius:2px;
+    white-space:nowrap;}
+
+  /* ============ chip strip ============ */
+  .tf-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+  .tf-chip{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--text-mid);border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+    background:var(--bg-1);}
+  .tf-chip--star{color:var(--role-warning);border-color:rgba(198,162,83,.4);}
+  .tf-chip--out{color:var(--role-negative);border-color:rgba(224,110,90,.4);}
+
+  /* ============ panels ============ */
+  .tf-panels{display:grid;grid-template-columns:1fr;gap:20px;}
+  @media (min-width:760px){ .tf-panels{grid-template-columns:1fr 1fr;} }
+  .tf-panel{border:1px solid var(--line);background:var(--bg-1);border-radius:4px;padding:28px 26px;}
+  .tf-panel__label{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-low);margin-bottom:14px;}
+  .tf-panel--positive .tf-panel__label{color:var(--role-positive);}
+  .tf-panel--negative .tf-panel__label{color:var(--role-negative);}
+
+  /* ============ 03 · THE TWELVE AGENTS — archetype D: immersive grid ============ */
+  .agn{position:relative;overflow:hidden;}
+  .agn__watermark{position:absolute;pointer-events:none;color:var(--text-hi);opacity:.035;z-index:0;}
+  .agn__watermark--a{width:640px;height:640px;top:-160px;right:-160px;}
+  .agn__watermark--b{width:420px;height:420px;bottom:-120px;left:-120px;}
+  .agn__head{position:relative;z-index:1;}
+
+  .tf-tier-label{position:relative;z-index:1;font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--text-low);margin:56px 0 20px;display:flex;align-items:center;gap:14px;}
+  .tf-tier-label:first-of-type{margin-top:64px;}
+  .tf-tier-label::after{content:'';flex:1;height:1px;background:var(--line);}
+  .tf-agents{position:relative;z-index:1;display:grid;grid-template-columns:1fr;gap:18px;}
+  @media (min-width:640px){ .tf-agents{grid-template-columns:1fr 1fr;} }
+  @media (min-width:1040px){ .tf-agents{grid-template-columns:repeat(4,1fr);} }
+  .tf-agent{border:1px solid var(--line);border-radius:6px;padding:30px 26px;
+    border-top:2px solid var(--agent-c, var(--line));
+    background:linear-gradient(165deg, rgba(var(--agent-rgb,255,255,255),.13), var(--bg-1) 62%);}
+  .tf-agent:hover{
+    box-shadow:0 28px 52px -22px rgba(var(--agent-rgb,0,0,0),.5), 0 0 0 1px rgba(var(--agent-rgb,255,255,255),.28);}
+  .tf-agent__emblem{width:50px;height:50px;color:var(--agent-c, var(--text-mid));
+    filter:drop-shadow(0 0 18px rgba(var(--agent-rgb,0,0,0),.35));}
+  .tf-agent__name{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.01em;
+    color:var(--text-hi);margin-top:18px;}
+  .tf-agent__desk{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--agent-c, var(--text-low));margin-top:5px;}
+  .tf-agent__line{font-size:13.5px;line-height:1.5;color:var(--text-mid);margin-top:14px;font-style:italic;}
+
+  .tf-spotlight{position:relative;z-index:1;margin-top:44px;border:1px solid rgba(240,209,140,.35);
+    background:linear-gradient(165deg, rgba(240,209,140,.09), var(--bg-1) 55%);border-radius:6px;
+    padding:34px 32px;border-top:2px solid #F0D18C;}
+
+  /* ============ 04 · ANATOMY OF A CARD — archetype B: split editorial ============ */
+  .anat{position:relative;}
+  .anat__split{display:grid;grid-template-columns:36% 1fr;gap:64px;align-items:start;position:relative;z-index:1;}
+  .anat__type{position:sticky;top:120px;}
+  @media (max-width:900px){ .anat__type{position:static;} }
+  @media (max-width:900px){ .anat__split{grid-template-columns:1fr;gap:40px;align-items:start;} }
+  .anat__headline{font-family:var(--font-display);font-weight:700;letter-spacing:-0.02em;line-height:1.06;
+    color:var(--text-hi);font-size:clamp(34px,4.4vw,58px);}
+
+  .anat__cardwrap{position:relative;padding:14px;}
+  .anat__bracket{position:absolute;width:22px;height:22px;border-color:var(--accent-gold);opacity:.6;}
+  .anat__bracket--tl{top:0;left:0;border-top:1px solid;border-left:1px solid;}
+  .anat__bracket--br{bottom:0;right:0;border-bottom:1px solid;border-right:1px solid;}
+
+  .tf-tradecard{font-family:var(--font-mono);font-size:14.5px;line-height:1.85;color:var(--text-hi);
+    background:var(--bg-1);border:1px solid rgba(196,160,82,.28);border-radius:4px;padding:34px 30px;
+    white-space:pre-wrap;box-shadow:0 36px 64px -30px rgba(0,0,0,.7);}
+  .tf-tradecard b{color:var(--role-positive);}
+  .tf-tradecard .tf-cap{font-family:var(--font-mono);font-size:11px;color:var(--text-low);
+    margin-top:10px;text-align:right;}
+
+  .anat__legend{margin-top:40px;padding-left:26px;border-left:1px dashed var(--line);
+    display:flex;flex-direction:column;gap:16px;}
+  .tf-legend__row{position:relative;border-bottom:1px solid var(--line);padding-bottom:14px;}
+  .tf-legend__row::before{content:'';position:absolute;left:-32.5px;top:5px;width:7px;height:7px;
+    border-radius:50%;background:var(--bg-0);border:1.5px solid var(--accent-gold);}
+  .tf-legend__row:last-child{border-bottom:none;}
+  .tf-legend__k{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent-gold);}
+  .tf-legend__v{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:6px;}
+
+  /* ============ 05 · CONFIDENCE & SIZING — archetype E: terminal readout ============ */
+  .term__window{border:1px solid var(--line);border-radius:8px;background:var(--bg-1);
+    box-shadow:0 32px 64px -30px rgba(0,0,0,.7);}
+  .term__window:hover{border-color:rgba(79,209,190,.3);
+    box-shadow:0 40px 76px -30px rgba(0,0,0,.75), 0 0 0 1px rgba(79,209,190,.14);}
+  .term__bar{display:flex;align-items:center;gap:7px;padding:13px 18px;background:var(--bg-0);
+    border-bottom:1px solid var(--line);}
+  .term__dot{width:9px;height:9px;border-radius:50%;display:inline-block;opacity:.85;}
+  .term__dot--r{background:var(--role-negative);} .term__dot--y{background:var(--role-warning);}
+  .term__dot--g{background:var(--role-positive);}
+  .term__title{margin-left:10px;font-family:var(--font-mono);font-size:11px;color:var(--text-low);letter-spacing:.06em;}
+  .term__body{padding:36px 32px;display:grid;grid-template-columns:1fr 1fr;gap:48px;}
+  @media (max-width:760px){ .term__body{grid-template-columns:1fr;gap:36px;} }
+  .term__prompt{font-family:var(--font-mono);font-size:12.5px;color:var(--role-positive);margin-bottom:18px;}
+  .term__prompt b{color:var(--text-hi);font-weight:400;}
+  .term__prompt i{display:inline-block;width:7px;height:14px;background:var(--role-positive);
+    margin-left:2px;vertical-align:-2px;animation:termBlink 1.1s step-end infinite;}
+  @keyframes termBlink{50%{opacity:0;}}
+  @media (prefers-reduced-motion: reduce){ .term__prompt i{animation:none;} }
+
+  .tf-tier-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:13.5px;}
+  .tf-tier-table td{padding:12px 6px;border-top:1px solid var(--line);color:var(--text-mid);}
+  .tf-tier-table tr:first-child td{border-top:none;}
+  .tf-tier-table td:first-child{color:var(--text-hi);white-space:nowrap;}
+  .tf-tier-table .r-negative td:first-child{color:var(--role-negative);}
+  .tf-tier-table .r-warning td:first-child{color:var(--role-warning);}
+  .tf-tier-table .r-accent td:first-child{color:var(--role-accent);}
+  .tf-tier-table .r-positive td:first-child{color:var(--role-positive);font-weight:700;}
+  .tf-note{font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:14px;}
+
+  /* ============ 06 · TRADING DNA — archetype D variant: immersive grid by asset strength ============ */
+  .tf-dna{display:grid;grid-template-columns:1fr;gap:18px;}
+  @media (min-width:760px){ .tf-dna{grid-template-columns:1fr 1fr;} }
+  .tf-dna__p{border:1px solid var(--line);background:var(--bg-1);
+    border-radius:6px;padding:28px 26px;}
+  .tf-dna__p:hover{box-shadow:0 24px 44px -22px rgba(0,0,0,.55);}
+  .tf-dna__pct{position:absolute;right:10px;bottom:-26px;font-family:var(--font-display);font-weight:800;
+    font-size:110px;line-height:1;color:var(--text-hi);opacity:.05;pointer-events:none;}
+  .tf-dna__p--positive{background:linear-gradient(155deg, rgba(79,209,190,.10), var(--bg-1) 60%);
+    border-color:rgba(79,209,190,.3);}
+  .tf-dna__p--positive .tf-dna__label{color:var(--role-positive);}
+  .tf-dna__p--accent{background:linear-gradient(155deg, rgba(220,227,237,.08), var(--bg-1) 60%);
+    border-color:rgba(220,227,237,.25);}
+  .tf-dna__p--accent .tf-dna__label{color:var(--role-accent);}
+  .tf-dna__p--negative{background:linear-gradient(155deg, rgba(224,110,90,.10), var(--bg-1) 60%);
+    border-color:rgba(224,110,90,.3);}
+  .tf-dna__p--negative .tf-dna__label{color:var(--role-negative);}
+  .tf-dna__p--warning{background:linear-gradient(155deg, rgba(198,162,83,.10), var(--bg-1) 60%);
+    border-color:rgba(198,162,83,.3);}
+  .tf-dna__p--warning .tf-dna__label{color:var(--role-warning);}
+  .tf-dna__label{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    margin-bottom:10px;position:relative;z-index:1;}
+  .tf-dna__body{font-size:14px;line-height:1.6;color:var(--text-mid);position:relative;z-index:1;}
+  .tf-banner{margin-top:20px;border:1px solid rgba(224,110,90,.4);background:rgba(224,110,90,.06);
+    border-radius:4px;padding:16px 20px;font-family:var(--font-mono);font-size:12.5px;
+    letter-spacing:.04em;color:var(--role-negative);text-align:center;}
+
+  /* ============ 07 · SESSION TIMING — archetype E: terminal readout ============ */
+  .tf-sessions{width:100%;border-collapse:collapse;}
+  .tf-sessions th{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-low);text-align:left;padding:0 12px 12px;border-bottom:1px solid var(--line);font-weight:400;}
+  .tf-sessions td{padding:14px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--text-mid);
+    vertical-align:top;transition:background var(--dur-micro) var(--ease);}
+  .tf-sessions tbody tr:hover td{background:rgba(255,255,255,.025);}
+  .tf-sessions tbody tr.tf-row-live td{background:rgba(79,209,190,.07);}
+  .tf-sessions tbody tr.tf-row-live{box-shadow:inset 3px 0 0 0 var(--role-positive);}
+  .tf-sessions tbody tr.tf-row-live td:first-child{color:var(--role-positive);}
+  .tf-sessions td:first-child{font-family:var(--font-mono);color:var(--text-hi);white-space:nowrap;}
+  .tf-badge{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;}
+  .tf-badge--prime{color:var(--role-warning);border-color:rgba(198,162,83,.4);}
+  .tf-badge--active,.tf-badge--incoming{color:var(--role-accent);border-color:rgba(220,227,237,.3);}
+  .tf-badge--judas,.tf-badge--dead,.tf-badge--deadzone,.tf-badge--reduced{color:var(--role-negative);
+    border-color:rgba(224,110,90,.35);}
+  @media (max-width:720px){
+    .tf-sessions thead{display:none;}
+    .tf-sessions, .tf-sessions tbody, .tf-sessions tr, .tf-sessions td{display:block;width:100%;}
+    .tf-sessions tr{border-bottom:1px solid var(--line);padding:16px 0;}
+    .tf-sessions td{border-bottom:none;padding:3px 0;}
+    .tf-sessions td:first-child{font-size:15px;}
+  }
+
+  /* ============ 08 · THE THREE STRATEGIES — archetype C variant: horizontal day timeline ============ */
+  .strat__timeline{position:relative;height:64px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .strat__seg{position:absolute;top:8px;bottom:8px;border-radius:3px;}
+  .strat__seg--a{background:linear-gradient(90deg, rgba(224,110,90,.32), rgba(224,110,90,.12));border:1px solid rgba(224,110,90,.5);}
+  .strat__seg--b{background:linear-gradient(90deg, rgba(198,162,83,.32), rgba(198,162,83,.12));border:1px solid rgba(198,162,83,.5);}
+  .strat__seg--c{background:linear-gradient(90deg, rgba(79,209,190,.32), rgba(79,209,190,.12));border:1px solid rgba(79,209,190,.5);}
+  .strat__seg-label{position:absolute;top:50%;left:12px;transform:translateY(-50%);font-family:var(--font-mono);
+    font-size:10.5px;letter-spacing:.06em;white-space:nowrap;color:var(--text-hi);}
+  .strat__axis{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--font-mono);
+    font-size:10px;color:var(--text-low);}
+  @media (max-width:700px){
+    .strat__seg-label{display:none;}
+    .strat__axis span:nth-child(2n){display:none;}
+  }
+
+  .tf-strategies{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media (min-width:820px){ .tf-strategies{grid-template-columns:repeat(3,1fr);} }
+  .tf-strategy{border:1px solid var(--line);border-left:2px solid var(--strat-c,var(--line));
+    background:var(--bg-1);border-radius:4px;padding:26px 24px;}
+  .tf-strategy:hover{box-shadow:0 26px 48px -24px rgba(0,0,0,.6), 0 0 0 1px rgba(var(--strat-rgb,255,255,255),.16);}
+  .tf-strategy__glyph{position:absolute;right:-6px;bottom:-16px;font-size:96px;line-height:1;opacity:.08;
+    pointer-events:none;filter:grayscale(1);}
+  .tf-strategy__n{font-family:var(--font-display);font-weight:800;font-size:34px;color:var(--strat-c,var(--text-low));
+    opacity:.55;line-height:1;position:relative;z-index:1;}
+  .tf-strategy__tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent-gold);position:relative;z-index:1;margin-top:14px;}
+  .tf-strategy__name{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em;
+    color:var(--text-hi);margin-top:10px;position:relative;z-index:1;}
+  .tf-strategy__win{font-family:var(--font-mono);font-size:11px;color:var(--text-low);margin-top:4px;
+    position:relative;z-index:1;}
+  .tf-strategy__d{font-size:14px;line-height:1.6;color:var(--text-mid);margin-top:12px;position:relative;z-index:1;}
+
+  /* ============ 09 · HARD RULES — severity-accented system log ============ */
+  .tf-rules{border-top:1px solid var(--line);}
+  .tf-rule{position:relative;display:grid;grid-template-columns:74px 1fr;gap:18px;padding:20px 0 20px 18px;
+    border-bottom:1px solid var(--line);border-left:3px solid var(--rule-c, var(--line));
+    transition:background var(--dur-micro) var(--ease);}
+  .tf-rule:hover{background:rgba(255,255,255,.02);}
+  .tf-rule__id{font-family:var(--font-mono);font-weight:700;font-size:15px;letter-spacing:.04em;
+    color:var(--rule-c, var(--accent-gold));}
+  .tf-rule__body{font-size:14.5px;line-height:1.6;color:var(--text-mid);}
+  .tf-rule__body code{font-family:var(--font-mono);font-size:12.5px;background:var(--bg-1);
+    padding:2px 6px;border-radius:3px;color:var(--text-hi);}
+
+  /* ============ 10 · INSIDE THE DISCORD — archetype B variant: split + sidebar mockup ============ */
+  .tf-discord{display:grid;grid-template-columns:1fr;gap:40px;align-items:start;}
+  @media (min-width:840px){ .tf-discord{grid-template-columns:minmax(0,320px) 1fr;} }
+  .disco__sidebar{background:var(--bg-1);border:1px solid var(--line);border-radius:8px;
+    box-shadow:0 28px 56px -26px rgba(0,0,0,.65);}
+  .disco__sidebar:hover{border-color:rgba(196,160,82,.3);
+    box-shadow:0 34px 64px -26px rgba(0,0,0,.7), 0 0 0 1px rgba(196,160,82,.14);}
+  .disco__sidebar__head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+  .disco__sidebar__logo{width:26px;height:26px;border-radius:7px;background:var(--accent-gold);
+    display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;
+    font-size:12px;color:var(--bg-0);flex-shrink:0;}
+  .disco__sidebar__name{font-family:var(--font-display);font-weight:700;font-size:13.5px;color:var(--text-hi);}
+  .tf-channels{display:flex;flex-direction:column;gap:2px;padding:14px 12px 20px;}
+  .tf-channels__cat{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-low);margin:14px 0 4px 6px;}
+  .tf-channels__cat:first-child{margin-top:2px;}
+  .tf-channels__item{font-family:var(--font-mono);font-size:13px;color:var(--text-mid);padding:6px 10px;
+    border-radius:5px;transition:background var(--dur-micro) var(--ease), color var(--dur-micro) var(--ease);}
+  .tf-channels__item:hover{background:rgba(255,255,255,.045);color:var(--text-hi);}
+  .tf-legal{font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-low);}
+  .tf-legal p{margin-top:14px;}
+  .tf-placeholder{border:1px dashed var(--line);color:var(--text-low);font-family:var(--font-mono);
+    font-size:12.5px;padding:20px;border-radius:4px;text-align:center;}
+
+  /* ============ 12 · JOIN THE FLOOR — archetype F: full-bleed dark moment ============ */
+  .tf-join{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+    align-items:center;text-align:center;overflow:hidden;padding-top:0;padding-bottom:0;}
+  .tf-join__glow{position:absolute;top:50%;left:50%;width:min(1000px,140vw);height:min(1000px,140vw);
+    transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle, rgba(255,214,140,.10) 0%, rgba(255,214,140,.03) 45%, transparent 72%);}
+  .tf-join .tf-headline{font-size:clamp(64px,10vw,160px);letter-spacing:-0.03em;line-height:.98;max-width:none;
+    position:relative;z-index:1;}
+  .tf-join__cta{position:relative;z-index:1;margin-top:32px;display:flex;flex-wrap:wrap;gap:16px;
+    justify-content:center;align-items:center;}
+  .tf-btn{position:relative;overflow:hidden;font-family:var(--font-mono);font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;
+    text-decoration:none;padding:15px 36px;border-radius:2px;display:inline-block;
+    transition:transform var(--dur-micro) var(--ease), box-shadow var(--dur-micro) var(--ease);}
+  .tf-btn::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.35) 48%, rgba(255,255,255,.55) 50%, rgba(255,255,255,.35) 52%, transparent 65%);
+    transform:translateX(-140%);transition:transform var(--dur-hero) var(--ease);}
+  .tf-btn:hover::before{transform:translateX(140%);}
+  .tf-btn--primary{color:var(--bg-0);background:var(--accent-gold);box-shadow:0 0 22px rgba(196,160,82,.28);}
+  .tf-btn--primary:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(196,160,82,.44);}
+  .tf-btn--ghost{color:var(--text-hi);border:1px solid var(--line);background:transparent;}
+  .tf-btn--ghost:hover{border-color:var(--text-mid);}
+  .tf-btn--ghost::before{background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.12) 48%, rgba(255,255,255,.2) 50%, rgba(255,255,255,.12) 52%, transparent 65%);}
+  @media (prefers-reduced-motion: reduce){ .tf-btn::before{transition:none;display:none;} }
+  .tf-micro{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-low);margin-top:18px;}
+  .tf-contact{position:relative;z-index:1;font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:20px;}
+  .tf-join .tf-eyebrow{position:relative;z-index:1;}
+
+  footer.tf-footer{border-top:1px solid var(--line);padding:56px 0 40px;}
+  .tf-footer__row{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start;}
+  .tf-footer__word{font-family:var(--font-mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--text-hi);}
+
+  /* ============ 01 · PHILOSOPHY — archetype A: full-bleed statement ============ */
+  .phi{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;
+    padding-top:120px;padding-bottom:120px;overflow:hidden;}
+  .phi__img{position:absolute;z-index:-1;right:-4vw;top:50%;
+    transform:translateY(-50%) translate3d(var(--px,0px),var(--py,0px),0);height:118%;
+    width:auto;max-width:60vw;object-fit:cover;pointer-events:none;opacity:.9;
+    -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 20%, #000 46%);
+    mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 20%, #000 46%);}
+  @media (max-width:760px){
+    .phi__img{right:-14vw;top:auto;bottom:-30px;height:auto;width:82vw;max-width:520px;
+      transform:translate3d(var(--px,0px),var(--py,0px),0);opacity:.42;
+      -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 34%);
+      mask-image:linear-gradient(180deg, transparent 0%, #000 34%);}
+  }
+  .phi__mark{position:absolute;left:18px;top:50%;transform:translateY(-50%) rotate(-90deg);
+    transform-origin:left center;font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;
+    text-transform:uppercase;color:var(--text-low);white-space:nowrap;opacity:.6;}
+  .phi__eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--text-low);padding-left:56px;}
+  .phi__headline{font-family:var(--font-display);font-weight:800;letter-spacing:-0.035em;line-height:0.92;
+    color:var(--text-hi);font-size:clamp(56px,9vw,144px);margin:22px 0 0 56px;max-width:94vw;}
+  .phi__lower{margin-top:96px;max-width:var(--container-max);margin-left:auto;margin-right:auto;
+    padding-left:56px;padding-right:24px;}
+  .phi__intro{font-size:17px;line-height:1.65;color:var(--text-mid);max-width:44ch;
+    margin-left:auto;margin-right:0;text-align:left;}
+  .phi__panels{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;margin-top:56px;}
+  @media (max-width:760px){ .phi__panels{grid-template-columns:1fr;} }
+  .phi__panel{border:1px solid var(--line);border-radius:4px;padding:32px 28px;
+    box-shadow:0 24px 48px -24px rgba(0,0,0,.6);}
+  .phi__panel--positive{background:linear-gradient(160deg, rgba(79,209,190,.10), var(--bg-1) 60%);
+    border-color:rgba(79,209,190,.28);}
+  .phi__panel--positive:hover{box-shadow:0 30px 56px -24px rgba(0,0,0,.65), 0 0 0 1px rgba(79,209,190,.22);}
+  .phi__panel--negative{background:linear-gradient(160deg, rgba(224,110,90,.10), var(--bg-1) 60%);
+    border-color:rgba(224,110,90,.28);margin-top:34px;}
+  .phi__panel--negative:hover{box-shadow:0 30px 56px -24px rgba(0,0,0,.65), 0 0 0 1px rgba(224,110,90,.22);}
+  @media (max-width:760px){ .phi__panel--negative{margin-top:0;} }
+  .phi__panel--positive .tf-panel__label{color:var(--role-positive);}
+  .phi__panel--negative .tf-panel__label{color:var(--role-negative);}
+  .phi__closing{font-size:19px;line-height:1.6;color:var(--text-hi);font-style:italic;margin-top:60px;
+    max-width:46ch;padding-left:22px;border-left:2px solid var(--accent-gold);}
+
+  /* ============ 02 · HOW A CARD IS MADE — archetype C: horizontal flow ============ */
+  .flow{position:relative;overflow:hidden;padding:100px 0;}
+  .flow__grid{position:absolute;inset:0;pointer-events:none;opacity:.14;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 70% 65% at 50% 50%, black 35%, transparent 88%);
+    mask-image:radial-gradient(ellipse 70% 65% at 50% 50%, black 35%, transparent 88%);}
+  .flow__bracket{position:absolute;width:22px;height:22px;border-color:var(--text-low);opacity:.45;}
+  .flow__bracket--tl{top:28px;left:28px;border-top:1px solid;border-left:1px solid;}
+  .flow__bracket--tr{top:28px;right:28px;border-top:1px solid;border-right:1px solid;}
+  .flow__bracket--bl{bottom:28px;left:28px;border-bottom:1px solid;border-left:1px solid;}
+  .flow__bracket--br{bottom:28px;right:28px;border-bottom:1px solid;border-right:1px solid;}
+
+  .flow__head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;
+    flex-wrap:wrap;gap:24px;}
+  .flow__headline{font-family:var(--font-display);font-weight:700;letter-spacing:-0.02em;line-height:1.05;
+    color:var(--text-hi);font-size:clamp(34px,4.2vw,56px);max-width:14ch;}
+  .flow__meta{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--text-low);text-align:right;max-width:22ch;}
+
+  .flow__rail{position:relative;z-index:1;margin-top:100px;}
+  .flow__line{position:absolute;top:96px;left:0;right:0;height:1px;background:var(--line);}
+  .flow__pulse{position:absolute;top:-2.5px;left:0;width:6px;height:6px;border-radius:50%;
+    background:var(--accent-gold);box-shadow:0 0 12px 1px rgba(196,160,82,.7);
+    animation:flowPulse 7s linear infinite;}
+  @keyframes flowPulse{0%{left:0%;opacity:0;}6%{opacity:1;}94%{opacity:1;}100%{left:100%;opacity:0;}}
+  @media (prefers-reduced-motion:reduce){ .flow__pulse{animation:none;opacity:0;} }
+
+  .flow__steps{display:grid;grid-template-columns:repeat(5,1fr);}
+  .flow__step{padding-right:18px;}
+  .flow__step:last-child{padding-right:0;}
+  .flow__num{height:96px;display:flex;align-items:flex-end;font-family:var(--font-display);font-weight:800;
+    font-size:clamp(36px,4vw,60px);letter-spacing:-0.02em;color:var(--text-low);opacity:.4;line-height:1;}
+  .flow__dot{position:relative;width:12px;height:12px;border-radius:50%;margin-top:-6px;
+    background:var(--bg-0);border:2px solid var(--accent-gold);
+    box-shadow:0 0 0 3px rgba(196,160,82,.12), 0 0 14px rgba(196,160,82,.4);}
+  .flow__t{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-hi);margin-top:26px;}
+  .flow__d{font-size:13.5px;line-height:1.55;color:var(--text-mid);margin-top:8px;}
+  @media (max-width:900px){
+    .flow__steps{grid-template-columns:1fr;gap:36px;}
+    .flow__line, .flow__dot{display:none;}
+    .flow__num{height:auto;}
+  }
+
+  /* ============ SHRINK CIRCUIT-HOLO SECTION (drop-in) ============ */
+  .shrink-holo{position:relative;min-height:100vh;display:flex;align-items:center;
+    justify-content:center;overflow:hidden;background:var(--bg2);}
+  .shrink-holo__circuit, .shrink-holo__pulse{position:absolute;inset:0;width:100%;height:100%;}
+  .shrink-holo__vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(900px 640px at 50% 40%, rgba(79,209,190,.055), transparent 60%),
+               radial-gradient(140% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.72) 100%);}
+
+  /* ---- cheap stand-ins for volumetric light / bloom / fog: layered gradients + slow CSS
+     keyframes instead of a raymarched shader pass or a real postprocessing bloom composer.
+     A prior heavier animation feature in this project was pulled entirely for causing load
+     lag -- these are deliberately transform/opacity-only so they cost near nothing per frame,
+     even stacked three deep behind the WebGL canvas. ---- */
+  .shrink-holo__beams{position:absolute;inset:-10% -10%;pointer-events:none;mix-blend-mode:screen;
+    background:
+      conic-gradient(from 200deg at 38% 108%, transparent 0deg, rgba(79,209,190,.10) 8deg, transparent 20deg, transparent 340deg),
+      conic-gradient(from 160deg at 66% 112%, transparent 0deg, rgba(198,162,83,.08) 10deg, transparent 24deg, transparent 336deg);
+    animation:shrinkBeamRotate 140s linear infinite, shrinkBeamPulse 9s ease-in-out infinite;
+    transform-origin:50% 88%;}
+  @keyframes shrinkBeamRotate{ to{ transform:rotate(360deg); } }
+  @keyframes shrinkBeamPulse{ 0%,100%{ opacity:.55; } 50%{ opacity:1; } }
+
+  .shrink-holo__bloom{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+    background:radial-gradient(38% 46% at 50% 38%, rgba(198,162,83,.16), transparent 70%);
+    animation:shrinkBloomBreathe 6.5s ease-in-out infinite;}
+  @keyframes shrinkBloomBreathe{ 0%,100%{ opacity:.7; } 50%{ opacity:1; } }
+
+  .shrink-holo__fog{position:absolute;left:-8%;right:-8%;bottom:-6%;height:46%;pointer-events:none;
+    background:radial-gradient(60% 100% at 50% 100%, rgba(180,196,210,.09), transparent 72%);
+    filter:blur(2px);animation:shrinkFogDrift 16s ease-in-out infinite alternate;}
+  @keyframes shrinkFogDrift{ 0%{ transform:translateX(-2%) scaleX(1); } 100%{ transform:translateX(2%) scaleX(1.04); } }
+
+  .shrink-holo__stage{position:relative;width:min(92vw,860px);height:min(88vh,860px);
+    /* floor reflection: cheap progressive enhancement (webkit/blink only; Firefox just shows
+       no reflection, which is a fine, harmless degrade for a decorative flourish). */
+    -webkit-box-reflect:below 14px linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.55) 78%, rgba(0,0,0,.85));}
+
+  /* holographic scan lines -- sit above the whole stage (including the head) for the classic
+     "projected hologram" read; a single repeating-gradient translated exactly one tile per
+     loop so it reads as an endless scan with no visible seam. */
+  .shrink-holo__scan{position:absolute;inset:0;z-index:4;pointer-events:none;mix-blend-mode:overlay;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0px, transparent 1px, transparent 3px);
+    opacity:.5;animation:shrinkScanMove 7s linear infinite;}
+  @keyframes shrinkScanMove{ from{ background-position-y:0; } to{ background-position-y:120px; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .shrink-holo__beams, .shrink-holo__bloom, .shrink-holo__fog, .shrink-holo__scan{animation:none;}
+    .shrink-holo__beams{opacity:.7;} .shrink-holo__bloom{opacity:.85;}
+  }
+  @media (max-width:760px){
+    /* the beam/bloom/fog stack is a background flourish behind an already-heavy WebGL scene;
+       drop it on narrow/likely-lower-powered viewports rather than risk the frame budget. */
+    .shrink-holo__beams, .shrink-holo__fog{display:none;}
+  }
+  .shrink-holo__canvas{position:absolute;inset:0;}
+  .shrink-holo__canvas canvas{display:block;width:100%;height:100%;}
+  .shrink-holo__fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;}
+  .shrink-holo__fallback img{max-width:92%;max-height:92%;object-fit:contain;}
+  .shrink-holo.is-fallback .shrink-holo__fallback{display:flex;}
+  .shrink-holo.is-fallback .shrink-holo__canvas{display:none;}
+
+  /* giant wordmark — sits behind the head (DOM order: after pulse, before vig/stage) so the
+     stage's WebGL canvas paints over it wherever the model has geometry, and the vignette
+     still dims its edges like everything else in the background layer.
+     z-index intentionally left at auto (not a positive value) -- DOM order alone gives the
+     correct paint order here; an explicit z-index would promote this above the stage instead. */
+  .shrink-holo__type{position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;pointer-events:none;user-select:none;text-align:center;
+    font-family:var(--font-display);font-size:clamp(96px,19vw,300px);font-weight:800;
+    letter-spacing:-0.03em;line-height:0.9;color:var(--text-hi);opacity:.92;white-space:nowrap;}
+  .shrink-holo__type span{color:var(--accent-gold);}
+  @media (max-width:640px){
+    /* on narrow screens the head's footprint would otherwise be nearly the whole viewport
+       width, leaving no room for the wordmark to clear it on either side -- narrow the stage
+       and size the type so most of "SHRINK" stays legible past the head's silhouette. */
+    .shrink-holo__stage{width:min(40vw,860px);}
+    .shrink-holo__type{font-size:clamp(76px,26vw,120px);}
+  }
+
+  .shrink-holo__corner{position:absolute;z-index:3;font-family:var(--font-mono);font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--text-low);opacity:.55;pointer-events:none;}
+  .shrink-holo__corner--tl{top:28px;left:28px;}
+  .shrink-holo__corner--tr{top:28px;right:28px;}
+
+  .shrink-holo__scroll{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;
+    display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--font-mono);
+    font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-low);
+    opacity:.6;pointer-events:none;}
+  .shrink-holo__scroll i{display:block;width:1px;height:16px;background:currentColor;
+    font-style:normal;animation:shrinkScrollTick 1.8s ease-in-out infinite;}
+  @keyframes shrinkScrollTick{0%,100%{transform:scaleY(1);opacity:.5;}50%{transform:scaleY(.4);opacity:.15;}}
+  @media (prefers-reduced-motion: reduce){
+    .shrink-holo__scroll i{animation:none;}
+  }
+
+  .shrink-holo__kicker{position:absolute;left:0;right:0;bottom:36px;z-index:3;text-align:center;
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.34em;pointer-events:none;
+    color:var(--teal);text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 20px rgba(0,0,0,.8);}
+
+  /* ---- floating HUD readouts around the hologram -- reinforces the "control room" read.
+     Static content (like the pre-existing corner labels), each drifting on its own slow,
+     staggered idle float so the group never reads as one mechanical unit. ---- */
+  .shrink-holo__hud{position:absolute;z-index:3;font-family:var(--font-mono);font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--text-low);pointer-events:none;
+    text-shadow:0 2px 8px rgba(0,0,0,.85);opacity:.7;
+    animation:shrinkHudFloat 8s ease-in-out infinite;}
+  .shrink-holo__hud b{display:block;color:var(--teal);font-weight:400;font-size:12px;letter-spacing:.06em;margin-top:2px;}
+  .shrink-holo__hud--1{top:27%;left:2%;animation-delay:0s;}
+  .shrink-holo__hud--2{top:64%;left:1.5%;animation-delay:-2.6s;}
+  .shrink-holo__hud--3{top:50%;right:3%;animation-delay:-5.2s;}
+  .shrink-holo__hud--4{top:70%;right:2%;animation-delay:-1.3s;}
+  @keyframes shrinkHudFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+  @media (max-width:900px){ .shrink-holo__hud{display:none;} }
+  @media (prefers-reduced-motion: reduce){ .shrink-holo__hud{animation:none;} }
+
+  /* ============ hero copy block — clean typographic beat directly below the visual hero,
+     NOT layered over the head/wordmark, so the (long, verbatim) headline/sub/CTA never collides
+     with the "subject through type" treatment above. ============ */
+  .tf-hero-copy{text-align:center;padding-top:0;}
+  .tf-hero-h1{font-family:var(--font-display);font-size:clamp(30px,4.4vw,58px);font-weight:700;
+    letter-spacing:-0.02em;line-height:1.1;color:var(--text-hi);max-width:18ch;margin:18px auto 0;}
+  .tf-hero-sub{font-size:16px;line-height:1.6;color:var(--text-mid);max-width:56ch;margin:20px auto 0;}
+  .tf-hero-cta{margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
+</style>
+</head>
+<body>
+
+<div class="tf-ambient" aria-hidden="true">
+  <div class="tf-ambient__grid"></div>
+  <div class="tf-ambient__blob tf-ambient__blob--a"></div>
+  <div class="tf-ambient__blob tf-ambient__blob--b"></div>
+  <div class="tf-ambient__blob tf-ambient__blob--c"></div>
+  <div class="tf-ambient__lines"></div>
+</div>
+
+<nav class="tf-nav" id="top">
+  <div class="tf-nav__row">
+    <a class="tf-nav__word" href="#top"><span class="tf-watchdot" aria-hidden="true"></span><b>THE</b> TRADING FLOOR</a>
+    <ul class="tf-nav__links">
+      <li><a href="#philosophy">Engine</a></li>
+      <li><a href="#agents">Agents</a></li>
+      <li><a href="#anatomy">Card</a></li>
+      <li><a href="#dna">DNA</a></li>
+      <li><a href="#sessions">Sessions</a></li>
+      <li><a href="#strategies">Strategies</a></li>
+      <li><a href="#rules">Rules</a></li>
+      <li><a href="#discord">Discord</a></li>
+    </ul>
+    <a class="tf-nav__cta" href="#join">Join The Floor</a>
+  </div>
+</nav>
+
+<!-- ================= DROP-IN START ================= -->
+<section class="shrink-holo" id="shrinkHolo">
+  <canvas class="shrink-holo__circuit" id="shCircuit"></canvas>
+  <canvas class="shrink-holo__pulse" id="shPulse"></canvas>
+  <div class="shrink-holo__beams" aria-hidden="true"></div>
+  <div class="shrink-holo__type" aria-hidden="true">SH<span>RINK</span></div>
+  <div class="shrink-holo__vig"></div>
+  <div class="shrink-holo__bloom" aria-hidden="true"></div>
+  <div class="shrink-holo__fog" aria-hidden="true"></div>
+  <div class="shrink-holo__stage">
+    <div class="shrink-holo__canvas" id="shrinkHoloCanvas"></div>
+    <div class="shrink-holo__fallback"><img id="shrinkHoloImg" alt="SHRINK — The Brain"></div>
+  </div>
+  <div class="shrink-holo__scan" aria-hidden="true"></div>
+  <div class="shrink-holo__corner shrink-holo__corner--tl">01 / 07</div>
+  <div class="shrink-holo__corner shrink-holo__corner--tr">Node · 12</div>
+  <div class="shrink-holo__kicker">The Trading Floor · Dubai GMT+4</div>
+  <div class="shrink-holo__hud shrink-holo__hud--1" aria-hidden="true">LATENCY<b>4MS</b></div>
+  <div class="shrink-holo__hud shrink-holo__hud--2" aria-hidden="true">SYNC<b>100%</b></div>
+  <div class="shrink-holo__hud shrink-holo__hud--3" aria-hidden="true">AGENTS ONLINE<b>12/12</b></div>
+  <div class="shrink-holo__hud shrink-holo__hud--4" aria-hidden="true">THROUGHPUT<b>2.4K/S</b></div>
+  <div class="shrink-holo__scroll" aria-hidden="true"><span>Scroll</span><i></i></div>
+</section>
+
+<section class="tf-hero-copy tf-section" style="padding-bottom:40px;">
+  <div class="tf-container">
+    <h1 class="tf-hero-h1 tf-reveal">Twelve agents. One analysis. No call without consensus.</h1>
+    <p class="tf-hero-sub tf-reveal">An AI analysis engine of 12 specialized agents that fight out every chart in silence. Only on consensus does a card drop: a TRADE card with exact entry, SL and targets — or a deliberate NO TRADE.</p>
+    <div class="tf-hero-cta tf-reveal">
+      <a class="tf-btn tf-btn--primary" href="#discord-invite" data-placeholder="DISCORD_INVITE_URL">Join The Discord</a>
+      <a class="tf-btn tf-btn--ghost" href="#briefing-pdf" data-placeholder="BRIEFING_PDF_URL">Read The Briefing (PDF)</a>
+    </div>
+    <div class="tf-micro tf-reveal" style="text-align:center;">Analysis &amp; Education · Not Financial Advice</div>
+  </div>
+</section>
+
+<div class="tf-container" style="padding-bottom:60px;">
+  <div class="tf-chips">
+    <span class="tf-chip tf-chip--star">XAUUSD★</span>
+    <span class="tf-chip">EURUSD</span>
+    <span class="tf-chip">GBPUSD</span>
+    <span class="tf-chip">GBPJPY</span>
+    <span class="tf-chip">NAS100</span>
+    <span class="tf-chip">US30</span>
+    <span class="tf-chip">GER40</span>
+    <span class="tf-chip">USDJPY</span>
+    <span class="tf-chip tf-chip--out">CRYPTO ⛔ OUT OF SCOPE</span>
+  </div>
+</div>
+
+<main>
+
+<section class="phi" id="philosophy">
+  <img class="phi__img" alt="" aria-hidden="true" loading="lazy" width="2400" height="2880"
+    data-parallax="10"
+    src="assets/renders/philosophy-lg.webp"
+    srcset="assets/renders/philosophy-sm.webp 1100w, assets/renders/philosophy-lg.webp 2400w"
+    sizes="(max-width:760px) 82vw, 58vw">
+  <div class="phi__mark" aria-hidden="true">01 · Philosophy</div>
+  <div class="tf-eyebrow phi__eyebrow tf-reveal">The Philosophy</div>
+  <h2 class="phi__headline tf-reveal tf-reveal--mask">No consensus,<br>no call.</h2>
+  <div class="phi__lower">
+    <p class="phi__intro tf-reveal">Every agent reads the chart from one angle — structure, liquidity, timing, macro, order flow, psychology. They debate in silence. If they don&rsquo;t agree, there is no setup. Period.</p>
+    <div class="phi__panels tf-reveal">
+      <div class="phi__panel phi__panel--positive tf-glass">
+        <div class="tf-panel__label">Trade Card</div>
+        <p class="tf-body">Consensus reached. One card with exact entry, SL, TP1, TP2, size and expiry.</p>
+      </div>
+      <div class="phi__panel phi__panel--negative tf-glass">
+        <div class="tf-panel__label">No Trade</div>
+        <p class="tf-body">No consensus. That&rsquo;s an outcome too — with the exact level to watch and the trigger that would still produce a card. Not trading is a position.</p>
+      </div>
+    </div>
+    <p class="phi__closing tf-reveal">Confidence = honest confluence count. Minimum 65% to trade. Capped at 90%. Never inflated.</p>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="flow" id="card-flow">
+  <div class="flow__grid" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--tl" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--tr" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--bl" aria-hidden="true"></div>
+  <div class="flow__bracket flow__bracket--br" aria-hidden="true"></div>
+  <div class="tf-container">
+    <div class="flow__head">
+      <h2 class="flow__headline tf-reveal">How a card is made.</h2>
+      <div class="flow__meta tf-reveal">02 · How A Card Is Made<br>Five steps · one outcome</div>
+    </div>
+    <div class="flow__rail tf-reveal">
+      <div class="flow__line"><i class="flow__pulse"></i></div>
+      <div class="flow__steps">
+        <div class="flow__step tf-reveal" style="transition-delay:0ms">
+          <div class="flow__num">01</div><div class="flow__dot"></div>
+          <div class="flow__t">Chart In</div><div class="flow__d">One chart, one timeframe set: 15M + 5M, cross-ref 1H + 4H.</div>
+        </div>
+        <div class="flow__step tf-reveal" style="transition-delay:90ms">
+          <div class="flow__num">02</div><div class="flow__dot"></div>
+          <div class="flow__t">12 Agents Read</div><div class="flow__d">Every desk analyses independently. No one sees each other&rsquo;s work.</div>
+        </div>
+        <div class="flow__step tf-reveal" style="transition-delay:180ms">
+          <div class="flow__num">03</div><div class="flow__dot"></div>
+          <div class="flow__t">Silent Debate</div><div class="flow__d">Votes are weighed. Vetoes count hard.</div>
+        </div>
+        <div class="flow__step tf-reveal" style="transition-delay:270ms">
+          <div class="flow__num">04</div><div class="flow__dot"></div>
+          <div class="flow__t">Consensus Gate</div><div class="flow__d">Below 65%? Automatic NO TRADE.</div>
+        </div>
+        <div class="flow__step tf-reveal" style="transition-delay:360ms">
+          <div class="flow__num">05</div><div class="flow__dot"></div>
+          <div class="flow__t">One Card</div><div class="flow__d">TRADE or NO TRADE. Nothing in between.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section agn" id="agents">
+  <svg class="agn__watermark agn__watermark--a" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.6"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
+  <svg class="agn__watermark agn__watermark--b" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.6"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
+  <div class="tf-container agn__head">
+    <div class="tf-eyebrow tf-reveal">03 · The Twelve Agents</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:10ch;">The floor.</h2>
+    <p class="tf-body tf-reveal" style="margin-top:24px;">Twelve desks. Each reads the chart from exactly one angle. Eight vote in the consensus, three weigh context and conviction, one guards the discipline.</p>
+
+    <div class="tf-tier-label tf-reveal">Core — 8 Votes</div>
+    <div class="tf-agents tf-reveal">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l8-7 8 7"/><path d="M4 13l8-7 8 7"/><path d="M4 7l8-6 8 6"/></svg>
+        <div class="tf-agent__name">Rally</div>
+        <div class="tf-agent__desk">Bull Desk</div>
+        <p class="tf-agent__line">&ldquo;Momentum is your friend.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8 6 8-6"/><path d="M4 12l8 6 8-6"/><path d="M4 18l8 4 8-4"/></svg>
+        <div class="tf-agent__name">Crash</div>
+        <div class="tf-agent__desk">Bear Desk</div>
+        <p class="tf-agent__line">&ldquo;What goes up can fall.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>
+        <div class="tf-agent__name">Vector</div>
+        <div class="tf-agent__desk">Direction Desk</div>
+        <p class="tf-agent__line">&ldquo;Trend is direction. Direction is edge.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h8"/><path d="M9 20L12 4l3 16"/><path d="M12 4v10"/></svg>
+        <div class="tf-agent__name">Tempo</div>
+        <div class="tf-agent__desk">Timing Desk</div>
+        <p class="tf-agent__line">&ldquo;The right moment, not just any moment.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(224,110,90);--agent-rgb:224,110,90">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M9 3l3 9 3-9"/><path d="M9 21l3-9 3 9"/></svg>
+        <div class="tf-agent__name">Hunt</div>
+        <div class="tf-agent__desk">Liquidity Desk</div>
+        <p class="tf-agent__line">&ldquo;Follow the liquidity.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+        <div class="tf-agent__name">Sniper</div>
+        <div class="tf-agent__desk">Entry Desk</div>
+        <p class="tf-agent__line">&ldquo;Discipline. Precision. Execution.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(79,209,190);--agent-rgb:79,209,190">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
+        <div class="tf-agent__name">Macro</div>
+        <div class="tf-agent__desk">Macro Desk</div>
+        <p class="tf-agent__line">&ldquo;See the bigger picture.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(156,140,217);--agent-rgb:156,140,217">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z"/></svg>
+        <div class="tf-agent__name">Hedge</div>
+        <div class="tf-agent__desk">Risk Desk</div>
+        <p class="tf-agent__line">&ldquo;Protect first, profit second.&rdquo;</p>
+      </div>
+    </div>
+
+    <div class="tf-tier-label tf-reveal">Context — Conviction &amp; Risk</div>
+    <div class="tf-agents tf-reveal">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(111,168,216);--agent-rgb:111,168,216">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
+        <div class="tf-agent__name">Flow</div>
+        <div class="tf-agent__desk">Order Flow Desk</div>
+        <p class="tf-agent__line">&ldquo;Capital doesn&rsquo;t lie.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(198,162,83);--agent-rgb:198,162,83">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M12 16l5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>
+        <div class="tf-agent__name">Sentiment</div>
+        <div class="tf-agent__desk">Sentiment Desk</div>
+        <p class="tf-agent__line">&ldquo;Read the mood of the market.&rdquo;</p>
+      </div>
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(220,227,237);--agent-rgb:220,227,237">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11L6 5"/><path d="M12 11l6-6"/><path d="M12 15l-4-4"/><path d="M12 15l4-4"/></svg>
+        <div class="tf-agent__name">Oracle</div>
+        <div class="tf-agent__desk">Probability Desk</div>
+        <p class="tf-agent__line">&ldquo;Every outcome. One edge.&rdquo;</p>
+      </div>
+    </div>
+
+    <div class="tf-tier-label tf-reveal">Discipline</div>
+    <div class="tf-agents tf-reveal">
+      <div class="tf-agent tf-glass" style="--agent-c:rgb(255,214,140);--agent-rgb:255,214,140">
+        <svg class="tf-agent__emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
+        <div class="tf-agent__name">Shrink</div>
+        <div class="tf-agent__desk">Psychology Desk</div>
+        <p class="tf-agent__line">&ldquo;The data is not concerned with how you feel about it.&rdquo;</p>
+      </div>
+    </div>
+
+    <div class="tf-spotlight tf-reveal">
+      <div class="tf-panel__label">The Twelfth Seat</div>
+      <p class="tf-body">Shrink doesn&rsquo;t trade — he watches. Every trade is logged, every pattern registered: revenge trades, overtrading, oversized risk after a loss. Zero sympathy, only data. Including your distance to prop-firm limits: FTMO · Topstep · The5ers · FundedNext.</p>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section anat" id="anatomy">
+  <div class="tf-container">
+    <div class="anat__split">
+      <div class="anat__type tf-reveal">
+        <div class="tf-eyebrow">04 · Anatomy Of A Card</div>
+        <h2 class="anat__headline" style="margin-top:16px;">Anatomy of a card.</h2>
+      </div>
+      <div class="anat__visual">
+        <div class="anat__cardwrap tf-reveal">
+          <div class="anat__bracket anat__bracket--tl" aria-hidden="true"></div>
+          <div class="anat__bracket anat__bracket--br" aria-hidden="true"></div>
+          <div class="tf-tradecard tf-glass">🎯 XAUUSD 15M — LONG ⚡ 78%
+
+ENTRY <b>2318.50</b> (Bull OB retest)
+SL   2311.00 (Invalidates OB)
+TP1  2334.00 → R:R 1:2.1
+TP2  2348.00 → R:R 1:3.8
+AT TP1: close 50%, move SL to break-even
+
+SIZE 1.5% | VALID 16:45 Dubai
+STRATEGY C | KILLZONE STRONG
+CONSENSUS 6/8 BULL
+FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
+        </div>
+        <div class="tf-cap">Example card · prices illustrative</div>
+        <div class="anat__legend tf-reveal">
+          <div class="tf-legend__row"><div class="tf-legend__k">Header line</div><div class="tf-legend__v">Asset · timeframe · direction · killzone status · confidence.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Entry</div><div class="tf-legend__v">Exact price, plus what the level is.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">SL</div><div class="tf-legend__v">Stop placement, plus what breaks if hit.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">TP1 / TP2</div><div class="tf-legend__v">Targets with R:R; at TP1 close 50%, SL to break-even.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Size / Valid</div><div class="tf-legend__v">Risk as % of account · expiry time.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Strategy / Killzone</div><div class="tf-legend__v">Which of the three strategies, and window quality.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Consensus</div><div class="tf-legend__v">How many of the 8 core agents agreed.</div></div>
+          <div class="tf-legend__row"><div class="tf-legend__k">Flags</div><div class="tf-legend__v">Max 3. Every flag is a meaningful condition, not decoration.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="confidence">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">05 · Confidence &amp; Sizing</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Confidence &amp; sizing.</h2>
+    <div class="term__window tf-glass tf-reveal" style="margin-top:44px;">
+      <div class="term__bar">
+        <span class="term__dot term__dot--r"></span><span class="term__dot term__dot--y"></span><span class="term__dot term__dot--g"></span>
+        <span class="term__title">confidence.sys — read only</span>
+      </div>
+      <div class="term__body">
+        <div>
+          <div class="term__prompt">&gt; <b>confidence --tier</b><i></i></div>
+          <table class="tf-tier-table">
+            <tr class="r-negative"><td>≤3 confluences</td><td>NO TRADE (below 65%)</td></tr>
+            <tr class="r-warning"><td>4 confluences</td><td>65-69% · A-setup minimum</td></tr>
+            <tr class="r-accent"><td>5-6 confluences</td><td>70-79% · Solid, standard</td></tr>
+            <tr class="r-positive"><td>7-8 confluences</td><td>80-90% · A+, size up</td></tr>
+          </table>
+          <div class="tf-note">Cap: 90%. Never 95%+.</div>
+        </div>
+        <div>
+          <div class="term__prompt">&gt; <b>sizing --grid</b></div>
+          <table class="tf-tier-table">
+            <tr><td>65-69%</td><td>0.5% risk</td></tr>
+            <tr><td>70-74%</td><td>1.0% risk</td></tr>
+            <tr><td>75-79%</td><td>1.5% risk</td></tr>
+            <tr><td>80-84%</td><td>2.0% risk</td></tr>
+            <tr><td>85-90%</td><td>2.5% risk</td></tr>
+          </table>
+          <div class="tf-note">NY cont first 10 trades: ×0.5 all above.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="dna">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">06 · Trading DNA</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">Trading DNA.</h2>
+    <div class="tf-chips tf-reveal" style="margin-top:28px;">
+      <span class="tf-chip tf-chip--star">XAUUSD★</span>
+      <span class="tf-chip">EURUSD</span>
+      <span class="tf-chip">GBPUSD</span>
+      <span class="tf-chip">GBPJPY</span>
+      <span class="tf-chip">NAS100</span>
+      <span class="tf-chip">US30</span>
+      <span class="tf-chip">GER40</span>
+      <span class="tf-chip">USDJPY</span>
+      <span class="tf-chip tf-chip--out">CRYPTO → OUT OF SCOPE</span>
+    </div>
+    <div class="tf-dna tf-reveal" style="margin-top:32px;">
+      <div class="tf-dna__p tf-dna__p--positive tf-glass">
+        <div class="tf-dna__pct" aria-hidden="true" data-count="88">88</div>
+        <div class="tf-dna__label">XAUUSD — Strongest (88%)</div>
+        <p class="tf-dna__body">ADR 150-300p. London 09:30-11:00 = HUNT only (sweep risk high). <b style="color:var(--text-hi)">Best window: NY 15:30-17:00.</b> Inverse DXY always applies.</p>
+      </div>
+      <div class="tf-dna__p tf-dna__p--accent tf-glass">
+        <div class="tf-dna__pct" aria-hidden="true" data-count="75">75</div>
+        <div class="tf-dna__label">EURUSD — Cleanest (75%)</div>
+        <p class="tf-dna__body">Small ADR. Prime: 09:30-11:00 + 13:00-13:30 Silver Bullet. <b style="color:var(--text-hi)">Closed after 14:00. No NY trades.</b></p>
+      </div>
+      <div class="tf-dna__p tf-dna__p--negative tf-glass">
+        <div class="tf-dna__pct" aria-hidden="true" data-count="50">50</div>
+        <div class="tf-dna__label">GBPUSD — Weakest (50%)</div>
+        <p class="tf-dna__body">Prime window: <b style="color:var(--text-hi)">09:30-10:00 ONLY.</b> Closed after 13:00. Requires 5+ confluences minimum. Handle with care.</p>
+      </div>
+      <div class="tf-dna__p tf-dna__p--warning tf-glass">
+        <div class="tf-dna__label">NAS100 / US30 — Indices</div>
+        <p class="tf-dna__body">Small sample. Prime: <b style="color:var(--text-hi)">15:30-17:00.</b> NAS100 inverse VIX. US30 = 1H OBs most reliable. Avoid Fed/CPI windows.</p>
+      </div>
+    </div>
+    <div class="tf-banner tf-reveal">CRYPTO = OUT OF SCOPE — no card issued. Response: OUT OF DNA.</div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="sessions">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">07 · Session Timing</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">Session timing (Dubai GMT+4).</h2>
+    <div class="term__window tf-glass tf-reveal" style="margin-top:36px;">
+      <div class="term__bar">
+        <span class="term__dot term__dot--r"></span><span class="term__dot term__dot--y"></span><span class="term__dot term__dot--g"></span>
+        <span class="term__title">sessions.log — live</span>
+      </div>
+      <table class="tf-sessions">
+      <thead><tr><th>Dubai Time</th><th>Session</th><th>Assets</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr data-start="08:55" data-end="09:30"><td>08:55-09:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GER40</td><td>DAX open. All others dead.</td></tr>
+        <tr data-start="09:00" data-end="09:30"><td>09:00-09:30</td><td><span class="tf-badge tf-badge--judas">Judas</span></td><td>GBP/EUR pairs</td><td>NO ENTRIES on GBPUSD / EURUSD / GBPJPY. Fakeout window.</td></tr>
+        <tr data-start="09:30" data-end="10:00"><td>09:30-10:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>GBPUSD, GBPJPY, XAUUSD</td><td>London Sweep window. XAUUSD: HUNT mode only.</td></tr>
+        <tr data-start="10:00" data-end="11:00"><td>10:00-11:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD</td><td>GBPUSD / GBPJPY / XAU active but secondary.</td></tr>
+        <tr data-start="11:00" data-end="13:00"><td>11:00-13:00</td><td><span class="tf-badge tf-badge--active">Active</span></td><td>EURUSD, GBPUSD</td><td>Rest dead. Momentum fades. Reduce size.</td></tr>
+        <tr data-start="13:00" data-end="13:30"><td>13:00-13:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>EURUSD (Silver Bullet)</td><td>Strategy B FVG window. Tight timing — 30min only.</td></tr>
+        <tr data-start="13:30" data-end="15:00"><td>13:30-15:00</td><td><span class="tf-badge tf-badge--dead">Dead</span></td><td>—</td><td>Lunch dead. No prime setups.</td></tr>
+        <tr data-start="15:00" data-end="15:30"><td>15:00-15:30</td><td><span class="tf-badge tf-badge--incoming">Incoming</span></td><td>XAUUSD, USDJPY, NAS100, US30</td><td>NY pre-open. Watch, don&rsquo;t trade yet.</td></tr>
+        <tr data-start="15:30" data-end="17:00"><td>15:30-17:00</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAU, USDJPY, NAS100, US30, GBPJPY</td><td>Best overall window. Forex dead.</td></tr>
+        <tr data-start="17:00" data-end="18:30"><td>17:00-18:30</td><td><span class="tf-badge tf-badge--prime">Prime</span></td><td>XAUUSD, USDJPY</td><td>NAS100 / US30 active. First 10 trades = 50% size on cont.</td></tr>
+        <tr data-start="18:30" data-end="20:00"><td>18:30-20:00</td><td><span class="tf-badge tf-badge--reduced">Reduced</span></td><td>XAUUSD only</td><td>50% size. All others dead.</td></tr>
+        <tr data-start="20:00" data-end="08:55" data-wrap="1"><td>20:00+</td><td><span class="tf-badge tf-badge--deadzone">Dead Zone</span></td><td>—</td><td>NO ENTRIES. Hard gate. Asia session = dead.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="strategies">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">08 · The Three Strategies</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:16ch;">The three strategies.</h2>
+
+    <div class="strat__timeline tf-reveal" style="margin-top:52px;">
+      <div class="strat__seg strat__seg--a" style="left:12.5%;width:12.5%;"><span class="strat__seg-label">A · 09:30</span></div>
+      <div class="strat__seg strat__seg--b" style="left:41.7%;width:8.3%;"><span class="strat__seg-label">B · 13:00</span></div>
+      <div class="strat__seg strat__seg--c" style="left:58.3%;width:29.2%;"><span class="strat__seg-label">C · 15:00</span></div>
+    </div>
+    <div class="strat__axis tf-reveal">
+      <span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span>
+    </div>
+
+    <div class="tf-strategies tf-reveal" style="margin-top:48px;">
+      <div class="tf-strategy tf-glass" style="--strat-c:var(--role-negative);--strat-rgb:224,110,90">
+        <span class="tf-strategy__glyph" aria-hidden="true">⛔</span>
+        <div class="tf-strategy__n">01</div>
+        <div class="tf-strategy__tag">Strategy A ⛔</div>
+        <div class="tf-strategy__name">London Sweep + OB Retest</div>
+        <div class="tf-strategy__win">09:30-11:00</div>
+        <p class="tf-strategy__d">Sweep of prior high/low → rejection → return to OB. Needs clean displacement + confirmed sweep. XAU sweep must be 70%+ clean.</p>
+      </div>
+      <div class="tf-strategy tf-glass" style="--strat-c:var(--role-warning);--strat-rgb:198,162,83">
+        <span class="tf-strategy__glyph" aria-hidden="true">🎯</span>
+        <div class="tf-strategy__n">02</div>
+        <div class="tf-strategy__tag">Strategy B 🎯</div>
+        <div class="tf-strategy__name">Silver Bullet FVG</div>
+        <div class="tf-strategy__win">13:00-14:00</div>
+        <p class="tf-strategy__d">15M FVG from last 3 candles. Must be HTF aligned. 30-min window only. EURUSD primary. Expires fast — watch valid-until time.</p>
+      </div>
+      <div class="tf-strategy tf-glass" style="--strat-c:var(--role-positive);--strat-rgb:79,209,190">
+        <span class="tf-strategy__glyph" aria-hidden="true">🔄</span>
+        <div class="tf-strategy__n">03</div>
+        <div class="tf-strategy__tag">Strategy C 🔄</div>
+        <div class="tf-strategy__name">Overlap + NY Continuation</div>
+        <div class="tf-strategy__win">15:00-18:30</div>
+        <p class="tf-strategy__d">Trend pullback to OB/FVG. HTF aligned. NY cont (17:00-18:30): XAU, USDJPY, NAS100, US30 only. 50% size first 10 trades.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="rules">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">09 · Hard Rules</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:12ch;">Hard rules.</h2>
+    <div class="tf-rules tf-reveal" style="margin-top:36px;">
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R01</div><div class="tf-rule__body">NO ENTRIES during Judas window 09:00-09:30 on GBPUSD, EURUSD, GBPJPY. Fakeout probability too high.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R02</div><div class="tf-rule__body">DEAD ZONE after 20:00 Dubai. Zero entries. System hard-stops. Asia session = no edge.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R03</div><div class="tf-rule__body">NO TRADE if high-impact news within 60 minutes of entry. Prop firm: override permanently blocked.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R04</div><div class="tf-rule__body">R:R minimum 1.5. Below that = automatic veto by HEDGE. Card will not be issued.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R05</div><div class="tf-rule__body">No entry mid-range. Requires a clean POI (OB or FVG). Mid-range entries are the fastest way to blow stops.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R06</div><div class="tf-rule__body">After 2 consecutive losses → size drops 50% automatically. Flag: REDUCED SIZING ⚠️</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R07</div><div class="tf-rule__body">Drawdown 3-5% → max 0.5% risk per trade. Drawdown &gt;5% → NO TRADE until <code>drawdown: reset</code> issued.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-negative)"><div class="tf-rule__id">R08</div><div class="tf-rule__body">CRYPTO = OUT OF SCOPE. No card issued. Response: ⛔ OUT OF DNA.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-warning)"><div class="tf-rule__id">R09</div><div class="tf-rule__body">Every card expires. Strategy A: +45min. Strategy B: +30min. NY prime: +90min. NY cont: +60min. Expired card = NO TRADE.</div></div>
+      <div class="tf-rule" style="--rule-c:var(--role-positive)"><div class="tf-rule__id">R10</div><div class="tf-rule__body">AT TP1 — always close 50% of position and move SL to break-even. Non-negotiable. Protect the trade.</div></div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="discord">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">10 · Inside The Discord</div>
+    <h2 class="tf-headline tf-reveal" style="margin-top:16px;max-width:14ch;">Inside the Discord.</h2>
+    <div class="tf-discord tf-reveal" style="margin-top:40px;">
+      <div class="disco__sidebar tf-glass">
+        <div class="disco__sidebar__head">
+          <div class="disco__sidebar__logo" aria-hidden="true">TF</div>
+          <div class="disco__sidebar__name">The Trading Floor</div>
+        </div>
+        <div class="tf-channels">
+          <div class="tf-channels__cat">Information</div>
+          <div class="tf-channels__item"># rules-and-setup</div>
+          <div class="tf-channels__item"># session-timing</div>
+          <div class="tf-channels__item"># announcements</div>
+        </div>
+      </div>
+      <div class="tf-legal">
+        <div>The Trading Floor · Analysis &amp; education, not financial advice</div>
+        <div>Trading involves a risk of loss.</div>
+        <div>© 2026 The Trading Floor</div>
+        <p>Trading forex, indices, metals and CFDs carries a high risk of loss and is not suitable for everyone. Past results are no guarantee of future performance. All content on this site and in the Discord is analytical and educational in nature; no individual investment advice is given. Never trade with money you cannot afford to lose.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section" id="ecosystem" style="padding-top:64px;padding-bottom:64px;text-align:center;">
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">11 · The Ecosystem</div>
+    <h2 class="tf-headline tf-reveal" style="margin:16px auto 0;font-size:clamp(28px,3.4vw,42px);max-width:14ch;">The ecosystem.</h2>
+    <div class="tf-placeholder tf-reveal" style="margin:28px auto 0;max-width:60ch;">[PLACEHOLDER — copy TBD. No masterprompt PDF §5 content was provided in this session.]</div>
+  </div>
+</section>
+<hr class="tf-divider">
+
+<section class="tf-section tf-join" id="join">
+  <div class="tf-join__glow" aria-hidden="true"></div>
+  <div class="tf-container">
+    <div class="tf-eyebrow tf-reveal">12 · Join The Floor</div>
+    <h2 class="tf-headline tf-reveal tf-reveal--mask" style="margin:16px auto 0;">Join the floor.</h2>
+    <div class="tf-join__cta tf-reveal">
+      <a class="tf-btn tf-btn--primary" href="#discord-invite" data-placeholder="DISCORD_INVITE_URL">Join The Discord</a>
+    </div>
+    <div class="tf-contact tf-reveal">[ @handle · contact ]</div>
+  </div>
+</section>
+
+</main>
+
+<footer class="tf-footer">
+  <div class="tf-container">
+    <div class="tf-footer__row">
+      <div class="tf-footer__word"><b style="color:var(--accent-gold)">THE</b> TRADING FLOOR</div>
+      <div class="tf-legal">
+        <div>The Trading Floor · Analysis &amp; education, not financial advice</div>
+        <div>Trading involves a risk of loss.</div>
+        <div>© 2026 The Trading Floor</div>
+      </div>
+    </div>
+    <p class="tf-legal" style="margin-top:24px;max-width:80ch;">Trading forex, indices, metals and CFDs carries a high risk of loss and is not suitable for everyone. Past results are no guarantee of future performance. All content on this site and in the Discord is analytical and educational in nature; no individual investment advice is given. Never trade with money you cannot afford to lose.</p>
+  </div>
+</footer>
+
+<div class="tf-watch" aria-hidden="true"></div>
+
+<div id="tfDiag" style="display:none;position:fixed;left:12px;bottom:12px;z-index:9999;max-width:min(560px,90vw);
+  background:#1a0505;border:1px solid #E06E5A;color:#ffb4a8;font:11px/1.6 monospace;
+  padding:12px 16px;border-radius:4px;white-space:pre-wrap;pointer-events:none;box-shadow:0 12px 32px rgba(0,0,0,.6);"></div>
+<script>
+(function(){
+  var box = document.getElementById('tfDiag');
+  var shown = false;
+  function show(msg){
+    if (!box) return;
+    box.style.display = 'block';
+    box.textContent = (shown ? box.textContent + '\n' : '[SHRINK DIAG] ') + msg;
+    shown = true;
+  }
+  window.addEventListener('error', function(e){
+    show('JS error: ' + (e.message || (e.error && e.error.message) || 'unknown') +
+      ' @ ' + (e.filename || '?') + ':' + (e.lineno || '?'));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    show('Unhandled rejection: ' + ((e.reason && e.reason.message) || e.reason));
+  });
+  window.__tfDiag = show;
+})();
+</script>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script>
+(function(){
+  if (typeof THREE === 'undefined'){
+    if (window.__tfDiag) window.__tfDiag('THREE failed to load from vendor/three.min.js -- check the request in Network tab.');
+    return;
+  }
+  /* ================= CONFIG ================= */
+  var CONFIG = {
+    STYLE: "solid",            // "solid" = realistisch belicht | "wire" = lijnennet | "dots" = stippels
+    MODEL_URL: "assets/shrink-head.glb",        // detail-mesh (occluder + brein)
+    WIRE_URL:  "assets/shrink-head-wire.glb",   // low-poly mesh voor het lijnennet
+    FALLBACK_IMG: "assets/shrink-hologram-still.jpg",
+    POINTS: 46000,
+    LINE_OPACITY: 0.55,
+    EYE_HERO: 0,               // welk oog fel gloeit (0 of 1), ander oog blijft subtiel
+    CROWN: false,              // stippel-gloed op de kruin (uit op verzoek)
+    FRESNEL: 0.10,             // subtiele teal randgloed in solid-stijl (0 = uit)
+    MOTION: "eyes",            // "eyes" = model stil, ogen volgen cursor | "head" = hele model volgt
+    EYE_POS: [[-0.1522,0.3755,0.4042],[0.1532,0.3699,0.4065]],  // exact uit de emissive-map berekend
+    EYE_SENS: 2.2,             // gevoeligheid: max bereik al bij ~45% schermafstand
+    EYE_RANGE_X: 0.034,        // horizontale reis: de volle iris-breedte
+    EYE_RANGE_Y: 0.014,        // verticale reis: duidelijk zichtbaar mee omhoog/omlaag
+    TEAL: 0x4FD1BE, ICE: 0xDCE3ED, GOLD: 0xC6A253,
+    PITCH: 0.05,               // vrijwel rechtuit, zoals de wireframe-referentie
+    SWAY: 0.12,                // idle sway als de muis stilstaat
+    TRACK: {x:0.50, y:0.30},   // hoe sterk het hoofd de cursor volgt
+    FIT_HEIGHT: 3.0,
+    MODEL_ROT_Y: 0,            // voorkant van het model = +z (gecorrigeerd)
+    BRAIN_FRAC: 0.10,          // kruin van de schedel = brein-gloed (fel + puls)
+    EYES: true
+  };
+
+  /* ---- the eleven agents: fixed, seeded positions so the cluster reads as composed, not random ----
+     x,y are fractions of the canvas; z is a fake depth (0=far/small/subtle, 1=near/large/bold) used
+     for size, drift range and parallax strength; cyc/seed stagger each node's line-pulse. */
+  var AGENTS = [
+    {name:'RALLY',     color:'79,209,190',  x:0.115, y:0.34,  z:0.85, seed:0.4, cyc:3.4, keepMobile:true, mx:0.03 },
+    {name:'CRASH',     color:'224,110,90',  x:0.075, y:0.19,  z:0.55, seed:1.7, cyc:4.1, keepMobile:true },
+    {name:'VECTOR',    color:'111,168,216', x:0.185, y:0.075, z:0.40, seed:3.0, cyc:3.8, keepMobile:false},
+    {name:'TEMPO',     color:'220,227,237', x:0.880, y:0.135, z:0.75, seed:4.4, cyc:4.6, keepMobile:true },
+    {name:'HUNT',      color:'224,110,90',  x:0.925, y:0.31,  z:0.50, seed:5.9, cyc:3.6, keepMobile:true },
+    {name:'SNIPER',    color:'198,162,83',  x:0.845, y:0.44,  z:0.35, seed:7.2, cyc:4.9, keepMobile:false},
+    {name:'MACRO',     color:'79,209,190',  x:0.38,  y:0.045, z:0.60, seed:8.6, cyc:3.3, keepMobile:true },
+    {name:'HEDGE',     color:'156,140,217', x:0.60,  y:0.035, z:0.45, seed:9.8, cyc:4.3, keepMobile:false},
+    {name:'FLOW',      color:'111,168,216', x:0.20,  y:0.44,  z:0.30, seed:11.1,cyc:5.0, keepMobile:false},
+    {name:'SENTIMENT', color:'198,162,83',  x:0.80,  y:0.41,  z:0.65, seed:12.5,cyc:3.7, keepMobile:false},
+    {name:'ORACLE',    color:'220,227,237', x:0.50,  y:0.015, z:0.90, seed:13.9,cyc:4.5, keepMobile:true }
+  ];
+  var AGENT_HUB_Y = 0.20;          // brain/crown area the feed-lines converge on
+  var AGENT_PARALLAX_X = 0.14, AGENT_PARALLAX_Y = 0.12;
+
+  var root = document.getElementById('shrinkHolo');
+  var mount = document.getElementById('shrinkHoloCanvas');
+  // hash-overrides voor tests: #debug | style=wire/dots/solid | lite (schaduw uit)
+  var HS = location.hash || '';
+  var mStyle = HS.match(/style=(wire|dots|solid)/); if (mStyle) CONFIG.STYLE = mStyle[1];
+  var LITE = /lite/.test(HS);
+
+  /* ---- fallback ---- */
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var coarse = window.matchMedia('(pointer: coarse)').matches;
+  var noWebGL = (function(){ try{ var c=document.createElement('canvas');
+      return !(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')));
+    }catch(e){ return true; } })();
+
+  /* ================= PROCEDURELE PRINTPLAAT ================= */
+  var chipNodes = [];   // motherboard "chip/via" glow points -- populated by drawCircuit(), animated in drawPulses()
+  function drawCircuit(){
+    var cv = document.getElementById('shCircuit');
+    var W = cv.width = root.clientWidth * Math.min(devicePixelRatio||1, 2);
+    var H = cv.height = root.clientHeight * Math.min(devicePixelRatio||1, 2);
+    var x = cv.getContext('2d');
+    var teal='79,209,190', ice='190,210,230', gold='198,162,83';
+    var mobile = root.clientWidth < 720;
+    x.clearRect(0,0,W,H);
+    function rnd(a,b){ return a + Math.random()*(b-a); }
+    function snap(v,g){ return Math.round(v/g)*g; }
+    var G = Math.max(14, Math.round(W/70));   // rasterafstand
+    var paths = [];
+    function trace(x0,y0,steps,col,alpha,w,ortho,turns){
+      var px=snap(x0,G), py=snap(y0,G), pts=[[px,py]];
+      var dirs = ortho ? [[1,0],[-1,0],[0,1],[0,-1]]
+                       : [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+      var d = dirs[Math.floor(Math.random()*4)];
+      for (var i=0;i<steps;i++){
+        if (Math.random()<0.45){
+          var nd = dirs[Math.floor(Math.random()*dirs.length)];
+          if (!(nd[0]===-d[0]&&nd[1]===-d[1])){
+            if (ortho && turns && (nd[0]!==d[0]||nd[1]!==d[1])) turns.push([px,py]);
+            d=nd;
+          }
+        }
+        var len = G*Math.floor(rnd(1,5));
+        px+=d[0]*len; py+=d[1]*len;
+        pts.push([px,py]);
+      }
+      x.strokeStyle='rgba('+col+','+alpha+')'; x.lineWidth=w;
+      x.beginPath(); x.moveTo(pts[0][0],pts[0][1]);
+      for (var j=1;j<pts.length;j++) x.lineTo(pts[j][0],pts[j][1]);
+      x.stroke();
+      // nodes op knikken
+      for (var k=0;k<pts.length;k++){
+        if (Math.random()<0.4){
+          x.fillStyle='rgba('+col+','+(alpha*1.35)+')';
+          if (Math.random()<0.5) x.fillRect(pts[k][0]-1.6,pts[k][1]-1.6,3.2,3.2);
+          else { x.beginPath(); x.arc(pts[k][0],pts[k][1],1.8,0,7); x.fill(); }
+        }
+      }
+      paths.push(pts);
+    }
+    // dichte verticale 'ruggengraat' boven het hoofd + verspreide sporen
+    for (var i=0;i<34;i++) trace(W*0.5+rnd(-W*0.16,W*0.16), rnd(-H*0.05,H*0.34), 9, teal, rnd(0.10,0.26), 1);
+    for (var i2=0;i2<52;i2++) trace(rnd(0,W), rnd(0,H), 8, teal, rnd(0.06,0.16), 1);
+    for (var i3=0;i3<14;i3++) trace(rnd(0,W), rnd(0,H), 7, ice, rnd(0.05,0.10), 1);
+    for (var i4=0;i4<7;i4++)  trace(rnd(0,W), rnd(H*0.55,H), 8, gold, rnd(0.10,0.18), 1);
+
+    // motherboard layer: strict right-angle PCB traces concentrated directly behind the head,
+    // with "chip/via" nodes at their turns -- fewer on mobile for performance.
+    var mbTurns = [];
+    var mbCount = mobile ? 10 : 22;
+    for (var m=0;m<mbCount;m++){
+      trace(W*0.5+rnd(-W*0.22,W*0.22), rnd(H*0.08,H*0.62), mobile?6:10,
+        Math.random()<0.8?teal:ice, rnd(0.09,0.20), rnd(1,2.1), true, mbTurns);
+    }
+    var chipCount = mobile ? 6 : 14;
+    chipNodes.length = 0;
+    for (var c=0; c<chipCount && mbTurns.length; c++){
+      var pick = mbTurns[Math.floor(Math.random()*mbTurns.length)];
+      chipNodes.push({ x:pick[0], y:pick[1], phase:Math.random()*10, cyc:2.6+Math.random()*3.2,
+                        gold:Math.random()<0.2 });
+      // static base square so the node still reads under prefers-reduced-motion (no per-frame glow then)
+      var bc = chipNodes[chipNodes.length-1].gold ? gold : teal;
+      x.fillStyle = 'rgba('+bc+',0.22)'; x.strokeStyle = 'rgba('+bc+',0.4)'; x.lineWidth=1;
+      x.fillRect(pick[0]-3,pick[1]-3,6,6); x.strokeRect(pick[0]-3,pick[1]-3,6,6);
+    }
+
+    // mono-labels zoals in de poster
+    var labels=['REG 2011','NEB 01B','TF·12','SYNC 88','DAT 73','0x4F','LOG 45','RISK Ø','NODE 7','TAPE 21','EXEC 03','DD 5.0'];
+    x.font = Math.round(G*0.62)+'px monospace';
+    for (var L=0; L<18; L++){
+      var lx=snap(rnd(W*0.04,W*0.92),G), ly=snap(rnd(H*0.06,H*0.95),G);
+      x.fillStyle='rgba('+(Math.random()<0.85?teal:gold)+','+rnd(0.18,0.4)+')';
+      x.fillText(labels[Math.floor(Math.random()*labels.length)], lx, ly);
+    }
+    return paths;
+  }
+  var circuitPaths = drawCircuit();
+
+  /* pulsen die over de sporen lopen */
+  var pulseCv = document.getElementById('shPulse');
+  function sizePulse(){ pulseCv.width = root.clientWidth*Math.min(devicePixelRatio||1,2);
+                        pulseCv.height = root.clientHeight*Math.min(devicePixelRatio||1,2); }
+  sizePulse();
+  var px2 = pulseCv.getContext('2d');
+  var pulses=[];
+  var pulseCount = (root.clientWidth < 720) ? 10 : 20;
+  for (var pi=0; pi<pulseCount && circuitPaths.length; pi++){
+    pulses.push({path:circuitPaths[Math.floor(Math.random()*circuitPaths.length)],
+                 t:Math.random(), sp:0.0016+Math.random()*0.003,
+                 gold:Math.random()<0.18});
+  }
+  function drawPulses(t){
+    px2.clearRect(0,0,pulseCv.width,pulseCv.height);
+    for (var i=0;i<pulses.length;i++){
+      var p=pulses[i]; p.t+=p.sp; if(p.t>=1){ p.t=0;
+        p.path=circuitPaths[Math.floor(Math.random()*circuitPaths.length)]; }
+      var pts=p.path, seg=(pts.length-1)*p.t, s0=Math.floor(seg), f=seg-s0;
+      var a=pts[Math.min(s0,pts.length-1)], b=pts[Math.min(s0+1,pts.length-1)];
+      var X=a[0]+(b[0]-a[0])*f, Y=a[1]+(b[1]-a[1])*f;
+      var col = p.gold ? '198,162,83' : '79,209,190';
+      var g=px2.createRadialGradient(X,Y,0,X,Y,9);
+      g.addColorStop(0,'rgba('+col+',0.85)'); g.addColorStop(1,'rgba('+col+',0)');
+      px2.fillStyle=g; px2.beginPath(); px2.arc(X,Y,9,0,7); px2.fill();
+    }
+    // motherboard chip/via nodes -- independent slow glow cycles, "activity lights"
+    for (var ci=0; ci<chipNodes.length; ci++){
+      var cn = chipNodes[ci];
+      var glow = 0.20 + 0.30*(0.5 + 0.5*Math.sin(t*(2*Math.PI/cn.cyc) + cn.phase));
+      var ccol = cn.gold ? '198,162,83' : '79,209,190';
+      var cg = px2.createRadialGradient(cn.x,cn.y,0,cn.x,cn.y,7);
+      cg.addColorStop(0,'rgba('+ccol+','+glow+')'); cg.addColorStop(1,'rgba('+ccol+',0)');
+      px2.fillStyle=cg; px2.beginPath(); px2.arc(cn.x,cn.y,7,0,7); px2.fill();
+    }
+  }
+
+  /* ---- floating market particles: small data motes drifting upward through the scene, like
+     ticks rising off a feed. Drawn on the same pulse canvas as everything else above -- one
+     extra pass of cheap arc() fills, no new canvas/element needed. ---- */
+  var marketParticles = (function(){
+    var mobile = root.clientWidth < 720;
+    var n = mobile ? 12 : 24;
+    var out = [];
+    for (var i=0; i<n; i++){
+      out.push({
+        x: Math.random(), y: Math.random(),
+        sp: 0.00028 + Math.random()*0.00055,
+        drift: (Math.random()-0.5)*0.00022,
+        r: 0.9 + Math.random()*1.6,
+        gold: Math.random() < 0.22
+      });
+    }
+    return out;
+  })();
+  function drawMarketParticles(t){
+    var AW=pulseCv.width, AH=pulseCv.height, scalePx = AW/root.clientWidth;
+    for (var i=0; i<marketParticles.length; i++){
+      var p = marketParticles[i];
+      p.y -= p.sp; p.x += p.drift;
+      if (p.y < -0.04){ p.y = 1.04; p.x = Math.random(); }
+      var x = p.x*AW, y = p.y*AH;
+      var edgeFade = Math.min(1, Math.min(p.y/0.06, (1.04-p.y)/0.14));
+      var alpha = 0.4 * Math.max(0, edgeFade);
+      var col = p.gold ? '198,162,83' : '79,209,190';
+      px2.beginPath(); px2.arc(x, y, p.r*scalePx, 0, 7);
+      px2.fillStyle = 'rgba('+col+','+alpha.toFixed(3)+')'; px2.fill();
+    }
+  }
+
+  /* ---- the eleven agents: hexagon nodes feeding the head, drawn on the same pulse canvas ---- */
+  function hexPath(ctx,cx,cy,r){
+    ctx.beginPath();
+    for (var i=0;i<6;i++){
+      var a=Math.PI/6 + i*Math.PI/3, hx=cx+r*Math.cos(a), hy=cy+r*Math.sin(a);
+      if (i===0) ctx.moveTo(hx,hy); else ctx.lineTo(hx,hy);
+    }
+    ctx.closePath();
+  }
+  function drawAgentNodes(t){
+    var AW=pulseCv.width, AH=pulseCv.height;
+    var scalePx = AW / root.clientWidth;
+    var mobile = root.clientWidth < 720;
+    var list = mobile ? AGENTS.filter(function(a){ return a.keepMobile; }) : AGENTS;
+    var rotY = rig ? rig.rotation.y : 0, rotX = rig ? rig.rotation.x : 0;
+    var hubX = AW*0.5 + rotY*AW*AGENT_PARALLAX_X;
+    var hubY = AH*AGENT_HUB_Y + rotX*AH*AGENT_PARALLAX_Y;
+
+    list.forEach(function(a, idx){
+      var driftPh = t*0.12 + idx*1.7 + a.seed;
+      var driftR = Math.min(AW,AH) * 0.012 * (0.5 + a.z);
+      var dx = Math.cos(driftPh) * driftR;
+      var dy = Math.sin(driftPh*1.3) * driftR * 0.6;
+      var px = rotY * a.z * AW * AGENT_PARALLAX_X;
+      var py = rotX * a.z * AH * AGENT_PARALLAX_Y;
+      var baseX = (mobile && a.mx !== undefined) ? a.mx : a.x;
+      var baseY = (mobile && a.my !== undefined) ? a.my : a.y;
+      var nx = baseX*AW + dx + px, ny = baseY*AH + dy + py;
+
+      var pulse = 0.55 + 0.45*Math.sin(t*(2*Math.PI/a.cyc) + a.seed*3.0);
+      px2.strokeStyle = 'rgba('+a.color+','+(0.22*pulse).toFixed(3)+')';
+      px2.lineWidth = 1;
+      px2.beginPath(); px2.moveTo(hubX,hubY); px2.lineTo(nx,ny); px2.stroke();
+
+      var rPx = ((mobile?30:34) + a.z*24) * 0.5 * scalePx;
+      hexPath(px2, nx, ny, rPx);
+      px2.fillStyle = 'rgba('+a.color+',0.07)'; px2.fill();
+      px2.strokeStyle = 'rgba('+a.color+',0.62)'; px2.lineWidth = 1.1; px2.stroke();
+      px2.beginPath(); px2.arc(nx,ny,rPx*0.22,0,7);
+      px2.fillStyle = 'rgba('+a.color+',0.5)'; px2.fill();
+
+      var fontPx = Math.max(8, Math.round(rPx*0.42));
+      px2.font = fontPx+'px monospace';
+      px2.textAlign = 'center';
+      px2.fillStyle = 'rgba('+a.color+',0.55)';
+      px2.fillText(a.name, nx, ny + rPx + fontPx + 2);
+    });
+    px2.textAlign = 'left';
+  }
+
+  if (reduce || noWebGL){
+    if (window.__tfDiag) window.__tfDiag('Hero fell back to static image. reduce=' + reduce + ' noWebGL=' + noWebGL);
+    document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
+    root.classList.add('is-fallback');
+    return;   // printplaat blijft als statische achtergrond staan
+  }
+
+  /* ================= THREE ================= */
+  var W = mount.clientWidth, H = mount.clientHeight;
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  renderer.setSize(W, H);
+  mount.appendChild(renderer.domElement);
+  if (CONFIG.STYLE === 'solid'){
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = !LITE;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(33, W/H, 0.1, 60);
+  var CAM_BASE = {x:0, y:0.1, z:5.6};
+  camera.position.set(CAM_BASE.x, CAM_BASE.y, CAM_BASE.z);
+  /* camera-space breathing + mouse parallax -- kept entirely separate from the head rig's own
+     rotation below, so the parallax reads as the *camera* drifting through the scene (the
+     background circuit/pulse layers and the head shift against each other) rather than just
+     the head turning. Values are deliberately tiny -- this should feel like held breath, not
+     a swaying camera operator. */
+  var camPar = {x:0, y:0};
+  var rig = new THREE.Group(); scene.add(rig);
+  if (location.hash.indexOf('debug') >= 0){ window.__rig = rig; window.__lock = false; window.__frames = 0; }
+  var eyeRigs = [];
+  if (location.hash.indexOf('debug') >= 0){ window.__eyeRigs = eyeRigs; window.__cfg = CONFIG; }
+
+  if (CONFIG.STYLE === 'solid'){
+    var hemi = new THREE.HemisphereLight(0x9fb2c4, 0x0a0c10, 0.75); scene.add(hemi);
+    var key = new THREE.DirectionalLight(0xfff1dd, 1.25);
+    key.position.set(2.4, 3.2, 3.0); key.castShadow = !LITE;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.left=-3; key.shadow.camera.right=3;
+    key.shadow.camera.top=3.5; key.shadow.camera.bottom=-3;
+    key.shadow.bias = -0.0006;
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0x4FD1BE, 0.85);
+    rim.position.set(-3.2, 1.2, -2.4); scene.add(rim);
+    var fill = new THREE.DirectionalLight(0xbfd0e2, 0.35);
+    fill.position.set(-1.4, 0.4, 3.2); scene.add(fill);
+    /* base intensities/positions captured so the render loop can modulate them subtly with
+       cursor position ("dynamic holographic lighting") and always ease back to these exact
+       values -- never drifting further from the original look. */
+    var keyBaseX = key.position.x, keyBaseY = key.position.y;
+    var rimBaseI = rim.intensity, keyBaseI = key.intensity;
+    var ec = document.createElement('canvas'); ec.width=256; ec.height=128;
+    var eg = ec.getContext('2d');
+    eg.fillStyle='#0c0e12'; eg.fillRect(0,0,256,128);
+    var grd = eg.createLinearGradient(0,6,0,40);
+    grd.addColorStop(0,'rgba(255,252,244,0.95)'); grd.addColorStop(1,'rgba(255,252,244,0)');
+    eg.fillStyle=grd; eg.fillRect(0,6,256,34);
+    eg.fillStyle='rgba(79,209,190,0.18)'; eg.fillRect(0,74,256,14);
+    eg.fillStyle='rgba(198,162,83,0.10)'; eg.fillRect(150,90,70,10);
+    var envTex = new THREE.CanvasTexture(ec);
+    envTex.mapping = THREE.EquirectangularReflectionMapping;
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromEquirectangular(envTex).texture;
+  }
+
+  /* ---- materialen ---- */
+  var occluderMat = new THREE.MeshBasicMaterial({color:0x05070a});
+  occluderMat.polygonOffset = true; occluderMat.polygonOffsetFactor = 1; occluderMat.polygonOffsetUnits = 1;
+
+  var fresnelMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uTeal:{value:new THREE.Color(CONFIG.TEAL)},
+      uStrength:{value:(CONFIG.STYLE==='solid' ? CONFIG.FRESNEL : 0.40)} },
+    vertexShader:[
+      'varying vec3 vN;','varying vec3 vV;','varying float vY;',
+      'void main(){',
+      '  vN = normalize(normalMatrix * normal);',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  vV = normalize(-mv.xyz);',
+      '  vY = (modelMatrix * vec4(position,1.0)).y;',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uTeal;','uniform float uStrength;',
+      'varying vec3 vN;','varying vec3 vV;','varying float vY;',
+      'void main(){',
+      '  float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.6);',
+      '  float scan = 0.85 + 0.15*sin(vY*30.0 - uTime*2.0);',
+      '  gl_FragColor = vec4(uTeal, fr * uStrength * scan);','}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending
+  });
+
+  var dotMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+      uTeal:{value:new THREE.Color(CONFIG.TEAL)}, uIce:{value:new THREE.Color(CONFIG.ICE)} },
+    vertexShader:[
+      'attribute float aSize;','attribute float aPhase;','attribute float aBright;',
+      'attribute vec3 aNormal;',
+      'uniform float uTime;','uniform float uPR;',
+      'varying float vPhase;','varying float vBright;','varying float vY;',
+      'varying float vLit;','varying float vRim;',
+      'void main(){',
+      '  vPhase=aPhase; vBright=aBright;',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  vY = (modelMatrix * vec4(position,1.0)).y;',
+      '  vec3 N = normalize(normalMatrix * aNormal);',
+      '  vec3 V = normalize(-mv.xyz);',
+      '  vec3 L = normalize(vec3(-0.22, 0.62, 0.75));', // licht van boven-voor (camera-locked)
+      '  float lam = max(dot(N, L), 0.0);',
+      '  vLit = pow(lam, 2.2);',
+      '  vRim = pow(1.0 - abs(dot(N, V)), 3.0);',
+      '  gl_PointSize = aSize * uPR * (54.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uTeal;','uniform vec3 uIce;',
+      'varying float vPhase;','varying float vBright;','varying float vY;',
+      'varying float vLit;','varying float vRim;',
+      'void main(){',
+      '  vec2 uv = gl_PointCoord - 0.5;',
+      '  float disc = smoothstep(0.5, 0.14, length(uv));',
+      '  float scan = 0.86 + 0.14 * sin(vY*30.0 - uTime*2.0);',
+      '  float flick = 0.9 + 0.1 * sin(uTime*8.0 + vPhase*40.0);',
+      '  float pulse = (vBright > 0.9) ? (0.74 + 0.36*sin(uTime*1.5 + vPhase*2.0)) : 1.0;',
+      '  float shade = 0.03 + 1.45*vLit + 1.15*vRim;',        // vorm-belichting
+      '  float e = shade * vBright * pulse;',
+      '  vec3 col = mix(uTeal, uIce, clamp(e*0.55, 0.0, 1.0));',
+      '  float a = disc * scan * flick * clamp(e, 0.0, 1.6);',
+      '  gl_FragColor = vec4(col * (0.35 + 0.9*e), a);',
+      '}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+  });
+
+  var nodeMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+      uIce:{value:new THREE.Color(CONFIG.ICE)} },
+    vertexShader:[
+      'attribute float aSize;','attribute float aPhase;',
+      'uniform float uTime;','uniform float uPR;','varying float vPhase;',
+      'void main(){',
+      '  vPhase=aPhase;',
+      '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+      '  gl_PointSize = aSize * uPR * (44.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;','}'
+    ].join('\n'),
+    fragmentShader:[
+      'precision highp float;',
+      'uniform float uTime;','uniform vec3 uIce;','varying float vPhase;',
+      'void main(){',
+      '  float disc = smoothstep(0.5, 0.1, length(gl_PointCoord - 0.5));',
+      '  float tw = 0.55 + 0.45*sin(uTime*2.2 + vPhase*40.0);',
+      '  gl_FragColor = vec4(uIce, disc * tw * 0.85);','}'
+    ].join('\n'),
+    transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+  });
+
+  /* ================= POSTPROCESSING: hand-rolled bloom + depth-of-field =================
+     A small, self-contained EffectComposer-lite -- no external addon scripts, so it works
+     with the plain vendored three.min.js build (no module loader/bundler in this project).
+     Pipeline: render scene -> extract bright pixels -> two-pass gaussian blur (a few
+     iterations, at half/quarter resolution) -> composite bloom back over a depth-of-field
+     pass that blurs everything outside a focus band around the head, using the real depth
+     buffer. Every pass is a full-screen textured quad + shader, same technique
+     EffectComposer/UnrealBloomPass use internally, just inlined for this project.
+     Desktop gets the full pipeline; mobile keeps bloom (cheap) but skips the per-pixel DOF
+     sampling loop (meaningfully more texture reads per pixel) to protect the frame budget on
+     weaker GPUs -- this is a correctness/safety concern, not a spectacle trade-off. */
+  var POST_MOBILE = root.clientWidth < 720;
+  var POST_DOF = !POST_MOBILE && !LITE;
+  var postW = Math.max(2, W), postH = Math.max(2, H);
+  var rtParams = {minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, format:THREE.RGBAFormat, type:THREE.UnsignedByteType};
+  var sceneRT = new THREE.WebGLRenderTarget(postW, postH, rtParams);
+  if (POST_DOF){
+    sceneRT.depthTexture = new THREE.DepthTexture(postW, postH);
+    sceneRT.depthTexture.type = THREE.UnsignedShortType;
+  }
+  var BLOOM_DIV = POST_MOBILE ? 3 : 2; // coarser bloom buffer on mobile = fewer pixels to blur
+  var bloomW = Math.max(2, Math.floor(postW/BLOOM_DIV)), bloomH = Math.max(2, Math.floor(postH/BLOOM_DIV));
+  var brightRT = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+  var pingRT   = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+  var pongRT   = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+
+  var postScene = new THREE.Scene();
+  var postCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  var postQuadGeom = new THREE.PlaneGeometry(2,2);
+  var postQuad = new THREE.Mesh(postQuadGeom, new THREE.MeshBasicMaterial());
+  postScene.add(postQuad);
+
+  var POST_VERT = ['varying vec2 vUv;','void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }'].join('\n');
+
+  var brightMat = new THREE.ShaderMaterial({
+    uniforms:{ tDiffuse:{value:null}, uThreshold:{value:0.6} },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;','uniform sampler2D tDiffuse;','uniform float uThreshold;','varying vec2 vUv;',
+      'void main(){',
+      '  vec4 c = texture2D(tDiffuse, vUv);',
+      '  float lum = dot(c.rgb, vec3(0.2126,0.7152,0.0722));',
+      '  float f = smoothstep(uThreshold, uThreshold+0.35, lum);',
+      '  gl_FragColor = vec4(c.rgb*f, 1.0);','}'
+    ].join('\n')
+  });
+  var blurMat = new THREE.ShaderMaterial({
+    uniforms:{ tDiffuse:{value:null}, uDir:{value:new THREE.Vector2(1,0)}, uRes:{value:new THREE.Vector2(bloomW,bloomH)} },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;','uniform sampler2D tDiffuse;','uniform vec2 uDir;','uniform vec2 uRes;','varying vec2 vUv;',
+      'void main(){',
+      '  vec2 texel = uDir / uRes;',
+      '  vec4 sum = texture2D(tDiffuse, vUv) * 0.227027;',
+      '  sum += texture2D(tDiffuse, vUv + texel*1.3846153846) * 0.3162162162;',
+      '  sum += texture2D(tDiffuse, vUv - texel*1.3846153846) * 0.3162162162;',
+      '  sum += texture2D(tDiffuse, vUv + texel*3.2307692308) * 0.0702702703;',
+      '  sum += texture2D(tDiffuse, vUv - texel*3.2307692308) * 0.0702702703;',
+      '  gl_FragColor = sum;','}'
+    ].join('\n')
+  });
+  var compositeMat = new THREE.ShaderMaterial({
+    uniforms:{
+      tScene:{value:null}, tDepth:{value:null}, tBloom:{value:null},
+      uUseDof:{value:POST_DOF?1.0:0.0},
+      uFocusDist:{value:CAM_BASE.z}, uFocusRange:{value:1.8}, uDofPx:{value:3.0},
+      uCameraNear:{value:camera.near}, uCameraFar:{value:camera.far},
+      uBloomStrength:{value:0.65}, uSceneRes:{value:new THREE.Vector2(postW,postH)}
+    },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;',
+      'uniform sampler2D tScene;','uniform sampler2D tDepth;','uniform sampler2D tBloom;',
+      'uniform float uUseDof;','uniform float uFocusDist;','uniform float uFocusRange;','uniform float uDofPx;',
+      'uniform float uCameraNear;','uniform float uCameraFar;','uniform float uBloomStrength;',
+      'uniform vec2 uSceneRes;',
+      'varying vec2 vUv;',
+      'float linearDepth(float d){',
+      '  float z = d*2.0-1.0;',
+      '  return (2.0*uCameraNear*uCameraFar)/(uCameraFar+uCameraNear-z*(uCameraFar-uCameraNear));',
+      '}',
+      'void main(){',
+      '  vec4 base = texture2D(tScene, vUv);',
+      '  vec3 outc = base.rgb;',
+      '  if (uUseDof > 0.5){',
+      '    float d = texture2D(tDepth, vUv).r;',
+      '    float dist = linearDepth(d);',
+      '    float coc = clamp(abs(dist - uFocusDist) / uFocusRange, 0.0, 1.0);',
+      '    if (coc > 0.03){',
+      '      vec2 texel = vec2(uDofPx) / uSceneRes;',
+      '      vec3 sum = vec3(0.0);',
+      '      const int TAPS = 8;',
+      '      for (int i=0; i<TAPS; i++){',
+      '        float ang = float(i) * 0.7853982;',
+      '        vec2 off = vec2(cos(ang), sin(ang)) * texel * coc;',
+      '        sum += texture2D(tScene, vUv+off).rgb;',
+      '      }',
+      '      sum /= float(TAPS);',
+      '      outc = mix(base.rgb, sum, coc);',
+      '    }',
+      '  }',
+      '  vec3 bloom = texture2D(tBloom, vUv).rgb;',
+      '  outc += bloom * uBloomStrength;',
+      '  gl_FragColor = vec4(outc, base.a);','}'
+    ].join('\n')
+  });
+
+  function postResize(w,h){
+    postW=Math.max(2,w); postH=Math.max(2,h);
+    sceneRT.setSize(postW, postH);
+    if (sceneRT.depthTexture){ sceneRT.depthTexture.dispose(); sceneRT.depthTexture=new THREE.DepthTexture(postW,postH); sceneRT.depthTexture.type=THREE.UnsignedShortType; }
+    bloomW=Math.max(2,Math.floor(postW/BLOOM_DIV)); bloomH=Math.max(2,Math.floor(postH/BLOOM_DIV));
+    brightRT.setSize(bloomW,bloomH); pingRT.setSize(bloomW,bloomH); pongRT.setSize(bloomW,bloomH);
+    blurMat.uniforms.uRes.value.set(bloomW,bloomH);
+    compositeMat.uniforms.uSceneRes.value.set(postW,postH);
+  }
+
+  function renderPost(){
+    // 1) base scene, with its own depth buffer for DOF
+    renderer.setRenderTarget(sceneRT);
+    renderer.render(scene, camera);
+
+    // 2) bright-pass extraction (downsampled -- cheaper blur, and a soft, wide bloom kernel
+    //    is exactly what a downsampled source gives you for free)
+    postQuad.material = brightMat;
+    brightMat.uniforms.tDiffuse.value = sceneRT.texture;
+    renderer.setRenderTarget(brightRT);
+    renderer.render(postScene, postCam);
+
+    // 3) separable gaussian blur, ping-ponged a couple of iterations for a soft falloff
+    var src = brightRT, dst = pingRT, other = pongRT;
+    var iterations = POST_MOBILE ? 1 : 2;
+    for (var i=0; i<iterations; i++){
+      postQuad.material = blurMat;
+      blurMat.uniforms.tDiffuse.value = src.texture;
+      blurMat.uniforms.uDir.value.set(1,0);
+      renderer.setRenderTarget(dst);
+      renderer.render(postScene, postCam);
+
+      blurMat.uniforms.tDiffuse.value = dst.texture;
+      blurMat.uniforms.uDir.value.set(0,1);
+      renderer.setRenderTarget(other);
+      renderer.render(postScene, postCam);
+      src = other;
+    }
+
+    // 4) composite: DOF-blurred base (desktop only) + bloom, straight to the screen canvas
+    postQuad.material = compositeMat;
+    compositeMat.uniforms.tScene.value = sceneRT.texture;
+    compositeMat.uniforms.tDepth.value = sceneRT.depthTexture || null;
+    compositeMat.uniforms.tBloom.value = src.texture;
+    renderer.setRenderTarget(null);
+    renderer.render(postScene, postCam);
+  }
+
+  /* ================= GPU energy-particle field =================
+     A real GPU-driven THREE.Points cloud orbiting the hologram -- every particle's position,
+     twinkle and size falloff is computed in the vertex/fragment shader from a single uTime
+     uniform plus per-particle attributes baked in once at creation. No per-particle JS math
+     per frame (unlike the 2D canvas market-tick layer behind the scene, which is a separate,
+     flatter effect). Lives in its own group (not the head rig) so it drifts independently of
+     the head's cursor-lean, and sits inside the WebGL scene proper so it's genuinely lit by
+     depth (occludes/is occluded by the head) and participates in the bloom/DOF pass above. */
+  var energyField = new THREE.Group(); scene.add(energyField);
+  (function buildEnergyField(){
+    var count = POST_MOBILE ? 700 : 2200;
+    var base = new Float32Array(count*3);
+    var seed = new Float32Array(count);
+    var speed = new Float32Array(count);
+    var size = new Float32Array(count);
+    var mix = new Float32Array(count);
+    for (var i=0;i<count;i++){
+      // scattered in a loose shell around the head, biased toward mid-radius (not a hard sphere)
+      var r = 1.3 + Math.pow(Math.random(), 0.6) * 2.4;
+      var theta = Math.random()*Math.PI*2;
+      var phi = Math.acos(1 - 2*Math.random());
+      base[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+      base[i*3+1] = r*Math.cos(phi)*0.75 + 0.3; // flattened + lifted to roughly head height
+      base[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+      seed[i] = Math.random()*100.0;
+      speed[i] = 0.05 + Math.random()*0.12;
+      size[i] = 0.8 + Math.random()*1.8;
+      mix[i] = Math.random();
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(base,3));
+    geo.setAttribute('aSeed', new THREE.BufferAttribute(seed,1));
+    geo.setAttribute('aSpeed', new THREE.BufferAttribute(speed,1));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(size,1));
+    geo.setAttribute('aMix', new THREE.BufferAttribute(mix,1));
+    var mat = new THREE.ShaderMaterial({
+      uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+        uTeal:{value:new THREE.Color(CONFIG.TEAL)}, uGold:{value:new THREE.Color(CONFIG.GOLD)} },
+      vertexShader:[
+        'attribute float aSeed;','attribute float aSpeed;','attribute float aSize;','attribute float aMix;',
+        'uniform float uTime;','uniform float uPR;',
+        'varying float vMix;','varying float vTwinkle;',
+        'void main(){',
+        '  vMix = aMix;',
+        '  float ang = uTime * aSpeed + aSeed;',
+        '  float c = cos(ang*0.3), s = sin(ang*0.3);',
+        '  vec3 p = position;',
+        '  vec3 orbited = vec3(p.x*c - p.z*s, p.y + sin(ang*0.7)*0.12, p.x*s + p.z*c);',
+        '  vTwinkle = 0.5 + 0.5*sin(uTime*1.6 + aSeed*7.0);',
+        '  vec4 mv = modelViewMatrix * vec4(orbited, 1.0);',
+        '  gl_PointSize = aSize * uPR * (70.0 / -mv.z);',
+        '  gl_Position = projectionMatrix * mv;','}'
+      ].join('\n'),
+      fragmentShader:[
+        'precision highp float;',
+        'uniform vec3 uTeal;','uniform vec3 uGold;',
+        'varying float vMix;','varying float vTwinkle;',
+        'void main(){',
+        '  float d = length(gl_PointCoord - 0.5);',
+        '  float disc = smoothstep(0.5, 0.05, d);',
+        '  vec3 col = mix(uTeal, uGold, vMix);',
+        '  gl_FragColor = vec4(col, disc * vTwinkle * 0.4);','}'
+      ].join('\n'),
+      transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+    });
+    var pts = new THREE.Points(geo, mat);
+    energyField.add(pts);
+    energyField.userData.mat = mat;
+  })();
+
+  /* ================= energy rings around the hologram =================
+     Three thin glowing rings at different radii/tilts/speeds -- a fresnel-style edge glow
+     (brightest where the ring's surface grazes the view direction) rather than a flat-shaded
+     torus, so they read as light rather than plastic. */
+  var energyRings = new THREE.Group(); scene.add(energyRings);
+  (function buildEnergyRings(){
+    var ringMat = new THREE.ShaderMaterial({
+      uniforms:{ uColor:{value:new THREE.Color(CONFIG.GOLD)}, uOpacity:{value:0.5} },
+      vertexShader:[
+        'varying vec3 vN;','varying vec3 vV;',
+        'void main(){',
+        '  vN = normalize(normalMatrix * normal);',
+        '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+        '  vV = normalize(-mv.xyz);',
+        '  gl_Position = projectionMatrix * mv;','}'
+      ].join('\n'),
+      fragmentShader:[
+        'precision highp float;','uniform vec3 uColor;','uniform float uOpacity;',
+        'varying vec3 vN;','varying vec3 vV;',
+        'void main(){',
+        '  float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.8);',
+        '  gl_FragColor = vec4(uColor, fr*uOpacity);','}'
+      ].join('\n'),
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide
+    });
+    /* radii/position tuned against this camera's actual framing (fov 33 deg, z=5.6 -> ~1.66
+       world-units of vertical half-frame, head fills nearly all of it) so the rings visibly
+       hug the head's silhouette instead of mostly falling outside the visible frame. */
+    var configs = [
+      {r:1.05, tube:0.007, tilt:0.22, color:CONFIG.GOLD, op:0.6, spin:0.05},
+      {r:1.28, tube:0.005, tilt:-0.32, color:CONFIG.TEAL, op:0.45, spin:-0.035},
+      {r:1.5,  tube:0.004, tilt:0.1, color:CONFIG.GOLD, op:0.32, spin:0.022}
+    ];
+    configs.forEach(function(cfg){
+      var geo = new THREE.TorusGeometry(cfg.r, cfg.tube, 8, 96);
+      var m = ringMat.clone();
+      m.uniforms.uColor.value = new THREE.Color(cfg.color);
+      m.uniforms.uOpacity.value = cfg.op;
+      var mesh = new THREE.Mesh(geo, m);
+      mesh.rotation.x = Math.PI/2 + cfg.tilt;
+      mesh.position.y = 0.28;
+      mesh.userData.spin = cfg.spin;
+      energyRings.add(mesh);
+    });
+  })();
+
+  /* ---- surface sampling met normal-offset + helderheid per zone ---- */
+  function sampleMeshes(meshes, count, box){
+    var tris=[], areas=[], total=0, tmp=new THREE.Vector3();
+    meshes.forEach(function(m){
+      var g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry;
+      var pos = g.attributes.position; m.updateWorldMatrix(true,false);
+      for (var i=0;i<pos.count;i+=3){
+        var a=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);
+        var b=new THREE.Vector3().fromBufferAttribute(pos,i+1).applyMatrix4(m.matrixWorld);
+        var c=new THREE.Vector3().fromBufferAttribute(pos,i+2).applyMatrix4(m.matrixWorld);
+        var ar = tmp.copy(b).sub(a).cross(new THREE.Vector3().copy(c).sub(a)).length()*0.5;
+        if (ar>0){ tris.push([a,b,c]); areas.push(ar); total+=ar; }
+      }
+    });
+    var cum=[], run=0; for (var q=0;q<areas.length;q++){ run+=areas[q]; cum.push(run); }
+    function pick(){ var r=Math.random()*total, lo=0, hi=cum.length-1;
+      while(lo<hi){ var mid=(lo+hi)>>1; if (cum[mid]<r) lo=mid+1; else hi=mid; } return tris[lo]; }
+    var sy = box.max.y-box.min.y, brainY = box.max.y - sy*CONFIG.BRAIN_FRAC;
+    var pos3=new Float32Array(count*3), nrm3=new Float32Array(count*3),
+        sizes=new Float32Array(count),
+        phase=new Float32Array(count), bright=new Float32Array(count);
+    var n=new THREE.Vector3(), e1=new THREE.Vector3(), e2=new THREE.Vector3();
+    for (var k=0;k<count;k++){
+      var t=pick(), r1=Math.random(), r2=Math.random();
+      if (r1+r2>1){ r1=1-r1; r2=1-r2; }
+      e1.copy(t[1]).sub(t[0]); e2.copy(t[2]).sub(t[0]);
+      n.copy(e1).cross(e2).normalize();
+      var p=new THREE.Vector3().copy(t[0]).addScaledVector(e1,r1).addScaledVector(e2,r2)
+             .addScaledVector(n, 0.012);
+      pos3[k*3]=p.x; pos3[k*3+1]=p.y; pos3[k*3+2]=p.z;
+      nrm3[k*3]=n.x; nrm3[k*3+1]=n.y; nrm3[k*3+2]=n.z;
+      var isBrain = p.y > brainY;
+      var isBand  = !isBrain && p.y > (brainY - sy*0.07);
+      bright[k] = isBrain ? (1.05+Math.random()*0.4)
+                : isBand  ? (0.62+Math.random()*0.2)
+                :           (0.34+Math.random()*0.14);
+      sizes[k]  = isBrain ? (0.95+Math.random()*1.15)
+                : isBand  ? (0.75+Math.random()*0.85)
+                :           (0.6+Math.random()*0.7);
+      phase[k]=Math.random();
+    }
+    var g2=new THREE.BufferGeometry();
+    g2.setAttribute('position', new THREE.BufferAttribute(pos3,3));
+    g2.setAttribute('aNormal', new THREE.BufferAttribute(nrm3,3));
+    g2.setAttribute('aSize', new THREE.BufferAttribute(sizes,1));
+    g2.setAttribute('aPhase', new THREE.BufferAttribute(phase,1));
+    g2.setAttribute('aBright', new THREE.BufferAttribute(bright,1));
+    return g2;
+  }
+
+  function estimateEyes(geom, box){
+    var pos=geom.attributes.position, sy=box.max.y-box.min.y,
+        sz=box.max.z-box.min.z, sx=box.max.x-box.min.x;
+    var yLo=box.min.y+sy*0.70, yHi=box.min.y+sy*0.80, zTh=box.max.z-sz*0.20; // front = +z
+    var L=[0,0,0,0], R=[0,0,0,0];
+    for (var i=0;i<pos.count;i++){
+      var X=pos.getX(i), Y=pos.getY(i), Z=pos.getZ(i);
+      if (Y>yLo && Y<yHi && Z>zTh){
+        if (X < -sx*0.05){ L[0]+=X;L[1]+=Y;L[2]+=Z;L[3]++; }
+        else if (X > sx*0.05){ R[0]+=X;R[1]+=Y;R[2]+=Z;R[3]++; }
+      }
+    }
+    if (L[3]<40 || R[3]<40) return null;
+    return [[L[0]/L[3],L[1]/L[3],L[2]/L[3]+0.05],[R[0]/R[3],R[1]/R[3],R[2]/R[3]+0.05]];
+  }
+
+  function glowSprite(color, size){
+    var c=document.createElement('canvas'); c.width=c.height=128;
+    var g=c.getContext('2d'), gr=g.createRadialGradient(64,64,0,64,64,62);
+    var col=(color===CONFIG.GOLD)?'198,162,83':(color==='warm')?'255,238,200':(color==='pupil')?'24,15,6':'140,235,220';
+    var A=(color==='pupil')?0.92:0.95;
+    // gaussische val: onzichtbare rand, alleen licht
+    [[0,1.00],[0.08,0.66],[0.16,0.42],[0.26,0.25],[0.38,0.135],[0.50,0.068],[0.63,0.030],[0.77,0.011],[0.89,0.003],[1,0]]
+      .forEach(function(st){ gr.addColorStop(st[0], 'rgba('+col+','+(A*st[1]).toFixed(3)+')'); });
+    g.fillStyle=gr; g.fillRect(0,0,128,128);
+    var tex=new THREE.CanvasTexture(c);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true,
+        blending:(color==='pupil')?THREE.NormalBlending:THREE.AdditiveBlending,
+        depthTest:true, depthWrite:false}));
+    sp.scale.setScalar(size);
+    return sp;
+  }
+
+  function buildHead(meshes){
+    var box = new THREE.Box3();
+    meshes.forEach(function(m){ box.expandByObject(m); });
+    var size=box.getSize(new THREE.Vector3()), center=box.getCenter(new THREE.Vector3());
+    var s = CONFIG.FIT_HEIGHT/Math.max(size.y,1e-6);
+    var holder=new THREE.Group();
+    holder.rotation.y = CONFIG.MODEL_ROT_Y||0;
+    holder.rotation.x = CONFIG.PITCH||0;
+    holder.scale.setScalar(s);
+    var inner=new THREE.Group();
+    inner.position.set(-center.x,-center.y+0.02/s,-center.z);
+    holder.add(inner);
+
+    /* ---- re-anchor the rotation pivot to the base of the neck (bottom of the bust
+       bounding box) instead of the geometric center. The model has no skeleton/rig --
+       this is a single fused mesh -- so "rotating the head" really means rotating the
+       whole bust around a hinge point low enough to read as a neck, not a spinning statue.
+       rig.position + holder.position cancel out at rest (rotation=0), so the neutral pose
+       and camera framing are pixel-identical to before; only the pivot moves. ---- */
+    var pivotY = s*(box.min.y - center.y) + 0.02;
+    rig.position.set(0, pivotY, 0);
+    holder.position.set(0, -pivotY, 0);
+
+    if (CONFIG.STYLE === 'solid'){
+      meshes.forEach(function(m){
+        var mat = (m.material && m.material.map) ? m.material :
+          new THREE.MeshStandardMaterial({color:0xeef1f5, roughness:0.30, metalness:0.22});
+        if (mat.isMeshStandardMaterial) mat.envMapIntensity = 1.0;
+        if (mat.emissiveMap) mat.emissiveIntensity = 1.10;
+        var solid = new THREE.Mesh(m.geometry, mat);
+        solid.castShadow = true; solid.receiveShadow = true;
+        solid.matrixAutoUpdate=false; solid.matrix.copy(m.matrixWorld); solid.renderOrder=0; inner.add(solid);
+        if (CONFIG.FRESNEL > 0){
+          var gh=new THREE.Mesh(m.geometry, fresnelMat);
+          gh.matrixAutoUpdate=false; gh.matrix.copy(m.matrixWorld); gh.renderOrder=2; inner.add(gh);
+        }
+      });
+    } else {
+      meshes.forEach(function(m){
+        var occ=new THREE.Mesh(m.geometry, occluderMat);
+        occ.matrixAutoUpdate=false; occ.matrix.copy(m.matrixWorld); occ.renderOrder=0; inner.add(occ);
+        var gh=new THREE.Mesh(m.geometry, fresnelMat);
+        gh.matrixAutoUpdate=false; gh.matrix.copy(m.matrixWorld); gh.renderOrder=2; inner.add(gh);
+      });
+    }
+    var sampleN = (CONFIG.STYLE === 'solid' && !CONFIG.CROWN) ? 9000 : CONFIG.POINTS;
+    var dotsGeom = sampleMeshes(meshes, sampleN, box);
+    if (CONFIG.STYLE === 'wire'){
+      // alleen het brein als stippels; de rest wordt lijnennet
+      var sy2 = box.max.y-box.min.y, brainY2 = box.max.y - sy2*CONFIG.BRAIN_FRAC;
+      var P=dotsGeom.attributes.position, N=dotsGeom.attributes.aNormal,
+          S=dotsGeom.attributes.aSize, F=dotsGeom.attributes.aPhase, B=dotsGeom.attributes.aBright;
+      if (CONFIG.CROWN){
+        var keep=[];
+        for (var di=0; di<P.count; di++){ if (P.getY(di) > brainY2 - sy2*0.05) keep.push(di); }
+        var g3=new THREE.BufferGeometry();
+        function sub(att,it){ var out=new Float32Array(keep.length*it);
+          for (var q2=0;q2<keep.length;q2++) for (var c2=0;c2<it;c2++) out[q2*it+c2]=att.array[keep[q2]*it+c2];
+          return new THREE.BufferAttribute(out,it); }
+        g3.setAttribute('position', sub(P,3)); g3.setAttribute('aNormal', sub(N,3));
+        g3.setAttribute('aSize', sub(S,1)); g3.setAttribute('aPhase', sub(F,1)); g3.setAttribute('aBright', sub(B,1));
+        var bd=new THREE.Points(g3, dotMat); bd.renderOrder=2; inner.add(bd);
+      }
+
+      new THREE.GLTFLoader().load(CONFIG.WIRE_URL, function(g){
+        g.scene.updateWorldMatrix(true,true);
+        g.scene.traverse(function(o){
+          if(!o.isMesh) return;
+          var wf = new THREE.WireframeGeometry(o.geometry);
+          var lines = new THREE.LineSegments(wf, new THREE.LineBasicMaterial({
+            color: CONFIG.ICE, transparent:true, opacity: CONFIG.LINE_OPACITY,
+            blending: THREE.AdditiveBlending, depthTest:true, depthWrite:false }));
+          lines.matrixAutoUpdate=false; lines.matrix.copy(o.matrixWorld);
+          lines.renderOrder=1; inner.add(lines);
+          // sparks op de knopen van het net
+          var vp = o.geometry.attributes.position, nn = vp.count;
+          var np=new Float32Array(nn*3), ns=new Float32Array(nn), nf=new Float32Array(nn);
+          for (var vi=0; vi<nn; vi++){
+            np[vi*3]=vp.getX(vi); np[vi*3+1]=vp.getY(vi); np[vi*3+2]=vp.getZ(vi);
+            ns[vi]=0.5+Math.random()*0.9; nf[vi]=Math.random();
+          }
+          var ng=new THREE.BufferGeometry();
+          ng.setAttribute('position', new THREE.BufferAttribute(np,3));
+          ng.setAttribute('aSize', new THREE.BufferAttribute(ns,1));
+          ng.setAttribute('aPhase', new THREE.BufferAttribute(nf,1));
+          var nodes=new THREE.Points(ng, nodeMat);
+          nodes.matrixAutoUpdate=false; nodes.matrix.copy(o.matrixWorld);
+          nodes.renderOrder=2; inner.add(nodes);
+        });
+      });
+    } else if (CONFIG.STYLE === 'dots') {
+      var dots=new THREE.Points(dotsGeom, dotMat); dots.renderOrder=1; inner.add(dots);
+    }
+
+    if (CONFIG.EYES){
+      var eyePts = CONFIG.EYE_POS || estimateEyes(dotsGeom, box);
+      if (eyePts){
+        eyePts.forEach(function(e, ei){
+          if (CONFIG.STYLE === 'solid'){
+            // drie lagen licht: fluisterzachte bloom + iris-gloed + hete kern (geen randen)
+            // -- gold accent (CONFIG.GOLD, the site's existing amber/gold token), not a generic
+            // pale-warm color, so the eye reads as a distinct bright anchor point against the head.
+            var bloom=glowSprite(CONFIG.GOLD, size.y*0.105);
+            bloom.material.depthTest=false; bloom.material.opacity=0.18;
+            bloom.position.set(e[0],e[1],e[2]+0.055); bloom.renderOrder=3; inner.add(bloom);
+            var mid=glowSprite(CONFIG.GOLD, size.y*0.032);
+            mid.material.depthTest=false; mid.material.opacity=0.42;
+            mid.position.set(e[0],e[1],e[2]+0.06); mid.renderOrder=4; inner.add(mid);
+            var core=glowSprite(CONFIG.GOLD, size.y*0.012);
+            core.material.depthTest=false; core.material.opacity=1.0;
+            core.position.set(e[0],e[1],e[2]+0.065); core.renderOrder=5; inner.add(core);
+            eyeRigs.push({ base:new THREE.Vector3(e[0],e[1],e[2]),
+                           bloom:bloom, mid:mid, core:core, off:new THREE.Vector2() });
+            return;
+          }
+          var hero = (ei === (CONFIG.EYE_HERO||0));
+          var sp=glowSprite(CONFIG.TEAL, size.y*(hero?0.075:0.030));
+          sp.material.opacity = hero ? 1.0 : 0.38;
+          sp.position.set(e[0],e[1],e[2]); sp.renderOrder=3; inner.add(sp);
+          if (hero){
+            var core=glowSprite(CONFIG.ICE, size.y*0.028);
+            core.position.set(e[0],e[1],e[2]+0.02); core.renderOrder=4; inner.add(core);
+          }
+        });
+      }
+    }
+    rig.add(holder);
+  }
+
+  function placeholderMeshes(){
+    var mat=new THREE.MeshBasicMaterial();
+    var skull=new THREE.Mesh(new THREE.SphereGeometry(1,56,40), mat);
+    skull.scale.set(0.92,1.18,1.0); skull.position.y=0.42;
+    var neck=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.46,0.9,32), mat);
+    neck.position.y=-1.1;
+    var grp=new THREE.Group(); grp.add(skull,neck); grp.updateWorldMatrix(true,true);
+    return [skull,neck];
+  }
+  var loaded=false;
+  try{
+    new THREE.GLTFLoader().load(CONFIG.MODEL_URL, function(gltf){
+      var meshes=[]; gltf.scene.updateWorldMatrix(true,true);
+      gltf.scene.traverse(function(o){ if(o.isMesh) meshes.push(o); });
+      if (meshes.length){ buildHead(meshes); loaded=true; }
+      else { if (window.__tfDiag) window.__tfDiag('GLTF loaded but contained zero meshes -- using placeholder geometry.'); buildHead(placeholderMeshes()); }
+    }, undefined, function(err){
+      if (window.__tfDiag) window.__tfDiag('GLTFLoader failed to load ' + CONFIG.MODEL_URL + ': ' + (err && (err.message||err.type||err)));
+      if(!loaded) showFallback();
+    });
+  }catch(e){
+    if (window.__tfDiag) window.__tfDiag('Exception during model load setup: ' + e.message);
+    showFallback();
+  }
+  function showFallback(){
+    document.getElementById('shrinkHoloImg').src = CONFIG.FALLBACK_IMG;
+    root.classList.add('is-fallback');
+  }
+
+  /* ---- interactie & loop ---- */
+  var mx=0,my=0, running=true, inView=true, lastMove=-10, hasPointer=false;
+  function onMove(e){
+    mx=(e.clientX/window.innerWidth)*2-1; my=(e.clientY/window.innerHeight)*2-1;
+    hasPointer = true;
+    lastMove = clock ? clock.getElapsedTime() : 0;
+    if (window.__frames !== undefined){ window.__mx=mx; window.__my=my; window.__lastMove=lastMove; }
+  }
+  window.addEventListener('mousemove', onMove, {passive:true});
+  window.addEventListener('pointermove', onMove, {passive:true});
+  window.addEventListener('mouseout', function(e){ if (!e.relatedTarget) hasPointer = false; }, {passive:true});
+  window.addEventListener('blur', function(){ hasPointer = false; });
+  document.addEventListener('visibilitychange', function(){ running=!document.hidden; });
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(function(en){ inView=en[0].isIntersecting; },{threshold:0.05}).observe(root);
+  }
+  window.addEventListener('resize', function(){
+    W=mount.clientWidth; H=mount.clientHeight;
+    camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+    postResize(W,H);
+    circuitPaths = drawCircuit(); sizePulse();
+  });
+
+  /* ---- life: blink / glance / micro-tilt — additive layer of small involuntary motion on top
+     of the cursor-tracking above. Randomized intervals per-cycle so nothing reads as a fixed loop. ---- */
+  var BLOOM_BASE=0.18, MID_BASE=0.42, CORE_BASE=1.0;
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function smooth01(x){ x=Math.max(0,Math.min(1,x)); return x*x*(3-2*x); }
+  var life = {
+    blinkAt: rand(6,14), blinking:false, blinkStart:0, blinkDur:0.22,
+    glanceAt: rand(10,18), glancing:false, glanceStart:0, glanceDur:0, glanceHold:0,
+      gx:0, gy:0, goX:0, goY:0,
+    tiltAt: rand(20,30), tilting:false, tiltStart:0, tiltDur:0, tiltMag:0, tz:0
+  };
+  function updateLife(t){
+    // blink — quick eye-glow dip, eased, not linear
+    if (!life.blinking && t >= life.blinkAt){ life.blinking=true; life.blinkStart=t; life.blinkDur=rand(0.20,0.25); }
+    var blinkMul = 1;
+    if (life.blinking){
+      var bt=(t-life.blinkStart)/life.blinkDur;
+      if (bt>=1){ life.blinking=false; life.blinkAt=t+rand(6,14); }
+      else { var p = bt<0.5 ? bt*2 : (1-bt)*2; blinkMul = 1 - smooth01(p)*0.92; }
+    }
+    // eye glow pulse — slow, subtle, independent period from everything else (unsynced)
+    var eyePulse = 1 + 0.07*Math.sin(t*1.13 + 1.7);
+
+    // glance — deliberate extra look toward a random nearby point, holds, eases back
+    if (!life.glancing && t >= life.glanceAt){
+      life.glancing = true; life.glanceStart = t;
+      life.glanceDur = rand(0.5,0.8); life.glanceHold = rand(0.4,0.9);
+      life.gx = rand(-1,1)*0.09; life.gy = rand(-1,1)*0.05;
+    }
+    if (life.glancing){
+      var gt=t-life.glanceStart, dIn=life.glanceDur, dHold=life.glanceHold, dOut=life.glanceDur*0.9, tot=dIn+dHold+dOut;
+      var w;
+      if (gt<dIn) w=smooth01(gt/dIn);
+      else if (gt<dIn+dHold) w=1;
+      else if (gt<tot) w=1-smooth01((gt-dIn-dHold)/dOut);
+      else { w=0; life.glancing=false; life.glanceAt=t+rand(10,18); }
+      life.goX = life.gx*w; life.goY = life.gy*w;
+    }
+
+    // micro head-tilt — occasional roll, larger than baseline sway, non-mechanical timing
+    if (!life.tilting && t >= life.tiltAt){
+      life.tilting=true; life.tiltStart=t; life.tiltDur=rand(1.6,2.6);
+      life.tiltMag = rand(0.035,0.07) * (Math.random()<0.5?-1:1);
+    }
+    if (life.tilting){
+      var tt=(t-life.tiltStart)/life.tiltDur;
+      if (tt>=1){ life.tilting=false; life.tiltAt=t+rand(20,30); life.tz=0; }
+      else { life.tz = life.tiltMag * Math.sin(tt*Math.PI); }
+    }
+    return { blinkMul:blinkMul, eyePulse:eyePulse, glanceX:life.goX, glanceY:life.goY, tiltZ:life.tz };
+  }
+
+  var clock=new THREE.Clock();
+  (function loop(){
+    requestAnimationFrame(loop);
+    if(!running || !inView) return;
+    if (window.__lock){ dotMat.uniforms.uTime.value=clock.getElapsedTime(); nodeMat.uniforms.uTime.value=clock.getElapsedTime(); fresnelMat.uniforms.uTime.value=clock.getElapsedTime(); renderer.render(scene,camera); return; }
+    var t=clock.getElapsedTime();
+    if (window.__frames !== undefined) window.__frames++;
+    dotMat.uniforms.uTime.value=t;
+    nodeMat.uniforms.uTime.value=t;
+    fresnelMat.uniforms.uTime.value=t;
+    var lv = updateLife(t);
+    if (CONFIG.MOTION === 'head'){
+      var idle = (t - lastMove) > 2.5;
+      var ty, tx;
+      if (idle){ ty = Math.sin(t*0.24)*CONFIG.SWAY; tx = Math.sin(t*0.31)*0.02; }
+      else { ty = mx*CONFIG.TRACK.x; tx = my*CONFIG.TRACK.y - 0.04; }
+      rig.rotation.y += (ty - rig.rotation.y)*0.07;
+      rig.rotation.x += (tx - rig.rotation.x)*0.07;
+      rig.position.y = Math.sin(t*0.5)*0.03;
+    } else {
+      // Eyes are rigid with the head -- no independent tracking/offset. They move only as
+      // part of the head's own neck-pivot rotation below; the only eye-only behavior is the
+      // blink/eye-pulse opacity modulation already computed in updateLife().
+      for (var ei2=0; ei2<eyeRigs.length; ei2++){
+        var er = eyeRigs[ei2];
+        er.bloom.material.opacity = BLOOM_BASE * lv.blinkMul * lv.eyePulse;
+        er.mid.material.opacity   = MID_BASE   * lv.blinkMul * lv.eyePulse;
+        er.core.material.opacity  = CORE_BASE  * lv.blinkMul * lv.eyePulse;
+      }
+    }
+
+    /* ---- cursor-reactive head lean: additive layer on top of the eye tracking above ---- */
+    var leanIdle = !hasPointer || (t - lastMove) > 2.0;
+    var leanY, leanX;
+    if (leanIdle){
+      leanY = Math.sin(t*0.24)*CONFIG.SWAY;
+      leanX = Math.sin(t*0.31)*0.02;
+    } else {
+      var lx = Math.max(-1, Math.min(1, mx)), ly = Math.max(-1, Math.min(1, -my));
+      leanY = lx * 0.16;
+      leanX = ly * 0.10;
+    }
+    rig.rotation.y += (leanY + lv.glanceX - rig.rotation.y)*0.06;
+    rig.rotation.x += (leanX + lv.glanceY - rig.rotation.x)*0.06;
+    rig.rotation.z += (lv.tiltZ - rig.rotation.z)*0.08;
+
+    /* ---- camera breathing + mouse parallax (distinct from the head's own lean above) ----
+       A slow sinusoidal dolly on Z reads as the camera quietly breathing; a small lerped
+       offset toward the cursor shifts the whole view laterally, so the head and the flat
+       background layers behind it slide against each other slightly -- a real depth cue
+       instead of just the head turning. Both are tiny and slow by design. */
+    var camTargetX = hasPointer ? mx*0.10 : 0;
+    var camTargetY = hasPointer ? -my*0.06 : 0;
+    camPar.x += (camTargetX - camPar.x)*0.035;
+    camPar.y += (camTargetY - camPar.y)*0.035;
+    camera.position.x = CAM_BASE.x + camPar.x;
+    camera.position.y = CAM_BASE.y + camPar.y;
+    camera.position.z = CAM_BASE.z + Math.sin(t*0.18)*0.05;
+
+    /* ---- dynamic holographic lighting: rim/key respond a little to cursor position, always
+       easing back toward their base values so the look never drifts far from the original. ---- */
+    if (rim){ rim.intensity += (rimBaseI + mx*0.16 - rim.intensity)*0.04; }
+    if (key){
+      key.intensity += (keyBaseI + (-my)*0.10 - key.intensity)*0.04;
+      key.position.x += (keyBaseX + mx*0.5 - key.position.x)*0.04;
+      key.position.y += (keyBaseY + my*0.3 - key.position.y)*0.04;
+    }
+
+    if (energyField.userData.mat) energyField.userData.mat.uniforms.uTime.value = t;
+    for (var eri=0; eri<energyRings.children.length; eri++){
+      var ringMesh = energyRings.children[eri];
+      ringMesh.rotation.z = t * ringMesh.userData.spin;
+    }
+
+    drawPulses(t);
+    drawMarketParticles(t);
+    drawAgentNodes(t);
+    renderPost();
+  })();
+})();
+</script>
+<!-- ================= DROP-IN END ================= -->
+
+<script>
+(function(){
+  var els = document.querySelectorAll('.tf-reveal');
+  if (!('IntersectionObserver' in window) || !els.length){
+    els.forEach(function(e){ e.classList.add('is-visible'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting){
+        en.target.classList.add('is-visible', 'is-flicker');
+        io.unobserve(en.target);
+      }
+    });
+  }, {threshold:0.15, rootMargin:'0px 0px -40px 0px'});
+  els.forEach(function(e){ io.observe(e); });
+  // safety net: a heavily congested main thread (low-end device, or a lot of concurrent
+  // rendering work) can delay IntersectionObserver callbacks well past when content should
+  // already be readable. Never leave a section permanently invisible because of that.
+  setTimeout(function(){
+    document.querySelectorAll('.tf-reveal:not(.is-visible)').forEach(function(e){ e.classList.add('is-visible'); });
+  }, 3500);
+})();
+</script>
+
+<!-- ================= scroll storytelling: the ambient background very gradually intensifies
+     as you descend the page, so depth of scroll reads as depth of "power-on" -- one continuous
+     ramp rather than a per-section gimmick. rAF-throttled scroll listener, transform/opacity
+     only on the receiving end (.tf-ambient__blob's own transition), skipped entirely under
+     reduced motion. ================= -->
+<script>
+(function(){
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var amb = document.querySelector('.tf-ambient');
+  if (!amb) return;
+  var ticking = false;
+  function update(){
+    ticking = false;
+    var max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    var p = Math.min(1, Math.max(0, window.scrollY / max));
+    amb.style.setProperty('--amb-boost', (0.65 + p*0.65).toFixed(3));
+  }
+  window.addEventListener('scroll', function(){
+    if (!ticking){ ticking = true; requestAnimationFrame(update); }
+  }, {passive:true});
+  update();
+})();
+</script>
+
+<!-- ================= microinteraction: the DNA percentages count up from zero the moment
+     they scroll into view -- "the engine calculating" rather than a static label. Decorative
+     (aria-hidden) numbers only; falls back to the correct static value with no JS. ================= -->
+<script>
+(function(){
+  var els = document.querySelectorAll('.tf-dna__pct[data-count]');
+  if (!els.length || !('IntersectionObserver' in window)) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  els.forEach(function(el){ el.textContent = '0'; });
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      io.unobserve(en.target);
+      var el = en.target, target = parseInt(el.getAttribute('data-count'), 10) || 0;
+      var start = performance.now(), dur = 1300;
+      function tick(now){
+        var p = Math.min(1, (now - start) / dur);
+        var eased = 1 - Math.pow(1-p, 3);
+        el.textContent = Math.round(eased * target);
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }, {threshold:0.4});
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
+
+<!-- ================= "the floor is watching": cursor spotlight + static-image parallax ================= -->
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var coarse = window.matchMedia('(pointer: coarse)').matches;
+  var watch = document.querySelector('.tf-watch');
+  var pImgs = Array.prototype.slice.call(document.querySelectorAll('[data-parallax]'));
+  if (reduce){
+    if (watch) watch.remove();
+    return;
+  }
+  if (coarse){
+    if (watch) watch.classList.add('is-static');
+    return; // no touch-follow — static low-opacity texture only, no parallax
+  }
+
+  var mx=window.innerWidth/2, my=window.innerHeight/2, cx=mx, cy=my, active=false, hidden=false;
+  window.addEventListener('mousemove', function(e){
+    mx=e.clientX; my=e.clientY;
+    if (!active && watch){ active=true; watch.classList.add('is-on'); }
+  }, {passive:true});
+  window.addEventListener('mouseleave', function(){ if (watch) watch.classList.remove('is-on'); });
+  document.addEventListener('visibilitychange', function(){ hidden = document.hidden; });
+
+  function tick(){
+    requestAnimationFrame(tick);
+    if (hidden) return;
+    cx += (mx-cx)*0.12; cy += (my-cy)*0.12;
+    if (watch){ watch.style.setProperty('--mx', cx+'px'); watch.style.setProperty('--my', cy+'px'); }
+    if (pImgs.length){
+      var nx = (cx/window.innerWidth - 0.5)*2, ny = (cy/window.innerHeight - 0.5)*2;
+      for (var i=0;i<pImgs.length;i++){
+        var el = pImgs[i], mag = parseFloat(el.getAttribute('data-parallax')) || 10;
+        el.style.setProperty('--px', (nx*mag).toFixed(1)+'px');
+        el.style.setProperty('--py', (ny*mag*0.6).toFixed(1)+'px');
+      }
+    }
+  }
+  tick();
+})();
+</script>
+
+<!-- ================= session timing: live-row highlight (Dubai GMT+4, re-checked every minute) ================= -->
+<script>
+(function(){
+  var rows = document.querySelectorAll('#sessions tbody tr[data-start]');
+  if (!rows.length) return;
+  function toMinutes(hhmm){ var p=hhmm.split(':'); return (+p[0])*60 + (+p[1]); }
+  function nowDubaiMinutes(){
+    var parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false
+    }).formatToParts(new Date());
+    var h=0, m=0;
+    parts.forEach(function(p){ if (p.type==='hour') h=+p.value; if (p.type==='minute') m=+p.value; });
+    return h*60+m;
+  }
+  function refresh(){
+    var now = nowDubaiMinutes();
+    rows.forEach(function(row){
+      var start = toMinutes(row.getAttribute('data-start')), end = toMinutes(row.getAttribute('data-end'));
+      var wrap = row.getAttribute('data-wrap') === '1';
+      var live = wrap ? (now >= start || now < end) : (now >= start && now < end);
+      row.classList.toggle('tf-row-live', live);
+    });
+  }
+  refresh();
+  setInterval(refresh, 60000);
+})();
+</script>
+
+</body>
+</html>
