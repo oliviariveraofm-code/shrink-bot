@@ -71,12 +71,46 @@ body {
   background: var(--onyx);
 }
 
-#scene {
+.hero-bg {
   position: absolute;
   inset: 0;
+  z-index: 0;
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  background: var(--onyx);
+  animation: heroKenBurns 26s ease-in-out infinite alternate;
+}
+
+@keyframes heroKenBurns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.04);
+  }
+}
+
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    rgba(7, 8, 10, 0.82) 0%,
+    rgba(7, 8, 10, 0.38) 32%,
+    rgba(7, 8, 10, 0.08) 58%,
+    rgba(7, 8, 10, 0.28) 100%
+  );
+}
+
+@media (max-width: 640px) {
+  .hero-bg {
+    object-position: center 22%;
+  }
 }
 
 /* ---------- Loader ---------- */
@@ -549,7 +583,8 @@ body {
     filter: none;
   }
   .grain,
-  .hero__scroll i {
+  .hero__scroll i,
+  .hero-bg {
     animation: none;
   }
 }
