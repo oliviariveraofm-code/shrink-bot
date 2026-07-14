@@ -368,6 +368,47 @@
   .step__d{ font-size:14px; }
 
   /* ============ agents ============ */
+  #agents{ position:relative; overflow:hidden; }
+  .agn__head{ position:relative; z-index:2; }
+
+  /* scroll-triggered background still, distinct from the hero's crop -- crossfades in
+     as the section enters view rather than being visible on load. */
+  .agn__bg{
+    position:absolute; inset:0;
+    z-index:0;
+    background-image:url('assets/agents-council.jpg');
+    background-size:cover;
+    background-position:50% 38%;
+    opacity:0;
+    transition:opacity 450ms var(--ease);
+  }
+  .agn__bg::after{
+    content:"";
+    position:absolute; inset:0;
+    background:rgba(10,10,10,.87);
+  }
+  .agn__bg.is-visible{ opacity:1; }
+
+  /* twelve line-icon motifs, quiet and static -- echoes the old hex-node layout's idea
+     of "agents surrounding the content" without its density or color-coding. */
+  .agn__icons{
+    position:absolute; inset:0;
+    z-index:1;
+    pointer-events:none;
+  }
+  .agn__icon{
+    position:absolute;
+    color:var(--frost);
+    opacity:.12;
+  }
+  .agn__icon--stone{
+    color:var(--stone);
+    opacity:.09;
+  }
+  @media (prefers-reduced-motion:reduce){
+    .agn__bg{ transition:none; }
+  }
+
   .tier-label{
     font-size:12px;
     font-weight:700;
@@ -871,7 +912,22 @@
 
 <!-- 03 · The Twelve Agents -->
 <section id="agents">
-  <div class="container">
+  <div class="agn__bg" id="agnBg" aria-hidden="true"></div>
+  <div class="agn__icons" aria-hidden="true">
+    <svg class="agn__icon" style="top:6%;left:8%;width:26px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l8-7 8 7"/><path d="M4 13l8-7 8 7"/><path d="M4 7l8-6 8 6"/></svg>
+    <svg class="agn__icon agn__icon--stone" style="top:3%;left:82%;width:22px;transform:rotate(8deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8 6 8-6"/><path d="M4 12l8 6 8-6"/><path d="M4 18l8 4 8-4"/></svg>
+    <svg class="agn__icon" style="top:14%;left:46%;width:30px;transform:rotate(-4deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5"/><path d="M9 5h10v10"/></svg>
+    <svg class="agn__icon agn__icon--stone" style="top:24%;left:92%;width:24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h8"/><path d="M9 20L12 4l3 16"/><path d="M12 4v10"/></svg>
+    <svg class="agn__icon" style="top:34%;left:3%;width:28px;transform:rotate(5deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M9 3l3 9 3-9"/><path d="M9 21l3-9 3 9"/></svg>
+    <svg class="agn__icon agn__icon--stone" style="top:44%;left:64%;width:26px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+    <svg class="agn__icon" style="top:52%;left:22%;width:32px;transform:rotate(-7deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/><path d="M4.5 7h15M4.5 17h15"/></svg>
+    <svg class="agn__icon agn__icon--stone" style="top:58%;left:88%;width:24px;transform:rotate(6deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z"/></svg>
+    <svg class="agn__icon" style="top:68%;left:10%;width:28px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 13c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
+    <svg class="agn__icon agn__icon--stone" style="top:76%;left:52%;width:24px;transform:rotate(-5deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16a9 9 0 0 1 18 0"/><path d="M12 16l5-6"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>
+    <svg class="agn__icon" style="top:84%;left:80%;width:30px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11L6 5"/><path d="M12 11l6-6"/><path d="M12 15l-4-4"/><path d="M12 15l4-4"/></svg>
+    <svg class="agn__icon agn__icon--stone" style="top:92%;left:30%;width:26px;transform:rotate(4deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5l2-6 3 12 2-9 2 3h6"/></svg>
+  </div>
+  <div class="container agn__head">
     <div class="eyebrow" data-reveal>03 · The Twelve Agents</div>
     <h2 style="margin-top:16px;max-width:10ch;" data-reveal>The floor.</h2>
     <p class="lede" style="margin-top:24px;" data-reveal>Twelve desks. Each reads the chart from exactly one angle. Eight vote in the consensus, three weigh context and conviction, one guards the discipline.</p>
@@ -1302,6 +1358,20 @@
     els.forEach(function(el){ io.observe(el); });
   } else {
     els.forEach(function(el){ el.classList.add('is-visible'); });
+  }
+
+  // ---- section 03 background crossfade ----
+  var agnBg = document.getElementById('agnBg');
+  if (agnBg) {
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (en.isIntersecting) { agnBg.classList.add('is-visible'); }
+        });
+      }, { threshold: 0.15 }).observe(document.getElementById('agents'));
+    } else {
+      agnBg.classList.add('is-visible');
+    }
   }
 </script>
 
