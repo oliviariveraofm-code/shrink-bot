@@ -17,13 +17,13 @@ export class HeroScene {
     this.scene = new THREE.Scene();
 
     this.camera = new THREE.PerspectiveCamera(
-      23,
+      20,
       window.innerWidth / window.innerHeight,
       0.1,
-      60
+      70
     );
-    this.basePosition = new THREE.Vector3(0, 2.3, 17);
-    this.lookTarget = new THREE.Vector3(0, 1.2, 0);
+    this.basePosition = new THREE.Vector3(0, 1.65, 15.5);
+    this.lookTarget = new THREE.Vector3(0, 1.35, 0);
     this.camera.position.copy(this.basePosition);
     this.camera.lookAt(this.lookTarget);
 
@@ -88,22 +88,24 @@ export class HeroScene {
       return;
     }
 
-    // Extremely slow, layered drift — never a fast or obvious pan.
-    const driftX = Math.sin(t * 0.045) * 0.5 + Math.sin(t * 0.021) * 0.22;
-    const driftY = Math.sin(t * 0.03) * 0.14;
-    const driftZ = Math.sin(t * 0.018) * 0.6;
+    // Extremely slow, layered drift — never a fast or obvious pan. Amplitudes
+    // are smaller than a wide-lens shot would use, to match the longer-lens
+    // compression of the reference.
+    const driftX = Math.sin(t * 0.04) * 0.28 + Math.sin(t * 0.019) * 0.12;
+    const driftY = Math.sin(t * 0.027) * 0.08;
+    const driftZ = Math.sin(t * 0.016) * 0.35;
 
     this.pointer.x += (this.targetPointer.x - this.pointer.x) * 0.015;
     this.pointer.y += (this.targetPointer.y - this.pointer.y) * 0.015;
 
     this.camera.position.set(
-      p.x + driftX + this.pointer.x * 0.12,
-      p.y + driftY - this.pointer.y * 0.05,
+      p.x + driftX + this.pointer.x * 0.08,
+      p.y + driftY - this.pointer.y * 0.035,
       p.z + driftZ
     );
 
-    const lookX = this.lookTarget.x + Math.sin(t * 0.02) * 0.2;
-    const lookY = this.lookTarget.y + Math.sin(t * 0.026) * 0.06;
+    const lookX = this.lookTarget.x + Math.sin(t * 0.018) * 0.12;
+    const lookY = this.lookTarget.y + Math.sin(t * 0.023) * 0.04;
     this.camera.lookAt(lookX, lookY, this.lookTarget.z);
   }
 

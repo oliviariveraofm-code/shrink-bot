@@ -5,8 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
-    <title>The Shrink — The Trading Floor</title>
-    <meta name="description" content="The Shrink. The 5th Agent of the Trading Floor. It does not predict. It diagnoses." />
+    <title>The Trading Floor</title>
+    <meta name="description" content="The Trading Floor. The 5th Agent. Emotion is expensive. Discipline is engineered." />
   </head>
   <body>
     <div id="app">
@@ -15,13 +15,72 @@
       <div class="vignette" aria-hidden="true"></div>
       <div class="grain" aria-hidden="true"></div>
 
+      <nav class="nav" data-reveal>
+        <div class="nav__brand">
+          <span class="nav__mark" aria-hidden="true"></span>
+          <span class="nav__word">The Trading Floor</span>
+        </div>
+        <div class="nav__links">
+          <a href="#">About</a>
+          <a href="#">Access</a>
+          <span class="nav__divider" aria-hidden="true"></span>
+          <span class="nav__mark nav__mark--sm" aria-hidden="true"></span>
+        </div>
+      </nav>
+
+      <aside class="hud hud--left" data-reveal aria-hidden="true">
+        <div class="hud__row">
+          <span class="hud__label">Market Sentiment</span>
+          <svg class="hud__spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+            <polyline points="0,24 14,20 28,23 42,12 56,16 70,6 84,10 100,4" />
+          </svg>
+        </div>
+        <div class="hud__row">
+          <span class="hud__label">Capital Flow</span>
+          <span class="hud__value">$3.4B</span>
+          <span class="hud__sub">24H net flow</span>
+        </div>
+        <div class="hud__row">
+          <span class="hud__label">Open Positions</span>
+          <span class="hud__value">128,942</span>
+          <span class="hud__sub">Active trades</span>
+        </div>
+        <div class="hud__row">
+          <span class="hud__label">Risk Exposure</span>
+          <span class="hud__value hud__value--sm">22% <i>23%</i></span>
+        </div>
+      </aside>
+
+      <aside class="hud hud--right" data-reveal aria-hidden="true">
+        <div class="hud__row">
+          <span class="hud__label">Win Rate</span>
+          <span class="hud__value">67.4%</span>
+          <span class="hud__sub">90D performance</span>
+        </div>
+        <div class="hud__row">
+          <span class="hud__label">Avg Hold Time</span>
+          <span class="hud__value">2.7 days</span>
+          <span class="hud__sub">Swing window</span>
+        </div>
+        <div class="hud__row">
+          <span class="hud__label">Max Drawdown</span>
+          <span class="hud__value">-1.42%</span>
+          <span class="hud__sub">Current month</span>
+        </div>
+        <div class="hud__row">
+          <span class="hud__label">Discipline Score</span>
+          <span class="hud__value">A-</span>
+        </div>
+      </aside>
+
       <main class="hero">
         <header class="hero__eyebrow" data-reveal>
           <span class="eyebrow__line" aria-hidden="true"></span>
           <span>The 5th Agent of the Trading Floor</span>
         </header>
 
-        <h1 class="hero__title" data-reveal>THE SHRINK</h1>
+        <h1 class="hero__title" data-reveal>THE TRADING FLOOR</h1>
+        <span class="hero__tick" data-reveal aria-hidden="true"></span>
 
         <p class="hero__subtitle" data-reveal>
           Emotion is expensive.<br />Discipline is engineered.
@@ -36,8 +95,9 @@
         </a>
 
         <div class="hero__scroll" data-reveal aria-hidden="true">
-          <span>Scroll</span>
+          <span>Scroll to enter</span>
           <i></i>
+          <b></b>
         </div>
       </main>
 

@@ -7,26 +7,26 @@ export function createShrink() {
   group.name = "shrink";
 
   const ceramicWhite = new THREE.MeshPhysicalMaterial({
-    color: 0xeef1f4,
-    roughness: 0.32,
-    metalness: 0.05,
-    clearcoat: 0.7,
-    clearcoatRoughness: 0.2,
+    color: 0x4a4d52,
+    roughness: 0.4,
+    metalness: 0.1,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.25,
   });
 
   const onyxFabric = new THREE.MeshPhysicalMaterial({
-    color: 0x0d0e10,
-    roughness: 0.7,
-    metalness: 0.08,
-    clearcoat: 0.1,
+    color: 0x060708,
+    roughness: 0.8,
+    metalness: 0.05,
+    clearcoat: 0.05,
   });
 
   const stoneCloak = new THREE.MeshPhysicalMaterial({
-    color: 0xaeb2b8,
-    roughness: 0.55,
-    metalness: 0.04,
-    clearcoat: 0.25,
-    clearcoatRoughness: 0.4,
+    color: 0x1c1e22,
+    roughness: 0.65,
+    metalness: 0.06,
+    clearcoat: 0.15,
+    clearcoatRoughness: 0.5,
     side: THREE.DoubleSide,
   });
 
@@ -80,7 +80,7 @@ export function createShrink() {
   // subtle centre seam suggesting where the robe closes
   const seam = new THREE.Mesh(
     new THREE.PlaneGeometry(0.012, 1.3),
-    new THREE.MeshPhysicalMaterial({ color: 0x6d7076, roughness: 0.7 })
+    new THREE.MeshPhysicalMaterial({ color: 0x2a2c30, roughness: 0.7 })
   );
   seam.position.set(0, 0.72, 0.4);
   group.add(seam);
@@ -102,11 +102,12 @@ export function createShrink() {
   shoulderLine.position.y = 1.4;
   group.add(shoulderLine);
 
-  // titanium waist band — a quiet nod to the engineered/mechanical brief
+  // titanium waist band — a quiet nod to the engineered/mechanical brief,
+  // kept dark so it reads only as a faint rim highlight, not a bright line
   const titanium = new THREE.MeshPhysicalMaterial({
-    color: 0xc7ccd2,
-    roughness: 0.3,
-    metalness: 0.85,
+    color: 0x3a3d42,
+    roughness: 0.35,
+    metalness: 0.8,
   });
   const waistBand = new THREE.Mesh(new THREE.TorusGeometry(0.375, 0.01, 10, 48), titanium);
   waistBand.rotation.x = Math.PI / 2;
@@ -117,7 +118,7 @@ export function createShrink() {
   for (const side of [-1, 1]) {
     const s = new THREE.Mesh(
       new THREE.PlaneGeometry(0.008, 1.0),
-      new THREE.MeshPhysicalMaterial({ color: 0x8a8e94, roughness: 0.7 })
+      new THREE.MeshPhysicalMaterial({ color: 0x35373b, roughness: 0.7 })
     );
     s.position.set(side * 0.3, 0.65, 0.28);
     s.rotation.y = side * 0.5;
