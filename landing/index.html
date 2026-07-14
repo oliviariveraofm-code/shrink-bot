@@ -55,6 +55,11 @@
     --dur-hero: 1000ms;      /* headline reveals, hero-scale moments */
   }
   *{margin:0;padding:0;box-sizing:border-box;}
+  /* custom keyboard-focus ring -- brand gold, replaces the default blue browser outline
+     everywhere, so keyboard navigation feels like part of the same engineered system rather
+     than a generic browser default. :focus-visible only, so mouse clicks stay clean. */
+  :focus-visible{outline:2px solid var(--accent-gold);outline-offset:3px;
+    transition:outline-offset var(--dur-micro) var(--ease);}
   body{background:var(--bg-0);color:var(--txt);font-family:var(--font-display);}
 
   /* ============ page-wide ambient background — sits behind every section (fixed, z-index:-1,
@@ -113,7 +118,17 @@
   .tf-headline{font-family:var(--font-display);font-size:var(--h-section);font-weight:700;
     letter-spacing:-0.02em;line-height:1.05;color:var(--text-hi);}
   .tf-body{font-size:16px;line-height:1.6;color:var(--text-mid);max-width:60ch;}
-  .tf-divider{border:none;border-top:1px solid var(--line);margin:0;}
+  /* "energy seam" between scenes -- a plain flat <hr> reads as a hard section break; this
+     keeps the same thin line but adds a soft glow at its center that breathes slowly, so the
+     boundary reads as a live connection between scenes rather than a wall between sections. */
+  .tf-divider{border:none;height:1px;margin:0;position:relative;overflow:visible;
+    background:var(--line);}
+  .tf-divider::before{content:'';position:absolute;top:50%;left:50%;height:1px;
+    width:200px;transform:translate(-50%,-50%);pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(79,209,190,.6), transparent);
+    animation:tfSeamPulse 7s ease-in-out infinite;}
+  @keyframes tfSeamPulse{0%,100%{opacity:.3;width:140px;}50%{opacity:.85;width:260px;}}
+  @media (prefers-reduced-motion: reduce){ .tf-divider::before{animation:none;opacity:.5;} }
   .tf-reveal{opacity:0;transform:translateY(8px);
     transition:opacity var(--dur-standard) var(--ease), transform var(--dur-standard) var(--ease);}
   .tf-reveal.is-visible{opacity:1;transform:translateY(0);}
@@ -183,10 +198,14 @@
     text-transform:uppercase;color:var(--text-hi);text-decoration:none;white-space:nowrap;}
   .tf-nav__word b{color:var(--accent-gold);font-weight:700;}
   .tf-nav__links{display:none;gap:22px;list-style:none;}
-  .tf-nav__links a{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;
-    text-transform:uppercase;color:var(--text-mid);text-decoration:none;
+  .tf-nav__links a{position:relative;font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--text-mid);text-decoration:none;padding-bottom:3px;
     transition:color var(--dur-micro) var(--ease);}
+  .tf-nav__links a::after{content:'';position:absolute;left:0;right:100%;bottom:0;height:1px;
+    background:var(--accent-gold);transition:right var(--dur-standard) var(--ease);}
   .tf-nav__links a:hover{color:var(--text-hi);}
+  .tf-nav__links a:hover::after{right:0;}
+  @media (prefers-reduced-motion: reduce){ .tf-nav__links a::after{transition:none;} }
   @media (min-width:960px){ .tf-nav__links{display:flex;align-items:center;} }
   .tf-nav__cta{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
     text-decoration:none;color:var(--bg-0);background:var(--accent-gold);padding:9px 18px;border-radius:2px;
@@ -208,19 +227,6 @@
     text-transform:uppercase;color:var(--text-low);margin-bottom:14px;}
   .tf-panel--positive .tf-panel__label{color:var(--role-positive);}
   .tf-panel--negative .tf-panel__label{color:var(--role-negative);}
-
-  /* ============ 5-step flow ============ */
-  .tf-steps{display:grid;grid-template-columns:1fr;gap:0;position:relative;}
-  @media (min-width:900px){ .tf-steps{grid-template-columns:repeat(5,1fr);} }
-  .tf-step{padding:22px 20px;border-top:1px solid var(--line);position:relative;}
-  @media (min-width:900px){
-    .tf-step{border-top:none;border-left:1px solid var(--line);}
-    .tf-step:first-child{border-left:none;}
-  }
-  .tf-step__n{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--accent-gold);}
-  .tf-step__t{font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.01em;
-    color:var(--text-hi);margin-top:10px;}
-  .tf-step__d{font-size:14px;line-height:1.55;color:var(--text-mid);margin-top:8px;}
 
   /* ============ 03 · THE TWELVE AGENTS — archetype D: immersive grid ============ */
   .agn{position:relative;overflow:hidden;}
@@ -444,13 +450,20 @@
     position:relative;z-index:1;}
   .tf-join__cta{position:relative;z-index:1;margin-top:32px;display:flex;flex-wrap:wrap;gap:16px;
     justify-content:center;align-items:center;}
-  .tf-btn{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  .tf-btn{position:relative;overflow:hidden;font-family:var(--font-mono);font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;
     text-decoration:none;padding:15px 36px;border-radius:2px;display:inline-block;
     transition:transform var(--dur-micro) var(--ease), box-shadow var(--dur-micro) var(--ease);}
+  .tf-btn::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.35) 48%, rgba(255,255,255,.55) 50%, rgba(255,255,255,.35) 52%, transparent 65%);
+    transform:translateX(-140%);transition:transform var(--dur-hero) var(--ease);}
+  .tf-btn:hover::before{transform:translateX(140%);}
   .tf-btn--primary{color:var(--bg-0);background:var(--accent-gold);box-shadow:0 0 22px rgba(196,160,82,.28);}
   .tf-btn--primary:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(196,160,82,.44);}
   .tf-btn--ghost{color:var(--text-hi);border:1px solid var(--line);background:transparent;}
   .tf-btn--ghost:hover{border-color:var(--text-mid);}
+  .tf-btn--ghost::before{background:linear-gradient(115deg, transparent 35%, rgba(255,255,255,.12) 48%, rgba(255,255,255,.2) 50%, rgba(255,255,255,.12) 52%, transparent 65%);}
+  @media (prefers-reduced-motion: reduce){ .tf-btn::before{transition:none;display:none;} }
   .tf-micro{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--text-low);margin-top:18px;}
   .tf-contact{position:relative;z-index:1;font-family:var(--font-mono);font-size:12px;color:var(--text-low);margin-top:20px;}
@@ -537,7 +550,8 @@
   .flow__num{height:96px;display:flex;align-items:flex-end;font-family:var(--font-display);font-weight:800;
     font-size:clamp(36px,4vw,60px);letter-spacing:-0.02em;color:var(--text-low);opacity:.4;line-height:1;}
   .flow__dot{position:relative;width:12px;height:12px;border-radius:50%;margin-top:-6px;
-    background:var(--bg-0);border:2px solid var(--accent-gold);}
+    background:var(--bg-0);border:2px solid var(--accent-gold);
+    box-shadow:0 0 0 3px rgba(196,160,82,.12), 0 0 14px rgba(196,160,82,.4);}
   .flow__t{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-hi);margin-top:26px;}
   .flow__d{font-size:13.5px;line-height:1.55;color:var(--text-mid);margin-top:8px;}
   @media (max-width:900px){
@@ -790,23 +804,23 @@
     <div class="flow__rail tf-reveal">
       <div class="flow__line"><i class="flow__pulse"></i></div>
       <div class="flow__steps">
-        <div class="flow__step">
+        <div class="flow__step tf-reveal" style="transition-delay:0ms">
           <div class="flow__num">01</div><div class="flow__dot"></div>
           <div class="flow__t">Chart In</div><div class="flow__d">One chart, one timeframe set: 15M + 5M, cross-ref 1H + 4H.</div>
         </div>
-        <div class="flow__step">
+        <div class="flow__step tf-reveal" style="transition-delay:90ms">
           <div class="flow__num">02</div><div class="flow__dot"></div>
           <div class="flow__t">12 Agents Read</div><div class="flow__d">Every desk analyses independently. No one sees each other&rsquo;s work.</div>
         </div>
-        <div class="flow__step">
+        <div class="flow__step tf-reveal" style="transition-delay:180ms">
           <div class="flow__num">03</div><div class="flow__dot"></div>
           <div class="flow__t">Silent Debate</div><div class="flow__d">Votes are weighed. Vetoes count hard.</div>
         </div>
-        <div class="flow__step">
+        <div class="flow__step tf-reveal" style="transition-delay:270ms">
           <div class="flow__num">04</div><div class="flow__dot"></div>
           <div class="flow__t">Consensus Gate</div><div class="flow__d">Below 65%? Automatic NO TRADE.</div>
         </div>
-        <div class="flow__step">
+        <div class="flow__step tf-reveal" style="transition-delay:360ms">
           <div class="flow__num">05</div><div class="flow__dot"></div>
           <div class="flow__t">One Card</div><div class="flow__d">TRADE or NO TRADE. Nothing in between.</div>
         </div>
@@ -1011,17 +1025,17 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     </div>
     <div class="tf-dna tf-reveal" style="margin-top:32px;">
       <div class="tf-dna__p tf-dna__p--positive tf-glass">
-        <div class="tf-dna__pct" aria-hidden="true">88</div>
+        <div class="tf-dna__pct" aria-hidden="true" data-count="88">88</div>
         <div class="tf-dna__label">XAUUSD — Strongest (88%)</div>
         <p class="tf-dna__body">ADR 150-300p. London 09:30-11:00 = HUNT only (sweep risk high). <b style="color:var(--text-hi)">Best window: NY 15:30-17:00.</b> Inverse DXY always applies.</p>
       </div>
       <div class="tf-dna__p tf-dna__p--accent tf-glass">
-        <div class="tf-dna__pct" aria-hidden="true">75</div>
+        <div class="tf-dna__pct" aria-hidden="true" data-count="75">75</div>
         <div class="tf-dna__label">EURUSD — Cleanest (75%)</div>
         <p class="tf-dna__body">Small ADR. Prime: 09:30-11:00 + 13:00-13:30 Silver Bullet. <b style="color:var(--text-hi)">Closed after 14:00. No NY trades.</b></p>
       </div>
       <div class="tf-dna__p tf-dna__p--negative tf-glass">
-        <div class="tf-dna__pct" aria-hidden="true">50</div>
+        <div class="tf-dna__pct" aria-hidden="true" data-count="50">50</div>
         <div class="tf-dna__label">GBPUSD — Weakest (50%)</div>
         <p class="tf-dna__body">Prime window: <b style="color:var(--text-hi)">09:30-10:00 ONLY.</b> Closed after 13:00. Requires 5+ confluences minimum. Handle with care.</p>
       </div>
@@ -1652,6 +1666,277 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
   });
 
+  /* ================= POSTPROCESSING: hand-rolled bloom + depth-of-field =================
+     A small, self-contained EffectComposer-lite -- no external addon scripts, so it works
+     with the plain vendored three.min.js build (no module loader/bundler in this project).
+     Pipeline: render scene -> extract bright pixels -> two-pass gaussian blur (a few
+     iterations, at half/quarter resolution) -> composite bloom back over a depth-of-field
+     pass that blurs everything outside a focus band around the head, using the real depth
+     buffer. Every pass is a full-screen textured quad + shader, same technique
+     EffectComposer/UnrealBloomPass use internally, just inlined for this project.
+     Desktop gets the full pipeline; mobile keeps bloom (cheap) but skips the per-pixel DOF
+     sampling loop (meaningfully more texture reads per pixel) to protect the frame budget on
+     weaker GPUs -- this is a correctness/safety concern, not a spectacle trade-off. */
+  var POST_MOBILE = root.clientWidth < 720;
+  var POST_DOF = !POST_MOBILE && !LITE;
+  var postW = Math.max(2, W), postH = Math.max(2, H);
+  var rtParams = {minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, format:THREE.RGBAFormat, type:THREE.UnsignedByteType};
+  var sceneRT = new THREE.WebGLRenderTarget(postW, postH, rtParams);
+  if (POST_DOF){
+    sceneRT.depthTexture = new THREE.DepthTexture(postW, postH);
+    sceneRT.depthTexture.type = THREE.UnsignedShortType;
+  }
+  var BLOOM_DIV = POST_MOBILE ? 3 : 2; // coarser bloom buffer on mobile = fewer pixels to blur
+  var bloomW = Math.max(2, Math.floor(postW/BLOOM_DIV)), bloomH = Math.max(2, Math.floor(postH/BLOOM_DIV));
+  var brightRT = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+  var pingRT   = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+  var pongRT   = new THREE.WebGLRenderTarget(bloomW, bloomH, rtParams);
+
+  var postScene = new THREE.Scene();
+  var postCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  var postQuadGeom = new THREE.PlaneGeometry(2,2);
+  var postQuad = new THREE.Mesh(postQuadGeom, new THREE.MeshBasicMaterial());
+  postScene.add(postQuad);
+
+  var POST_VERT = ['varying vec2 vUv;','void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }'].join('\n');
+
+  var brightMat = new THREE.ShaderMaterial({
+    uniforms:{ tDiffuse:{value:null}, uThreshold:{value:0.6} },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;','uniform sampler2D tDiffuse;','uniform float uThreshold;','varying vec2 vUv;',
+      'void main(){',
+      '  vec4 c = texture2D(tDiffuse, vUv);',
+      '  float lum = dot(c.rgb, vec3(0.2126,0.7152,0.0722));',
+      '  float f = smoothstep(uThreshold, uThreshold+0.35, lum);',
+      '  gl_FragColor = vec4(c.rgb*f, 1.0);','}'
+    ].join('\n')
+  });
+  var blurMat = new THREE.ShaderMaterial({
+    uniforms:{ tDiffuse:{value:null}, uDir:{value:new THREE.Vector2(1,0)}, uRes:{value:new THREE.Vector2(bloomW,bloomH)} },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;','uniform sampler2D tDiffuse;','uniform vec2 uDir;','uniform vec2 uRes;','varying vec2 vUv;',
+      'void main(){',
+      '  vec2 texel = uDir / uRes;',
+      '  vec4 sum = texture2D(tDiffuse, vUv) * 0.227027;',
+      '  sum += texture2D(tDiffuse, vUv + texel*1.3846153846) * 0.3162162162;',
+      '  sum += texture2D(tDiffuse, vUv - texel*1.3846153846) * 0.3162162162;',
+      '  sum += texture2D(tDiffuse, vUv + texel*3.2307692308) * 0.0702702703;',
+      '  sum += texture2D(tDiffuse, vUv - texel*3.2307692308) * 0.0702702703;',
+      '  gl_FragColor = sum;','}'
+    ].join('\n')
+  });
+  var compositeMat = new THREE.ShaderMaterial({
+    uniforms:{
+      tScene:{value:null}, tDepth:{value:null}, tBloom:{value:null},
+      uUseDof:{value:POST_DOF?1.0:0.0},
+      uFocusDist:{value:CAM_BASE.z}, uFocusRange:{value:1.8}, uDofPx:{value:3.0},
+      uCameraNear:{value:camera.near}, uCameraFar:{value:camera.far},
+      uBloomStrength:{value:0.65}, uSceneRes:{value:new THREE.Vector2(postW,postH)}
+    },
+    vertexShader:POST_VERT,
+    fragmentShader:[
+      'precision highp float;',
+      'uniform sampler2D tScene;','uniform sampler2D tDepth;','uniform sampler2D tBloom;',
+      'uniform float uUseDof;','uniform float uFocusDist;','uniform float uFocusRange;','uniform float uDofPx;',
+      'uniform float uCameraNear;','uniform float uCameraFar;','uniform float uBloomStrength;',
+      'uniform vec2 uSceneRes;',
+      'varying vec2 vUv;',
+      'float linearDepth(float d){',
+      '  float z = d*2.0-1.0;',
+      '  return (2.0*uCameraNear*uCameraFar)/(uCameraFar+uCameraNear-z*(uCameraFar-uCameraNear));',
+      '}',
+      'void main(){',
+      '  vec4 base = texture2D(tScene, vUv);',
+      '  vec3 outc = base.rgb;',
+      '  if (uUseDof > 0.5){',
+      '    float d = texture2D(tDepth, vUv).r;',
+      '    float dist = linearDepth(d);',
+      '    float coc = clamp(abs(dist - uFocusDist) / uFocusRange, 0.0, 1.0);',
+      '    if (coc > 0.03){',
+      '      vec2 texel = vec2(uDofPx) / uSceneRes;',
+      '      vec3 sum = vec3(0.0);',
+      '      const int TAPS = 8;',
+      '      for (int i=0; i<TAPS; i++){',
+      '        float ang = float(i) * 0.7853982;',
+      '        vec2 off = vec2(cos(ang), sin(ang)) * texel * coc;',
+      '        sum += texture2D(tScene, vUv+off).rgb;',
+      '      }',
+      '      sum /= float(TAPS);',
+      '      outc = mix(base.rgb, sum, coc);',
+      '    }',
+      '  }',
+      '  vec3 bloom = texture2D(tBloom, vUv).rgb;',
+      '  outc += bloom * uBloomStrength;',
+      '  gl_FragColor = vec4(outc, base.a);','}'
+    ].join('\n')
+  });
+
+  function postResize(w,h){
+    postW=Math.max(2,w); postH=Math.max(2,h);
+    sceneRT.setSize(postW, postH);
+    if (sceneRT.depthTexture){ sceneRT.depthTexture.dispose(); sceneRT.depthTexture=new THREE.DepthTexture(postW,postH); sceneRT.depthTexture.type=THREE.UnsignedShortType; }
+    bloomW=Math.max(2,Math.floor(postW/BLOOM_DIV)); bloomH=Math.max(2,Math.floor(postH/BLOOM_DIV));
+    brightRT.setSize(bloomW,bloomH); pingRT.setSize(bloomW,bloomH); pongRT.setSize(bloomW,bloomH);
+    blurMat.uniforms.uRes.value.set(bloomW,bloomH);
+    compositeMat.uniforms.uSceneRes.value.set(postW,postH);
+  }
+
+  function renderPost(){
+    // 1) base scene, with its own depth buffer for DOF
+    renderer.setRenderTarget(sceneRT);
+    renderer.render(scene, camera);
+
+    // 2) bright-pass extraction (downsampled -- cheaper blur, and a soft, wide bloom kernel
+    //    is exactly what a downsampled source gives you for free)
+    postQuad.material = brightMat;
+    brightMat.uniforms.tDiffuse.value = sceneRT.texture;
+    renderer.setRenderTarget(brightRT);
+    renderer.render(postScene, postCam);
+
+    // 3) separable gaussian blur, ping-ponged a couple of iterations for a soft falloff
+    var src = brightRT, dst = pingRT, other = pongRT;
+    var iterations = POST_MOBILE ? 1 : 2;
+    for (var i=0; i<iterations; i++){
+      postQuad.material = blurMat;
+      blurMat.uniforms.tDiffuse.value = src.texture;
+      blurMat.uniforms.uDir.value.set(1,0);
+      renderer.setRenderTarget(dst);
+      renderer.render(postScene, postCam);
+
+      blurMat.uniforms.tDiffuse.value = dst.texture;
+      blurMat.uniforms.uDir.value.set(0,1);
+      renderer.setRenderTarget(other);
+      renderer.render(postScene, postCam);
+      src = other;
+    }
+
+    // 4) composite: DOF-blurred base (desktop only) + bloom, straight to the screen canvas
+    postQuad.material = compositeMat;
+    compositeMat.uniforms.tScene.value = sceneRT.texture;
+    compositeMat.uniforms.tDepth.value = sceneRT.depthTexture || null;
+    compositeMat.uniforms.tBloom.value = src.texture;
+    renderer.setRenderTarget(null);
+    renderer.render(postScene, postCam);
+  }
+
+  /* ================= GPU energy-particle field =================
+     A real GPU-driven THREE.Points cloud orbiting the hologram -- every particle's position,
+     twinkle and size falloff is computed in the vertex/fragment shader from a single uTime
+     uniform plus per-particle attributes baked in once at creation. No per-particle JS math
+     per frame (unlike the 2D canvas market-tick layer behind the scene, which is a separate,
+     flatter effect). Lives in its own group (not the head rig) so it drifts independently of
+     the head's cursor-lean, and sits inside the WebGL scene proper so it's genuinely lit by
+     depth (occludes/is occluded by the head) and participates in the bloom/DOF pass above. */
+  var energyField = new THREE.Group(); scene.add(energyField);
+  (function buildEnergyField(){
+    var count = POST_MOBILE ? 700 : 2200;
+    var base = new Float32Array(count*3);
+    var seed = new Float32Array(count);
+    var speed = new Float32Array(count);
+    var size = new Float32Array(count);
+    var mix = new Float32Array(count);
+    for (var i=0;i<count;i++){
+      // scattered in a loose shell around the head, biased toward mid-radius (not a hard sphere)
+      var r = 1.3 + Math.pow(Math.random(), 0.6) * 2.4;
+      var theta = Math.random()*Math.PI*2;
+      var phi = Math.acos(1 - 2*Math.random());
+      base[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+      base[i*3+1] = r*Math.cos(phi)*0.75 + 0.3; // flattened + lifted to roughly head height
+      base[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+      seed[i] = Math.random()*100.0;
+      speed[i] = 0.05 + Math.random()*0.12;
+      size[i] = 0.8 + Math.random()*1.8;
+      mix[i] = Math.random();
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(base,3));
+    geo.setAttribute('aSeed', new THREE.BufferAttribute(seed,1));
+    geo.setAttribute('aSpeed', new THREE.BufferAttribute(speed,1));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(size,1));
+    geo.setAttribute('aMix', new THREE.BufferAttribute(mix,1));
+    var mat = new THREE.ShaderMaterial({
+      uniforms:{ uTime:{value:0}, uPR:{value:renderer.getPixelRatio()},
+        uTeal:{value:new THREE.Color(CONFIG.TEAL)}, uGold:{value:new THREE.Color(CONFIG.GOLD)} },
+      vertexShader:[
+        'attribute float aSeed;','attribute float aSpeed;','attribute float aSize;','attribute float aMix;',
+        'uniform float uTime;','uniform float uPR;',
+        'varying float vMix;','varying float vTwinkle;',
+        'void main(){',
+        '  vMix = aMix;',
+        '  float ang = uTime * aSpeed + aSeed;',
+        '  float c = cos(ang*0.3), s = sin(ang*0.3);',
+        '  vec3 p = position;',
+        '  vec3 orbited = vec3(p.x*c - p.z*s, p.y + sin(ang*0.7)*0.12, p.x*s + p.z*c);',
+        '  vTwinkle = 0.5 + 0.5*sin(uTime*1.6 + aSeed*7.0);',
+        '  vec4 mv = modelViewMatrix * vec4(orbited, 1.0);',
+        '  gl_PointSize = aSize * uPR * (70.0 / -mv.z);',
+        '  gl_Position = projectionMatrix * mv;','}'
+      ].join('\n'),
+      fragmentShader:[
+        'precision highp float;',
+        'uniform vec3 uTeal;','uniform vec3 uGold;',
+        'varying float vMix;','varying float vTwinkle;',
+        'void main(){',
+        '  float d = length(gl_PointCoord - 0.5);',
+        '  float disc = smoothstep(0.5, 0.05, d);',
+        '  vec3 col = mix(uTeal, uGold, vMix);',
+        '  gl_FragColor = vec4(col, disc * vTwinkle * 0.4);','}'
+      ].join('\n'),
+      transparent:true, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending
+    });
+    var pts = new THREE.Points(geo, mat);
+    energyField.add(pts);
+    energyField.userData.mat = mat;
+  })();
+
+  /* ================= energy rings around the hologram =================
+     Three thin glowing rings at different radii/tilts/speeds -- a fresnel-style edge glow
+     (brightest where the ring's surface grazes the view direction) rather than a flat-shaded
+     torus, so they read as light rather than plastic. */
+  var energyRings = new THREE.Group(); scene.add(energyRings);
+  (function buildEnergyRings(){
+    var ringMat = new THREE.ShaderMaterial({
+      uniforms:{ uColor:{value:new THREE.Color(CONFIG.GOLD)}, uOpacity:{value:0.5} },
+      vertexShader:[
+        'varying vec3 vN;','varying vec3 vV;',
+        'void main(){',
+        '  vN = normalize(normalMatrix * normal);',
+        '  vec4 mv = modelViewMatrix * vec4(position,1.0);',
+        '  vV = normalize(-mv.xyz);',
+        '  gl_Position = projectionMatrix * mv;','}'
+      ].join('\n'),
+      fragmentShader:[
+        'precision highp float;','uniform vec3 uColor;','uniform float uOpacity;',
+        'varying vec3 vN;','varying vec3 vV;',
+        'void main(){',
+        '  float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.8);',
+        '  gl_FragColor = vec4(uColor, fr*uOpacity);','}'
+      ].join('\n'),
+      transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide
+    });
+    /* radii/position tuned against this camera's actual framing (fov 33 deg, z=5.6 -> ~1.66
+       world-units of vertical half-frame, head fills nearly all of it) so the rings visibly
+       hug the head's silhouette instead of mostly falling outside the visible frame. */
+    var configs = [
+      {r:1.05, tube:0.007, tilt:0.22, color:CONFIG.GOLD, op:0.6, spin:0.05},
+      {r:1.28, tube:0.005, tilt:-0.32, color:CONFIG.TEAL, op:0.45, spin:-0.035},
+      {r:1.5,  tube:0.004, tilt:0.1, color:CONFIG.GOLD, op:0.32, spin:0.022}
+    ];
+    configs.forEach(function(cfg){
+      var geo = new THREE.TorusGeometry(cfg.r, cfg.tube, 8, 96);
+      var m = ringMat.clone();
+      m.uniforms.uColor.value = new THREE.Color(cfg.color);
+      m.uniforms.uOpacity.value = cfg.op;
+      var mesh = new THREE.Mesh(geo, m);
+      mesh.rotation.x = Math.PI/2 + cfg.tilt;
+      mesh.position.y = 0.28;
+      mesh.userData.spin = cfg.spin;
+      energyRings.add(mesh);
+    });
+  })();
+
   /* ---- surface sampling met normal-offset + helderheid per zone ---- */
   function sampleMeshes(meshes, count, box){
     var tris=[], areas=[], total=0, tmp=new THREE.Vector3();
@@ -1912,6 +2197,7 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
   window.addEventListener('resize', function(){
     W=mount.clientWidth; H=mount.clientHeight;
     camera.aspect=W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+    postResize(W,H);
     circuitPaths = drawCircuit(); sizePulse();
   });
 
@@ -2035,10 +2321,16 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
       key.position.y += (keyBaseY + my*0.3 - key.position.y)*0.04;
     }
 
+    if (energyField.userData.mat) energyField.userData.mat.uniforms.uTime.value = t;
+    for (var eri=0; eri<energyRings.children.length; eri++){
+      var ringMesh = energyRings.children[eri];
+      ringMesh.rotation.z = t * ringMesh.userData.spin;
+    }
+
     drawPulses(t);
     drawMarketParticles(t);
     drawAgentNodes(t);
-    renderer.render(scene,camera);
+    renderPost();
   })();
 })();
 </script>
@@ -2090,6 +2382,34 @@ FLAGS OB+FVG STACK 🔒 | CORREL ✅ | OVERLAP CONT 🔄</div>
     if (!ticking){ ticking = true; requestAnimationFrame(update); }
   }, {passive:true});
   update();
+})();
+</script>
+
+<!-- ================= microinteraction: the DNA percentages count up from zero the moment
+     they scroll into view -- "the engine calculating" rather than a static label. Decorative
+     (aria-hidden) numbers only; falls back to the correct static value with no JS. ================= -->
+<script>
+(function(){
+  var els = document.querySelectorAll('.tf-dna__pct[data-count]');
+  if (!els.length || !('IntersectionObserver' in window)) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  els.forEach(function(el){ el.textContent = '0'; });
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      io.unobserve(en.target);
+      var el = en.target, target = parseInt(el.getAttribute('data-count'), 10) || 0;
+      var start = performance.now(), dur = 1300;
+      function tick(now){
+        var p = Math.min(1, (now - start) / dur);
+        var eased = 1 - Math.pow(1-p, 3);
+        el.textContent = Math.round(eased * target);
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }, {threshold:0.4});
+  els.forEach(function(e){ io.observe(e); });
 })();
 </script>
 
