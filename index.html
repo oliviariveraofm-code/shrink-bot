@@ -371,23 +371,28 @@
   #agents{ position:relative; overflow:hidden; }
   .agn__head{ position:relative; z-index:2; }
 
-  /* scroll-triggered background still, distinct from the hero's crop -- crossfades in
-     as the section enters view rather than being visible on load. */
+  /* scroll-triggered background video, distinct from the hero's crop -- crossfades in
+     as the section enters view rather than being visible on load, and only plays while
+     this section is in the viewport (see JS). */
   .agn__bg{
     position:absolute; inset:0;
     z-index:0;
-    background-image:url('assets/agents-council.jpg');
-    background-size:cover;
-    background-position:50% 38%;
+    overflow:hidden;
     opacity:0;
     transition:opacity 450ms var(--ease);
   }
-  .agn__bg::after{
-    content:"";
-    position:absolute; inset:0;
-    background:rgba(10,10,10,.87);
-  }
   .agn__bg.is-visible{ opacity:1; }
+  .agn__bg-video{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    object-position:50% 30%;
+    background:var(--onyx);
+  }
+  .agn__bg-scrim{
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(10,10,10,.88) 0%, rgba(10,10,10,.80) 40%, rgba(10,10,10,.88) 100%);
+  }
 
   /* twelve line-icon motifs, quiet and static -- echoes the old hex-node layout's idea
      of "agents surrounding the content" without its density or color-coding. */
@@ -912,7 +917,21 @@
 
 <!-- 03 · The Twelve Agents -->
 <section id="agents">
-  <div class="agn__bg" id="agnBg" aria-hidden="true"></div>
+  <div class="agn__bg" id="agnBg" aria-hidden="true">
+    <video
+      class="agn__bg-video"
+      id="agnVideo"
+      muted
+      loop
+      playsinline
+      preload="none"
+      data-poster="assets/agents-loop-poster.jpg"
+    >
+      <source src="assets/agents-loop.webm" type="video/webm" />
+      <source src="assets/agents-loop.mp4" type="video/mp4" />
+    </video>
+    <div class="agn__bg-scrim" aria-hidden="true"></div>
+  </div>
   <div class="agn__icons" aria-hidden="true">
     <svg class="agn__icon" style="top:6%;left:8%;width:26px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l8-7 8 7"/><path d="M4 13l8-7 8 7"/><path d="M4 7l8-6 8 6"/></svg>
     <svg class="agn__icon agn__icon--stone" style="top:3%;left:82%;width:22px;transform:rotate(8deg);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8 6 8-6"/><path d="M4 12l8 6 8-6"/><path d="M4 18l8 4 8-4"/></svg>
@@ -1360,17 +1379,36 @@
     els.forEach(function(el){ el.classList.add('is-visible'); });
   }
 
-  // ---- section 03 background crossfade ----
+  // ---- section 03 background: crossfade in + video play only while in view ----
   var agnBg = document.getElementById('agnBg');
-  if (agnBg) {
+  var agnVideo = document.getElementById('agnVideo');
+  var agnSection = document.getElementById('agents');
+  if (agnBg && agnVideo && agnSection) {
+    // poster is deferred via data-poster, not the poster attribute -- browsers fetch
+    // poster images eagerly regardless of the video's own preload="none", so setting it
+    // only here keeps that 145KB request off the initial page load entirely.
+    var agnLoadPoster = function(){
+      var src = agnVideo.getAttribute('data-poster');
+      if (src) { agnVideo.poster = src; agnVideo.removeAttribute('data-poster'); }
+    };
+    // reduce=true: only ever set the poster, never call play()/load() -- preload="none"
+    // in the markup is respected and the browser fetches no video bytes at all.
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function(entries){
         entries.forEach(function(en){
-          if (en.isIntersecting) { agnBg.classList.add('is-visible'); }
+          if (en.isIntersecting) {
+            agnLoadPoster();
+            agnBg.classList.add('is-visible');
+            if (!reduce) agnVideo.play().catch(function(){});
+          } else if (!reduce) {
+            agnVideo.pause();
+          }
         });
-      }, { threshold: 0.15 }).observe(document.getElementById('agents'));
+      }, { threshold: 0.15 }).observe(agnSection);
     } else {
+      agnLoadPoster();
       agnBg.classList.add('is-visible');
+      if (!reduce) agnVideo.play().catch(function(){});
     }
   }
 </script>
