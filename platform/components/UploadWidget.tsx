@@ -35,9 +35,17 @@ export default function UploadWidget() {
     try {
       const formData = new FormData();
       formData.set("file", file);
-      const chartId = await uploadChart(formData);
-      router.push(`/dashboard/charts/${chartId}`);
+      const result = await uploadChart(formData);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.push(`/dashboard/charts/${result.chartId}`);
     } catch {
+      // Only genuinely unexpected failures land here (network error
+      // calling the action, etc) -- uploadChart returns { ok: false }
+      // for every failure it can anticipate, so the message survives
+      // Next.js's production redaction of thrown Server Action errors.
       setError("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);

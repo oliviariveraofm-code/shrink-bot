@@ -7,44 +7,82 @@ import { generateMockAnalysis } from "@/lib/mock";
 import { analyzeChart } from "@/lib/ai/analyzeChart";
 import { AiNotConfiguredError } from "@/lib/ai/errors";
 
+// Once ANTHROPIC_API_KEY is live, every upload is a real (paid) API call --
+// this is a basic abuse/cost guard, not a precise rate limiter. Fails open:
+// if the count query itself errors, uploads are allowed rather than blocked,
+// same "never let a side-check break the core flow" philosophy as the
+// AI-analysis fallback below.
+const RATE_LIMIT_MAX_UPLOADS = 10;
+const RATE_LIMIT_WINDOW_MINUTES = 60;
+
+export type UploadChartResult =
+  | { ok: true; chartId: string }
+  | { ok: false; error: string };
+
 /**
  * Uploads a chart image and analyzes it, all server-side:
  *   1. Re-verify auth (defense in depth, on top of proxy.ts).
- *   2. Upload the file to Storage.
- *   3. Insert the `charts` row.
- *   4. Try real AI analysis (lib/ai/analyzeChart.ts); if it's not
+ *   2. Check the upload rate limit.
+ *   3. Upload the file to Storage.
+ *   4. Insert the `charts` row.
+ *   5. Try real AI analysis (lib/ai/analyzeChart.ts); if it's not
  *      configured (no ANTHROPIC_API_KEY yet) or fails for any reason,
  *      fall back to the mock generator -- analysis problems must never
  *      block the upload itself.
- *   5. Insert the `chart_analyses` row and mark the chart complete.
+ *   6. Insert the `chart_analyses` row and mark the chart complete.
  *
  * The whole file goes through this one Server Action (not a separate
  * client-side Storage upload) so the same in-memory bytes can be handed
  * straight to the vision model without a redundant download-from-Storage
  * round trip.
+ *
+ * Returns a result object rather than throwing for expected failures (bad
+ * file, rate limit, Storage/DB errors) -- confirmed via testing that Next.js
+ * redacts thrown Server Action errors to a generic message in production
+ * builds, the same way it redacts render errors caught by error.tsx. A
+ * thrown Error here would never actually reach the user; returning data
+ * does, same pattern the login/signup actions already use correctly.
  */
-export async function uploadChart(formData: FormData) {
+export async function uploadChart(
+  formData: FormData
+): Promise<UploadChartResult> {
   const user = await requireUser();
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    throw new Error("No file provided.");
+    return { ok: false, error: "No file provided." };
   }
   if (!file.type.startsWith("image/")) {
-    throw new Error("Please upload an image file (chart screenshot).");
+    return { ok: false, error: "Please upload an image file (chart screenshot)." };
+  }
+
+  const supabase = await createClient();
+
+  const windowStart = new Date(
+    Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000
+  ).toISOString();
+  const { count, error: countError } = await supabase
+    .from("charts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", windowStart);
+
+  if (!countError && (count ?? 0) >= RATE_LIMIT_MAX_UPLOADS) {
+    return {
+      ok: false,
+      error: `You've uploaded ${RATE_LIMIT_MAX_UPLOADS} charts in the last hour. Please wait a bit before uploading more.`,
+    };
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ext = file.name.split(".").pop() || "png";
   const path = `${user.id}/${Date.now()}.${ext}`;
 
-  const supabase = await createClient();
-
   const { error: uploadError } = await supabase.storage
     .from(CHART_BUCKET)
     .upload(path, bytes, { contentType: file.type });
   if (uploadError) {
-    throw new Error(uploadError.message);
+    return { ok: false, error: uploadError.message };
   }
 
   const { data: chart, error: chartError } = await supabase
@@ -55,7 +93,7 @@ export async function uploadChart(formData: FormData) {
 
   if (chartError) {
     await supabase.storage.from(CHART_BUCKET).remove([path]);
-    throw new Error(chartError.message);
+    return { ok: false, error: chartError.message };
   }
 
   const chartId = chart.id as string;
@@ -81,5 +119,5 @@ export async function uploadChart(formData: FormData) {
     await supabase.from("charts").update({ status: "complete" }).eq("id", chartId);
   }
 
-  return chartId;
+  return { ok: true, chartId };
 }
