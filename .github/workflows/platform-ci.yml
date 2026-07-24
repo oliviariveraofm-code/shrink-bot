@@ -1,0 +1,31 @@
+name: Platform CI (lint + build)
+
+on:
+  push:
+    branches: [ claude/onyx-hero ]
+    paths: [ 'platform/**' ]
+  pull_request:
+    paths: [ 'platform/**' ]
+  workflow_dispatch: {}
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          # Dummy values -- this only needs to prove the app compiles and
+          # type-checks, not that it can reach a real Supabase project.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
