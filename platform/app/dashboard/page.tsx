@@ -1,5 +1,6 @@
 import AppNav from "@/components/AppNav";
 import ChartGrid from "@/components/ChartGrid";
+import UploadWidget from "@/components/UploadWidget";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CHART_BUCKET } from "@/lib/storage";
@@ -44,6 +45,7 @@ export default async function DashboardPage() {
               Upload Chart
             </a>
           </div>
+          <UploadWidget />
           <ChartGrid items={chartsWithUrls} />
         </div>
       </main>
