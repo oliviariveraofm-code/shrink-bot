@@ -20,8 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Stage only the marketing site
+        # The repo root now also contains platform/ (a separate Next.js
+        # app deployed to Vercel, not GitHub Pages). upload-pages-artifact
+        # only excludes .git/.github, so without this staging step
+        # platform/ would get bundled into the Pages deployment too.
+        run: |
+          mkdir _site
+          cp index.html _site/
+          cp -r assets _site/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
