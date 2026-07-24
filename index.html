@@ -260,14 +260,6 @@
     width:100%;
     text-align:center;
   }
-  .hero__eyebrow{
-    font-size:12px;
-    font-weight:600;
-    letter-spacing:.24em;
-    text-transform:uppercase;
-    color:var(--stone);
-    margin-bottom:20px;
-  }
   .hero__word{
     font-size:clamp(2.4rem, 7vw, 5.2rem);
     font-weight:700;
@@ -290,13 +282,22 @@
     justify-content:center;
     flex-wrap:wrap;
   }
-  .hero__micro{
-    margin-top:20px;
-    font-size:12px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:var(--stone);
-    opacity:.7;
+
+  /* ============ hero staged reveal: video alone first, then text, then ctas ============ */
+  .hero__text-group,
+  .hero__ctas{
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity 450ms var(--ease), transform 450ms var(--ease);
+  }
+  .hero__text-group.is-visible,
+  .hero__ctas.is-visible{
+    opacity:1;
+    transform:translateY(0);
+  }
+  @media (prefers-reduced-motion:reduce){
+    .hero__text-group,
+    .hero__ctas{ opacity:1; transform:none; transition:none; }
   }
   @media (max-width:640px){
     .hero{ padding-bottom:7vh; }
@@ -828,14 +829,14 @@
   </video>
   <div class="hero__scrim" aria-hidden="true"></div>
   <div class="container hero__content">
-    <div class="hero__eyebrow" data-reveal>The 5th Agent of the Trading Floor</div>
-    <h1 class="hero__word" data-reveal>Twelve agents. One analysis. No call without consensus.</h1>
-    <p class="hero__line" data-reveal>An AI analysis engine of 12 specialized agents that fight out every chart in silence. Only on consensus does a card drop: a TRADE card with exact entry, SL and targets — or a deliberate NO TRADE.</p>
-    <div class="hero__ctas" data-reveal>
+    <div class="hero__text-group" id="heroTextGroup">
+      <h1 class="hero__word">The Trading Floor</h1>
+      <p class="hero__line">Twelve agents. One analysis.</p>
+    </div>
+    <div class="hero__ctas" id="heroCtas">
       <a class="btn btn--primary" href="#" data-placeholder="DISCORD_INVITE_URL">Join The Discord</a>
       <a class="btn btn--ghost" href="#" data-placeholder="BRIEFING_PDF_URL">Read The Briefing (PDF)</a>
     </div>
-    <div class="hero__micro" data-reveal>Analysis &amp; Education · Not Financial Advice</div>
   </div>
 </section>
 
@@ -1356,6 +1357,21 @@
     if (reduce) return;
     if (document.hidden) video.pause(); else video.play().catch(function(){});
   });
+
+  // ---- hero staged reveal: video alone first, then text, then ctas ----
+  var heroTextGroup = document.getElementById('heroTextGroup');
+  var heroCtas = document.getElementById('heroCtas');
+  if (reduce) {
+    if (heroTextGroup) heroTextGroup.classList.add('is-visible');
+    if (heroCtas) heroCtas.classList.add('is-visible');
+  } else {
+    setTimeout(function(){
+      if (heroTextGroup) heroTextGroup.classList.add('is-visible');
+      setTimeout(function(){
+        if (heroCtas) heroCtas.classList.add('is-visible');
+      }, 180);
+    }, 1800);
+  }
 
   // ---- nav solidify on scroll ----
   var nav = document.getElementById('nav');
