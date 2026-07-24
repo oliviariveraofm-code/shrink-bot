@@ -265,6 +265,7 @@ p{
   text-transform:uppercase;
   text-decoration:none;
   color:var(--frost);
+  white-space:nowrap;
 }
 .app-nav__links{
   display:flex;
@@ -277,6 +278,7 @@ p{
   color:var(--stone);
   text-decoration:none;
   transition:color 150ms ease;
+  white-space:nowrap;
 }
 .app-nav__links a:hover, .app-nav__links a.is-active{ color:var(--frost); }
 .app-nav__links form{ display:inline; }
@@ -288,8 +290,20 @@ p{
   font-size:14px;
   cursor:pointer;
   padding:0;
+  white-space:nowrap;
 }
 .app-nav__links button:hover{ color:var(--frost); }
+
+@media (max-width:480px){
+  .app-nav__row{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:14px;
+  }
+  .app-nav__word{ font-size:12px; }
+  .app-nav__links{ gap:18px; }
+  .app-nav__links a, .app-nav__links button{ font-size:13px; }
+}
 
 /* ============ dashboard ============ */
 .dash-main{ padding:56px 0 100px; }

@@ -60,6 +60,15 @@ export default function UploadWidget() {
           const file = e.dataTransfer.files?.[0];
           if (file) handleFile(file);
         }}
+        onKeyDown={(e) => {
+          // A div with role="button" doesn't get free keyboard activation
+          // the way a real <button> does -- Enter/Space must be wired up
+          // by hand per WAI-ARIA authoring practices.
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         role="button"
         tabIndex={0}
       >
