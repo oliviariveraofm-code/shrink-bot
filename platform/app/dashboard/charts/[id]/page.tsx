@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import AppNav from "@/components/AppNav";
+import TradeCardMock from "@/components/TradeCardMock";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CHART_BUCKET } from "@/lib/storage";
-import type { Chart } from "@/lib/types";
+import type { Chart, MockAnalysis } from "@/lib/types";
 
 export default async function ChartDetailPage({
   params,
@@ -27,9 +28,14 @@ export default async function ChartDetailPage({
     notFound();
   }
 
-  const { data: signedUrlData } = await supabase.storage
-    .from(CHART_BUCKET)
-    .createSignedUrl(chart.image_path, 60 * 10);
+  const [{ data: signedUrlData }, { data: analysis }] = await Promise.all([
+    supabase.storage.from(CHART_BUCKET).createSignedUrl(chart.image_path, 60 * 10),
+    supabase
+      .from("mock_analyses")
+      .select("*")
+      .eq("chart_id", chart.id)
+      .maybeSingle<MockAnalysis>(),
+  ]);
 
   return (
     <>
@@ -57,14 +63,14 @@ export default async function ChartDetailPage({
               ) : null}
             </div>
             <div>
-              <div className="panel">
-                <div className="panel__label">Status</div>
-                <p>
-                  {chart.status === "pending"
-                    ? "Waiting on analysis."
-                    : "Analysis complete (mock)."}
-                </p>
-              </div>
+              {analysis ? (
+                <TradeCardMock analysis={analysis} />
+              ) : (
+                <div className="panel">
+                  <div className="panel__label">Status</div>
+                  <p>Waiting on analysis.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

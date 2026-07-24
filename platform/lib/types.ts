@@ -11,6 +11,7 @@ export type Chart = {
 export type MockAnalysis = {
   id: string;
   chart_id: string;
+  user_id: string;
   pair: string;
   direction: "LONG" | "SHORT";
   confidence: number;
