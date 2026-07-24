@@ -460,3 +460,17 @@ p{
   color:var(--stone);
   letter-spacing:.02em;
 }
+
+/* ============ loading skeletons ============ */
+@keyframes skeleton-pulse{
+  0%, 100%{ opacity:.5; }
+  50%{ opacity:.9; }
+}
+.skeleton{
+  background:rgba(166,166,168,.12);
+  border-radius:4px;
+  animation:skeleton-pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion:reduce){
+  .skeleton{ animation:none; opacity:.7; }
+}

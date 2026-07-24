@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import AppNav from "@/components/AppNav";
 import TradeCard from "@/components/TradeCard";
+import SetupError from "@/components/SetupError";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CHART_BUCKET } from "@/lib/storage";
@@ -17,15 +18,31 @@ export default async function ChartDetailPage({
 
   // RLS also enforces this -- the .eq("user_id", ...) here is a second,
   // redundant check, not the actual boundary preventing cross-user access.
-  const { data: chart } = await supabase
+  const { data: chart, error: chartError } = await supabase
     .from("charts")
     .select("*")
     .eq("id", id)
     .eq("user_id", user.id)
     .single<Chart>();
 
-  if (!chart) {
-    notFound();
+  if (chartError) {
+    // PGRST116 = .single() got zero (or more than one) rows -- the
+    // expected shape of "this chart doesn't exist, or isn't yours."
+    // Anything else (missing table, bad RLS, wrong project) is a real
+    // setup problem, not a 404, and should say so.
+    if (chartError.code === "PGRST116") {
+      notFound();
+    }
+    return (
+      <>
+        <AppNav active="dashboard" />
+        <main className="dash-main">
+          <div className="container">
+            <SetupError message={chartError.message} />
+          </div>
+        </main>
+      </>
+    );
   }
 
   const [{ data: signedUrlData }, { data: analysis }] = await Promise.all([

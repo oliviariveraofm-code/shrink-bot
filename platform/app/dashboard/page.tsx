@@ -1,6 +1,7 @@
 import AppNav from "@/components/AppNav";
 import ChartGrid from "@/components/ChartGrid";
 import UploadWidget from "@/components/UploadWidget";
+import SetupError from "@/components/SetupError";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CHART_BUCKET } from "@/lib/storage";
@@ -13,7 +14,7 @@ export default async function DashboardPage() {
   // RLS on the `charts` table restricts this to the current user's own rows
   // regardless of what's queried here -- this filter is belt-and-suspenders,
   // not the actual security boundary. See supabase/migrations/0001_init.sql.
-  const { data: charts } = await supabase
+  const { data: charts, error: chartsError } = await supabase
     .from("charts")
     .select("*")
     .eq("user_id", user.id)
@@ -46,7 +47,11 @@ export default async function DashboardPage() {
             </a>
           </div>
           <UploadWidget />
-          <ChartGrid items={chartsWithUrls} />
+          {chartsError ? (
+            <SetupError message={chartsError.message} />
+          ) : (
+            <ChartGrid items={chartsWithUrls} />
+          )}
         </div>
       </main>
     </>

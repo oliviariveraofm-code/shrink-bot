@@ -4,6 +4,11 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadChart } from "@/app/dashboard/actions";
 
+// Comfortably under next.config.ts's serverActions.bodySizeLimit (10mb) --
+// leaves headroom for multipart overhead and gives a clear client-side
+// error instead of a generic failure from the server rejecting the request.
+const MAX_FILE_BYTES = 9 * 1024 * 1024;
+
 export default function UploadWidget() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -16,6 +21,13 @@ export default function UploadWidget() {
 
     if (!file.type.startsWith("image/")) {
       setError("Please upload an image file (chart screenshot).");
+      return;
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      setError(
+        `That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB -- please upload something under 9MB.`
+      );
       return;
     }
 
@@ -64,7 +76,7 @@ export default function UploadWidget() {
         <div className="upload-zone__label">
           {isUploading ? "Uploading…" : "Drop a chart screenshot, or click to browse"}
         </div>
-        <div className="upload-zone__hint">PNG, JPG — one chart at a time</div>
+        <div className="upload-zone__hint">PNG, JPG — up to 9MB, one chart at a time</div>
       </div>
       {error ? <div className="form-error">{error}</div> : null}
     </div>
