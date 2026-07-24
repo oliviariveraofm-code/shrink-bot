@@ -1,18 +1,18 @@
-import type { MockAnalysis } from "@/lib/types";
+import type { ChartAnalysis } from "@/lib/types";
 
 /**
- * Placeholder analysis data -- there is no real chart-reading AI yet.
- * Fixed, not randomized, so it's obviously illustrative rather than
- * looking like a real (if oddly consistent) signal. The MOCK badge in
- * TradeCardMock.tsx is the actual honesty signal to the user; this is
- * just believable-looking filler shaped like the real TradeCard schema
- * will eventually be.
+ * Placeholder analysis data -- used whenever real AI analysis isn't
+ * configured (no ANTHROPIC_API_KEY) or fails at runtime. Fixed, not
+ * randomized, so it's obviously illustrative rather than looking like a
+ * real (if oddly consistent) signal. The MOCK badge in TradeCard.tsx is
+ * the actual honesty signal to the user, driven by `source: "mock"`.
  */
 export function generateMockAnalysis(): Omit<
-  MockAnalysis,
+  ChartAnalysis,
   "id" | "chart_id" | "user_id" | "created_at"
 > {
   return {
+    source: "mock",
     pair: "XAUUSD 15M — LONG",
     direction: "LONG",
     confidence: 78,

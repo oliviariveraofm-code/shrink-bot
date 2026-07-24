@@ -1,21 +1,25 @@
-import type { MockAnalysis } from "@/lib/types";
+import type { ChartAnalysis } from "@/lib/types";
 
 /**
  * Renders with the exact .tradecard classes ported from the marketing
- * site's Anatomy Of A Card section -- same visual component, real data
- * swapped for placeholder data. The MOCK badge is the honesty signal:
- * nothing here should be mistaken for a real trading signal.
+ * site's Anatomy Of A Card section. The badge is the honesty signal:
+ * mock results are clearly marked as mock; real (source: "claude-vision")
+ * results get a neutral "AI ANALYSIS" badge instead -- still a label,
+ * since this is a fairly new capability worth being upfront about, but
+ * not the red "don't trust this" mock styling.
  */
-export default function TradeCardMock({
-  analysis,
-}: {
-  analysis: MockAnalysis;
-}) {
+export default function TradeCard({ analysis }: { analysis: ChartAnalysis }) {
   return (
     <div>
-      <div className="badge badge--mock" style={{ marginBottom: "16px" }}>
-        MOCK ANALYSIS — AI ENGINE COMING SOON
-      </div>
+      {analysis.source === "mock" ? (
+        <div className="badge badge--mock" style={{ marginBottom: "16px" }}>
+          MOCK ANALYSIS — AI ENGINE COMING SOON
+        </div>
+      ) : (
+        <div className="badge badge--live" style={{ marginBottom: "16px" }}>
+          AI ANALYSIS
+        </div>
+      )}
       <div className="panel tradecard">
         <div className="tradecard__head">
           <div className="tradecard__pair">{analysis.pair}</div>

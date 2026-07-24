@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import AppNav from "@/components/AppNav";
-import TradeCardMock from "@/components/TradeCardMock";
+import TradeCard from "@/components/TradeCard";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CHART_BUCKET } from "@/lib/storage";
-import type { Chart, MockAnalysis } from "@/lib/types";
+import type { Chart, ChartAnalysis } from "@/lib/types";
 
 export default async function ChartDetailPage({
   params,
@@ -31,10 +31,10 @@ export default async function ChartDetailPage({
   const [{ data: signedUrlData }, { data: analysis }] = await Promise.all([
     supabase.storage.from(CHART_BUCKET).createSignedUrl(chart.image_path, 60 * 10),
     supabase
-      .from("mock_analyses")
+      .from("chart_analyses")
       .select("*")
       .eq("chart_id", chart.id)
-      .maybeSingle<MockAnalysis>(),
+      .maybeSingle<ChartAnalysis>(),
   ]);
 
   return (
@@ -64,7 +64,7 @@ export default async function ChartDetailPage({
             </div>
             <div>
               {analysis ? (
-                <TradeCardMock analysis={analysis} />
+                <TradeCard analysis={analysis} />
               ) : (
                 <div className="panel">
                   <div className="panel__label">Status</div>

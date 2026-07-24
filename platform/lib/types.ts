@@ -1,4 +1,4 @@
-export type ChartStatus = "pending" | "mock_complete";
+export type ChartStatus = "pending" | "complete";
 
 export type Chart = {
   id: string;
@@ -8,10 +8,13 @@ export type Chart = {
   created_at: string;
 };
 
-export type MockAnalysis = {
+export type AnalysisSource = "mock" | "claude-vision";
+
+export type ChartAnalysis = {
   id: string;
   chart_id: string;
   user_id: string;
+  source: AnalysisSource;
   pair: string;
   direction: "LONG" | "SHORT";
   confidence: number;
