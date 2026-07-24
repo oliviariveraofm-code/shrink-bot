@@ -21,9 +21,12 @@ GitHub Pages) — this app deploys to its own Vercel project. See
 1. Go to [supabase.com](https://supabase.com), create a project (free tier).
 2. In **Project Settings → API**, copy the **Project URL** and the
    **anon / public key**.
-3. In the SQL Editor, run `supabase/migrations/0001_init.sql` (in this
-   repo) to create the `charts` table, the `chart-uploads` storage
-   bucket, and their Row Level Security policies.
+3. In the SQL Editor, run both files in `supabase/migrations/`, in
+   order: `0001_init.sql` (the `charts` table, the `chart-uploads`
+   storage bucket, and their Row Level Security policies) and then
+   `0002_mock_analysis.sql` (the `mock_analyses` table -- required
+   before uploading a chart will work, since the upload flow writes a
+   mock result to it immediately).
 4. In **Authentication → Providers**, email/password is enabled by
    default. Decide whether to require email confirmation (Authentication
    → Settings) — the signup flow here handles both cases.
@@ -79,6 +82,14 @@ point at `<your-vercel-url>/login`.
 | `/signup`    | public     | real Supabase auth |
 | `/dashboard` | protected  | real: chart list, upload |
 | `/shrink`    | protected  | mock stats, clearly labeled |
+
+## CI
+
+`.github/workflows/platform-ci.yml` runs `npm run lint` and `npm run
+build` on every push/PR that touches `platform/**`, using dummy
+Supabase env vars -- it only needs to prove the app compiles and
+type-checks, not that it can reach a real project. Separate from
+`deploy-onyx.yml`, which only cares about the marketing site.
 
 ## Security notes
 
