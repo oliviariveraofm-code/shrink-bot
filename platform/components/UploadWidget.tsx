@@ -46,8 +46,15 @@ export default function UploadWidget() {
         return;
       }
 
-      const chartId = await createChartRecord(path);
-      router.push(`/dashboard/charts/${chartId}`);
+      try {
+        const chartId = await createChartRecord(path);
+        router.push(`/dashboard/charts/${chartId}`);
+      } catch (err) {
+        // The file uploaded but the DB record failed -- clean up rather
+        // than leaving an orphaned file with nothing pointing to it.
+        await supabase.storage.from(CHART_BUCKET).remove([path]);
+        throw err;
+      }
     } catch {
       setError("Upload failed. Please try again.");
     } finally {

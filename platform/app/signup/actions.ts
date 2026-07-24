@@ -2,15 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AuthFormSchema, type AuthFormState } from "@/lib/definitions";
+import { SignupFormSchema, type AuthFormState } from "@/lib/definitions";
 
 export async function signup(
   _prevState: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
-  const validated = AuthFormSchema.safeParse({
+  const validated = SignupFormSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
   });
 
   if (!validated.success) {
@@ -18,7 +19,10 @@ export async function signup(
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp(validated.data);
+  const { data, error } = await supabase.auth.signUp({
+    email: validated.data.email,
+    password: validated.data.password,
+  });
 
   if (error) {
     return { error: error.message };

@@ -58,6 +58,28 @@ export default function AuthForm({ mode, action, next }: Props) {
         )}
       </div>
 
+      {mode === "signup" ? (
+        <div className="field">
+          <label htmlFor="confirmPassword">Confirm password</label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+            aria-invalid={
+              state?.fieldErrors?.confirmPassword ? true : undefined
+            }
+          />
+          {state?.fieldErrors?.confirmPassword ? (
+            <span className="field-error">
+              {state.fieldErrors.confirmPassword[0]}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <button className="btn btn--primary" type="submit" disabled={pending}>
         {pending
           ? mode === "login"

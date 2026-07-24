@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
+import { createClient } from "@/lib/supabase/server";
 import { login } from "./actions";
 
 export default async function LoginPage({
@@ -8,6 +10,14 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; confirm?: string }>;
 }) {
   const { next, confirm } = await searchParams;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    redirect(next && next.startsWith("/") ? next : "/dashboard");
+  }
 
   return (
     <div className="auth-shell">
