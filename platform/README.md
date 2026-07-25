@@ -70,19 +70,28 @@ Environment Variables**.
 ### 3. Connect Vercel
 
 1. Import this GitHub repo into a new Vercel project.
-2. Leave **Root Directory** at its default (repo root) -- don't set it
-   to `platform`. The root-level `vercel.json` already tells Vercel
-   this is a monorepo with the Next.js app in `platform/` (via
-   `installCommand`/`buildCommand`/`outputDirectory`), so it doesn't
-   depend on that dashboard setting being found and configured by hand.
-3. Add the environment variables from step 2.
+2. In **Project Settings → General → Root Directory**, set it to
+   `platform`. This is required, not optional -- Vercel's Next.js
+   framework/version detection reads `package.json` at whatever Root
+   Directory points to. There's no `package.json` at the repo root (this
+   is a monorepo with the marketing site's static files there instead),
+   so leaving Root Directory unset causes the build to fail with `No
+   Next.js version detected` even though `next` is correctly listed in
+   `platform/package.json`.
+   - An earlier version of this repo tried to work around Root
+     Directory entirely with a root-level `vercel.json`
+     (`installCommand`/`buildCommand` that `cd platform`). That
+     approach got past the "failing immediately" problem but doesn't
+     satisfy Vercel's framework-detection step, which is why it's been
+     removed -- Root Directory is the actual fix.
+   - Once Root Directory is set to `platform`, no `vercel.json` is
+     needed at all. Framework Preset should auto-detect as "Next.js" --
+     worth a quick check in Project Settings → General if a deployment
+     still fails at this step, in case it was previously locked to
+     something else (or left as "Other") from before Root Directory was
+     corrected.
+3. Add the environment variables from step 2 above.
 4. Deploy. Every push to `claude/onyx-hero` will auto-deploy.
-
-If a deployment fails immediately (a few seconds, before any real
-build output), check that Root Directory in Project Settings is
-genuinely unset/default -- if someone previously set it to `platform`,
-that now conflicts with vercel.json's own paths (which are relative to
-the repo root) and needs to be cleared.
 
 ## Local development
 
