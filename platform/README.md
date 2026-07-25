@@ -17,7 +17,7 @@ later is one checklist, not a scavenger hunt through every file.
 |---|------|------------------|----------|----------------------|
 | 1 | Supabase project URL + anon key | supabase.com → your project → Project Settings → API | Auth, database, storage | **Yes** — nothing works live without this |
 | 2 | Run `supabase/migrations/0001_init.sql` then `0002_mock_analysis.sql` | Supabase SQL Editor, against your project | Creates the tables/bucket/RLS the app expects | **Yes** |
-| 3 | Vercel project, connected to this repo, Root Directory = `platform` | vercel.com → New Project | Actually hosting this app at a real URL | **Yes** |
+| 3 | Vercel project, connected to this repo | vercel.com → New Project | Actually hosting this app at a real URL | **Yes** |
 | 4 | The two Supabase values from #1, set as env vars in Vercel | Vercel → Project Settings → Environment Variables | Same as #1, but for the deployed app | **Yes** |
 | 5 | `ANTHROPIC_API_KEY` | console.anthropic.com | Real AI chart analysis | **No** — without it, uploads still work and get a clearly-labeled mock result instead |
 | 6 | Update the marketing site's "Log In" link | `../index.html`, the `data-placeholder="PLATFORM_APP_LOGIN_URL"` nav link | Points visitors from the marketing site to this app | **No**, but it's a dead link until you do |
@@ -70,11 +70,19 @@ Environment Variables**.
 ### 3. Connect Vercel
 
 1. Import this GitHub repo into a new Vercel project.
-2. Set **Root Directory** to `platform` (this is a monorepo-style
-   layout — the marketing site lives at the repo root, this app lives
-   in `platform/`).
+2. Leave **Root Directory** at its default (repo root) -- don't set it
+   to `platform`. The root-level `vercel.json` already tells Vercel
+   this is a monorepo with the Next.js app in `platform/` (via
+   `installCommand`/`buildCommand`/`outputDirectory`), so it doesn't
+   depend on that dashboard setting being found and configured by hand.
 3. Add the environment variables from step 2.
 4. Deploy. Every push to `claude/onyx-hero` will auto-deploy.
+
+If a deployment fails immediately (a few seconds, before any real
+build output), check that Root Directory in Project Settings is
+genuinely unset/default -- if someone previously set it to `platform`,
+that now conflicts with vercel.json's own paths (which are relative to
+the repo root) and needs to be cleared.
 
 ## Local development
 
