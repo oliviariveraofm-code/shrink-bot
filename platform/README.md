@@ -20,7 +20,7 @@ later is one checklist, not a scavenger hunt through every file.
 | 3 | Vercel project, connected to this repo | vercel.com → New Project | Actually hosting this app at a real URL | **Yes** |
 | 4 | The two Supabase values from #1, set as env vars in Vercel | Vercel → Project Settings → Environment Variables | Same as #1, but for the deployed app | **Yes** |
 | 5 | `ANTHROPIC_API_KEY` | console.anthropic.com | Real AI chart analysis | **No** — without it, uploads still work and get a clearly-labeled mock result instead |
-| 6 | Update the marketing site's "Log In" link | `../index.html`, the `data-placeholder="PLATFORM_APP_LOGIN_URL"` nav link | Points visitors from the marketing site to this app | **No**, but it's a dead link until you do |
+| 6 | ~~Update the marketing site's "Log In" link~~ | `../index.html` | Points visitors from the marketing site to this app | **Done** — points to `https://shrink-bot-ebon.vercel.app/login` |
 
 ## What's real vs. mock
 
@@ -112,9 +112,7 @@ even locally, same mock fallback applies.
   The Shrink. A different domain from the marketing site.
 
 The marketing site's nav has a "Log In" link pointing at this app --
-its `href` is a placeholder (`data-placeholder="PLATFORM_APP_LOGIN_URL"`)
-until a real Vercel URL exists, at which point it should be updated to
-point at `<your-vercel-url>/login`.
+its `href` is `https://shrink-bot-ebon.vercel.app/login`.
 
 ## Route map
 
