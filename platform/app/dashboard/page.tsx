@@ -51,6 +51,12 @@ export default async function DashboardPage() {
     })
   );
 
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <>
       <AppNav active="dashboard" />
@@ -60,6 +66,7 @@ export default async function DashboardPage() {
             <div>
               <div className="eyebrow">Dashboard</div>
               <h1>Welcome back.</h1>
+              <div className="dash-head__date">{today}</div>
             </div>
             <a className="btn btn--primary" href="#upload">
               Upload Chart
@@ -69,6 +76,9 @@ export default async function DashboardPage() {
             <StatGrid stats={computeDashboardStats(charts)} />
           ) : null}
           <UploadWidget />
+          <div className="section-heading">
+            <div className="eyebrow">Recent uploads</div>
+          </div>
           {chartsError ? (
             <SetupError message={chartsError.message} />
           ) : (

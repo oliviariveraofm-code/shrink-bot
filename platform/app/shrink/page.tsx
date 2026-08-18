@@ -56,16 +56,25 @@ export default async function ShrinkPage() {
             individual calls.
           </p>
 
-          <div className="badge badge--live" style={{ marginTop: "28px" }}>
+          <div className="section-heading" style={{ marginTop: "40px" }}>
+            <div className="eyebrow">Your activity</div>
+          </div>
+          <div className="badge badge--live" style={{ marginBottom: "20px" }}>
             LIVE — FROM YOUR ACTUAL UPLOAD ACTIVITY
           </div>
           <StatGrid stats={computeShrinkStats(charts ?? [], analyses ?? [])} />
 
-          <div className="badge badge--mock" style={{ marginTop: "40px" }}>
+          <div className="section-heading">
+            <div className="eyebrow">Still coming</div>
+          </div>
+          <div className="badge badge--mock" style={{ marginBottom: "20px" }}>
             MOCK DATA — REQUIRES TRADE OUTCOME TRACKING, COMING SOON
           </div>
           <StatGrid stats={STILL_MOCK_STATS} />
 
+          <div className="section-heading">
+            <div className="eyebrow">The 5th agent, live</div>
+          </div>
           <ShrinkChat initialMessages={chatHistory ?? []} />
         </div>
       </main>

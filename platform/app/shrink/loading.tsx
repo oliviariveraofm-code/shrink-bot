@@ -8,12 +8,15 @@ export default function Loading() {
         <div className="container">
           <div className="eyebrow">The 5th Agent</div>
           <h1 style={{ marginTop: "8px" }}>The Shrink.</h1>
-          <div className="stat-grid">
+          <div className="section-heading" style={{ marginTop: "40px" }}>
+            <div className="eyebrow">Your activity</div>
+          </div>
+          <div className="stat-grid" style={{ marginTop: 0 }}>
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="panel stat-panel">
                 <div
                   className="skeleton"
-                  style={{ height: "38px", width: "50%", marginBottom: "10px" }}
+                  style={{ height: "34px", width: "50%", marginBottom: "10px" }}
                 />
                 <div className="skeleton" style={{ height: "13px", width: "80%" }} />
               </div>
