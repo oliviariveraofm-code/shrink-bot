@@ -35,3 +35,14 @@ export type ChartAnalysis = {
   flags: string[];
   created_at: string;
 };
+
+export type ShrinkMessageSource = "mock" | "claude";
+
+export type ShrinkMessage = {
+  id: string;
+  user_id: string;
+  role: "user" | "assistant";
+  content: string;
+  source: ShrinkMessageSource | null;
+  created_at: string;
+};

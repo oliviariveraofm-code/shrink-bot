@@ -334,6 +334,19 @@ p{
   margin-bottom:16px;
   display:block;
 }
+.chart-card__analysis{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+  font-weight:600;
+  color:var(--frost);
+  margin-bottom:8px;
+}
+.chart-card__direction{ font-size:12px; letter-spacing:.02em; }
+.chart-card__direction--long{ color:#8cc896; }
+.chart-card__direction--short{ color:var(--danger); }
 .chart-card__meta{
   display:flex;
   align-items:center;
@@ -474,6 +487,71 @@ p{
   color:var(--stone);
   letter-spacing:.02em;
 }
+
+/* ============ shrink chat ============ */
+.shrink-chat{ margin-top:48px; max-width:720px; }
+.shrink-chat__messages{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  max-height:440px;
+  overflow-y:auto;
+  padding-right:4px;
+  margin-bottom:20px;
+}
+.shrink-chat__empty{
+  color:var(--stone);
+  font-size:14px;
+  line-height:1.6;
+  padding:8px 0 20px;
+}
+.shrink-msg{ display:flex; flex-direction:column; max-width:82%; }
+.shrink-msg--user{ align-self:flex-end; align-items:flex-end; }
+.shrink-msg--assistant{ align-self:flex-start; align-items:flex-start; }
+.shrink-msg__bubble{
+  padding:12px 16px;
+  border-radius:10px;
+  font-size:14px;
+  line-height:1.55;
+  text-align:left;
+  white-space:pre-wrap;
+}
+.shrink-msg--user .shrink-msg__bubble{
+  background:var(--electric);
+  color:var(--onyx);
+  border-bottom-right-radius:2px;
+}
+.shrink-msg--assistant .shrink-msg__bubble{
+  background:#111113;
+  border:1px solid rgba(166,166,168,.22);
+  color:var(--frost);
+  border-bottom-left-radius:2px;
+}
+.shrink-msg__source{
+  margin-top:6px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.shrink-msg__source--mock{ color:var(--danger); }
+.shrink-msg__source--claude{ color:var(--electric); }
+.shrink-chat__form{ display:flex; gap:10px; }
+.shrink-chat__form input{
+  flex:1;
+  background:#111113;
+  border:1px solid rgba(166,166,168,.28);
+  border-radius:5px;
+  padding:13px 14px;
+  font-size:15px;
+  color:var(--frost);
+  font-family:var(--font);
+}
+.shrink-chat__form input:focus{
+  outline:none;
+  border-color:var(--electric);
+}
+.shrink-chat__form input:disabled{ opacity:.6; }
 
 /* ============ loading skeletons ============ */
 @keyframes skeleton-pulse{

@@ -1,6 +1,10 @@
-import type { Chart } from "@/lib/types";
+import type { Chart, ChartAnalysis } from "@/lib/types";
 
-type Item = { chart: Chart; signedUrl: string | null };
+type Item = {
+  chart: Chart;
+  signedUrl: string | null;
+  analysis: ChartAnalysis | null;
+};
 
 export default function ChartGrid({ items }: { items: Item[] }) {
   if (items.length === 0) {
@@ -21,7 +25,7 @@ export default function ChartGrid({ items }: { items: Item[] }) {
 
   return (
     <div className="chart-grid">
-      {items.map(({ chart, signedUrl }) => (
+      {items.map(({ chart, signedUrl, analysis }) => (
         <a
           key={chart.id}
           className="panel chart-card"
@@ -39,6 +43,16 @@ export default function ChartGrid({ items }: { items: Item[] }) {
           ) : (
             <div className="chart-card__thumb" />
           )}
+          {analysis ? (
+            <div className="chart-card__analysis">
+              <span>{analysis.pair}</span>
+              <span
+                className={`chart-card__direction chart-card__direction--${analysis.direction.toLowerCase()}`}
+              >
+                {analysis.direction} {analysis.confidence}%
+              </span>
+            </div>
+          ) : null}
           <div className="chart-card__meta">
             <span>{new Date(chart.created_at).toLocaleDateString()}</span>
             <span className={chart.status === "complete" ? undefined : "tabular"}>

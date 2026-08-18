@@ -1,15 +1,47 @@
 import AppNav from "@/components/AppNav";
+import StatGrid from "@/components/StatGrid";
+import ShrinkChat from "@/components/ShrinkChat";
 import { requireUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { computeShrinkStats } from "@/lib/stats";
+import type { Chart, ChartAnalysis, ShrinkMessage } from "@/lib/types";
 
-const MOCK_STATS = [
-  { label: "Trades logged", value: "0" },
-  { label: "Patterns detected", value: "0" },
+const STILL_MOCK_STATS = [
   { label: "Distance to prop-firm limits", value: "—" },
   { label: "Discipline score", value: "—" },
 ];
 
 export default async function ShrinkPage() {
-  await requireUser();
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  // RLS on every table here restricts these to the current user's own
+  // rows regardless of what's queried -- belt-and-suspenders, not the
+  // actual boundary. See supabase/migrations/.
+  const [{ data: charts }, { data: analyses }, { data: chatHistory }] =
+    await Promise.all([
+      supabase
+        .from("charts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(500)
+        .returns<Chart[]>(),
+      supabase
+        .from("chart_analyses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200)
+        .returns<ChartAnalysis[]>(),
+      supabase
+        .from("shrink_messages")
+        .select("role, content, source, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(50)
+        .returns<Pick<ShrinkMessage, "role" | "content" | "source" | "created_at">[]>(),
+    ]);
 
   return (
     <>
@@ -24,18 +56,17 @@ export default async function ShrinkPage() {
             individual calls.
           </p>
 
-          <div className="badge badge--mock" style={{ marginTop: "28px" }}>
-            MOCK DATA — REAL TRACKING COMING SOON
+          <div className="badge badge--live" style={{ marginTop: "28px" }}>
+            LIVE — FROM YOUR ACTUAL UPLOAD ACTIVITY
           </div>
+          <StatGrid stats={computeShrinkStats(charts ?? [], analyses ?? [])} />
 
-          <div className="stat-grid">
-            {MOCK_STATS.map((stat) => (
-              <div key={stat.label} className="panel stat-panel">
-                <div className="stat__value tabular">{stat.value}</div>
-                <div className="stat__label">{stat.label}</div>
-              </div>
-            ))}
+          <div className="badge badge--mock" style={{ marginTop: "40px" }}>
+            MOCK DATA — REQUIRES TRADE OUTCOME TRACKING, COMING SOON
           </div>
+          <StatGrid stats={STILL_MOCK_STATS} />
+
+          <ShrinkChat initialMessages={chatHistory ?? []} />
         </div>
       </main>
     </>

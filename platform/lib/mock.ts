@@ -33,3 +33,20 @@ export function generateMockAnalysis(): Omit<
     flags: ["OB+FVG STACK 🔒", "CORREL ✅", "OVERLAP CONT 🔄"],
   };
 }
+
+/**
+ * Placeholder Shrink chat reply -- used whenever real AI chat isn't
+ * configured (no ANTHROPIC_API_KEY) or fails at runtime. Fixed, not
+ * randomized, same reasoning as generateMockAnalysis() above. The
+ * "MOCK ANALYSIS" badge in ShrinkChat.tsx is the actual honesty signal,
+ * driven by `source: "mock"`.
+ */
+export function generateMockShrinkReply(): string {
+  return (
+    "I'm running in placeholder mode right now -- real behavioral " +
+    "analysis needs ANTHROPIC_API_KEY configured. Once that's live, " +
+    "I'll read your actual logged charts and analyses (upload " +
+    "frequency, direction bias, repeated setups) and talk through " +
+    "what they say about your trading behavior."
+  );
+}

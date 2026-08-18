@@ -16,24 +16,33 @@ later is one checklist, not a scavenger hunt through every file.
 | # | What | Where to get it | Used for | Required to go live? |
 |---|------|------------------|----------|----------------------|
 | 1 | Supabase project URL + anon key | supabase.com → your project → Project Settings → API | Auth, database, storage | **Yes** — nothing works live without this |
-| 2 | Run `supabase/migrations/0001_init.sql` then `0002_mock_analysis.sql` | Supabase SQL Editor, against your project | Creates the tables/bucket/RLS the app expects | **Yes** |
+| 2 | Run `supabase/migrations/0001_init.sql`, `0002_mock_analysis.sql`, then `0003_shrink_chat.sql` | Supabase SQL Editor, against your project | Creates the tables/bucket/RLS the app expects | **Yes** |
 | 3 | Vercel project, connected to this repo | vercel.com → New Project | Actually hosting this app at a real URL | **Yes** |
 | 4 | The two Supabase values from #1, set as env vars in Vercel | Vercel → Project Settings → Environment Variables | Same as #1, but for the deployed app | **Yes** |
-| 5 | `ANTHROPIC_API_KEY` | console.anthropic.com | Real AI chart analysis | **No** — without it, uploads still work and get a clearly-labeled mock result instead |
+| 5 | `ANTHROPIC_API_KEY` | console.anthropic.com | Real AI chart analysis, and real Shrink chat replies | **No** — without it, uploads and Shrink chat still work and get a clearly-labeled mock result instead |
 | 6 | ~~Update the marketing site's "Log In" link~~ | `../index.html` | Points visitors from the marketing site to this app | **Done** — points to `https://shrink-bot-ebon.vercel.app/login` |
 
 ## What's real vs. mock
 
 - **Real:** Supabase email/password auth, session handling, protected
-  routes, chart upload to Supabase Storage, per-user Row Level Security.
+  routes, chart upload to Supabase Storage, per-user Row Level Security,
+  the activity stats on the dashboard and the top half of `/shrink`
+  (charts uploaded, direction bias, avg. confidence, most common setup --
+  all computed from your actual `charts`/`chart_analyses` rows, `LIVE`
+  badge).
 - **Conditionally real, mock fallback:** chart analysis
-  (`lib/ai/analyzeChart.ts`) uses real Claude vision analysis if
-  `ANTHROPIC_API_KEY` is configured, otherwise silently falls back to
-  the mock generator (`lib/mock.ts`) -- either way the result is clearly
-  labeled in the UI (`AI ANALYSIS` vs `MOCK ANALYSIS` badge on the
-  TradeCard, driven by the `source` column on `chart_analyses`).
-- **Mock, no real version built yet:** all stats on `/shrink`
-  (`MOCK DATA` badge). Real behavioral tracking is a future phase.
+  (`lib/ai/analyzeChart.ts`) and Shrink chat replies
+  (`lib/ai/shrinkChat.ts`) both use real Claude if `ANTHROPIC_API_KEY` is
+  configured, otherwise silently fall back to `lib/mock.ts` -- either way
+  the result is clearly labeled in the UI (`AI ANALYSIS`/`MOCK ANALYSIS`
+  badge on the TradeCard; `THE SHRINK — LIVE`/`MOCK REPLY` under each
+  Shrink chat reply), driven by the `source` column on `chart_analyses`
+  and `shrink_messages` respectively.
+- **Mock, no real version built yet:** "Distance to prop-firm limits"
+  and "Discipline score" on `/shrink` (`MOCK DATA` badge) -- both need
+  real trade *outcome* tracking (win/loss, P&L), which isn't built. The
+  Shrink chat is grounded only in upload/analysis activity, and is
+  instructed to say so honestly if asked about win rate or profit.
 
 ## One-time setup (required before this app can run for real)
 
@@ -42,12 +51,14 @@ later is one checklist, not a scavenger hunt through every file.
 1. Go to [supabase.com](https://supabase.com), create a project (free tier).
 2. In **Project Settings → API**, copy the **Project URL** and the
    **anon / public key**.
-3. In the SQL Editor, run both files in `supabase/migrations/`, in
+3. In the SQL Editor, run all three files in `supabase/migrations/`, in
    order: `0001_init.sql` (the `charts` table, the `chart-uploads`
-   storage bucket, and their Row Level Security policies) and then
+   storage bucket, and their Row Level Security policies), then
    `0002_mock_analysis.sql` (the `chart_analyses` table -- required
    before uploading a chart will work, since the upload flow writes a
-   result to it immediately, mock or real).
+   result to it immediately, mock or real), then `0003_shrink_chat.sql`
+   (the `shrink_messages` table -- required before the Shrink chat will
+   work).
 4. In **Authentication → Providers**, email/password is enabled by
    default. Decide whether to require email confirmation (Authentication
    → Settings) — the signup flow here handles both cases.
@@ -121,9 +132,9 @@ its `href` is `https://shrink-bot-ebon.vercel.app/login`.
 | `/`          | public     | redirects to `/dashboard` or `/login` |
 | `/login`     | public     | real Supabase auth, redirects away if already logged in |
 | `/signup`    | public     | real Supabase auth, redirects away if already logged in |
-| `/dashboard` | protected  | real: chart list, upload |
+| `/dashboard` | protected  | real: chart list + activity stats, upload |
 | `/dashboard/charts/[id]` | protected | real chart + analysis (real AI or mock, clearly labeled) |
-| `/shrink`    | protected  | mock stats, clearly labeled |
+| `/shrink`    | protected  | real activity stats + Shrink chat (real AI or mock, clearly labeled); outcome-based stats still mock |
 
 ## CI
 

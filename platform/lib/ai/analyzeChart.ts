@@ -1,6 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { AiNotConfiguredError } from "@/lib/ai/errors";
+import { getConfiguredApiKey } from "@/lib/ai/apiKey";
 import {
   AnalysisResultSchema,
   ANALYSIS_TOOL_INPUT_SCHEMA,
@@ -18,15 +18,6 @@ const SUPPORTED_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
-function isPlaceholderKey(key: string) {
-  return (
-    key.trim() === "" ||
-    key.includes("YOUR_") ||
-    key.includes("placeholder") ||
-    key === "sk-ant-..."
-  );
-}
-
 /**
  * Real chart analysis via Claude's vision + tool use. Throws
  * AiNotConfiguredError if ANTHROPIC_API_KEY isn't set (or is still the
@@ -41,10 +32,7 @@ export async function analyzeChart(
   imageBytes: Uint8Array,
   mimeType: string
 ): Promise<AnalysisResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || isPlaceholderKey(apiKey)) {
-    throw new AiNotConfiguredError();
-  }
+  const apiKey = getConfiguredApiKey();
 
   if (!SUPPORTED_MIME_TYPES.has(mimeType)) {
     throw new Error(`Unsupported image type for analysis: ${mimeType}`);
