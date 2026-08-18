@@ -395,8 +395,8 @@ p{
 /* ============ two-column split (chart image + result), ported from Anatomy ============ */
 .anat__split{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:44px;
+  grid-template-columns:0.8fr 1.2fr;
+  gap:56px;
   align-items:start;
 }
 @media (max-width:900px){ .anat__split{ grid-template-columns:1fr; } }
