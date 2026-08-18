@@ -83,7 +83,7 @@ export function computeShrinkStats(
     { label: "This week", value: String(thisWeek) },
     { label: "Direction bias", value: bias },
     { label: "Avg. confidence", value: avgConfidence },
-    { label: "Most common setup", value: topStrategy },
+    { label: "Most common setup", value: topStrategy, compact: true },
     { label: "Last activity", value: last ? timeAgo(last.created_at) : "—" },
   ];
 }
