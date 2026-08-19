@@ -105,6 +105,295 @@
     #scrub-track { height: auto; }
     #scrub-stage { position: relative; height: 100vh; }
   }
+
+  /* ---------- Nav + Panels ---------- */
+
+  :root {
+    --gold: #d4af37;
+    --gold-bright: #f2d78a;
+    --gold-dim: rgba(212, 175, 55, 0.35);
+    --panel-bg: linear-gradient(165deg, rgba(22, 18, 10, 0.92), rgba(6, 5, 3, 0.95));
+    --ink: #ece1c4;
+    --ink-dim: #a99a72;
+  }
+
+  #site-nav {
+    display: none; /* shown once the scene has finished loading */
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 45; /* above #panel-overlay (40) so nav stays clickable while a panel is open */
+    gap: 4px;
+    padding: 8px;
+    background: rgba(8, 7, 4, 0.55);
+    border: 1px solid var(--gold-dim);
+    border-radius: 999px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.12), inset 0 0 0 1px rgba(255,255,255,0.02);
+    flex-wrap: wrap;
+    max-width: 94vw;
+    justify-content: center;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink-dim);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
+  }
+  .nav-btn:hover,
+  .nav-btn:focus-visible {
+    color: var(--gold-bright);
+    background: rgba(212, 175, 55, 0.12);
+    box-shadow: inset 0 0 0 1px var(--gold-dim);
+  }
+  .nav-btn.nav-btn-active {
+    color: #100c04;
+    background: var(--gold);
+  }
+
+  #panel-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(3, 2, 1, 0.65);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  #panel-overlay.visible { opacity: 1; }
+
+  .panel {
+    display: none;
+    flex-direction: column;
+    width: min(92vw, 560px);
+    max-height: 82vh;
+    overflow-y: auto;
+    position: relative;
+    background: var(--panel-bg);
+    border: 1px solid var(--gold-dim);
+    border-radius: 18px;
+    padding: 34px 30px 28px;
+    color: var(--ink);
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.08),
+      0 0 60px rgba(212, 175, 55, 0.22),
+      0 20px 60px rgba(0, 0, 0, 0.6);
+    transform: scale(0.92) translateY(14px);
+    opacity: 0;
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+  }
+  .panel.panel-active { display: flex; }
+  #panel-overlay.visible .panel.panel-active {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+
+  .panel-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    border-radius: 50%;
+    color: var(--ink-dim);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .panel-close:hover {
+    color: var(--gold-bright);
+    border-color: var(--gold);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.35);
+  }
+
+  .panel-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .panel-title {
+    font-size: 22px;
+    letter-spacing: 0.03em;
+    color: var(--gold-bright);
+    margin-bottom: 18px;
+    font-weight: 600;
+  }
+  .placeholder-flag {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #1a1406;
+    background: var(--gold);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+  }
+
+  /* Panel 1 — Agents grid */
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px 10px;
+  }
+  .agent-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .agent-hex {
+    width: 58px;
+    height: 58px;
+    filter: drop-shadow(0 0 6px var(--hexglow, transparent));
+  }
+  .agent-name {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  /* Panel 2 — Pricing */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .price-card {
+    border: 1px solid var(--gold-dim);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: rgba(212, 175, 55, 0.04);
+  }
+  .price-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .price-tier-name {
+    color: var(--gold-bright);
+    font-size: 15px;
+    letter-spacing: 0.04em;
+  }
+  .price-tier-cost {
+    color: var(--ink);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .price-todo {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .price-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .price-features li {
+    font-size: 13px;
+    color: var(--ink-dim);
+    padding-left: 14px;
+    position: relative;
+  }
+  .price-features li::before {
+    content: "\2022";
+    color: var(--gold);
+    position: absolute;
+    left: 0;
+  }
+
+  /* Panel 3 — Philosophy */
+  .philosophy-quote {
+    font-size: 19px;
+    line-height: 1.6;
+    font-style: italic;
+    color: var(--ink);
+    text-align: center;
+    padding: 10px 4px 4px;
+  }
+
+  /* Panel 4 — What We Do */
+  .whatwedo-copy {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  /* Panel 5 — Join */
+  .join-copy {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+    margin-bottom: 20px;
+  }
+  .join-btn {
+    display: inline-block;
+    text-align: center;
+    background: var(--gold);
+    color: #1a1406;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    box-shadow: 0 0 24px rgba(212, 175, 55, 0.35);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .join-btn:hover {
+    box-shadow: 0 0 34px rgba(212, 175, 55, 0.55);
+    transform: translateY(-1px);
+  }
+  .join-note {
+    display: block;
+    margin-top: 10px;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    color: var(--ink-dim);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #panel-overlay,
+    .panel {
+      transition: none !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .agents-grid { grid-template-columns: repeat(3, 1fr); }
+  }
 </style>
 </head>
 <body>
@@ -125,6 +414,146 @@
 </div>
 
 <div id="debug-hud"></div>
+
+<nav id="site-nav">
+  <button class="nav-btn" type="button" data-panel="agents">Agents</button>
+  <button class="nav-btn" type="button" data-panel="pricing">Pricing</button>
+  <button class="nav-btn" type="button" data-panel="philosophy">Philosophy</button>
+  <button class="nav-btn" type="button" data-panel="whatwedo">What We Do</button>
+  <button class="nav-btn" type="button" data-panel="join">Join</button>
+</nav>
+
+<div id="panel-overlay">
+
+  <div class="panel" id="panel-agents" role="dialog" aria-label="Agents">
+    <button class="panel-close" type="button" data-close>&times;</button>
+    <div class="panel-eyebrow">The Trading Floor</div>
+    <div class="panel-title">Pillars of Judgment</div>
+    <div class="placeholder-flag">Colors provisional — pending final brand palette</div>
+    <div class="agents-grid">
+      <!-- Agent hex icons: two-letter monogram + provisional brand color -->
+      <div class="agent-cell" style="--hexglow:#3ddc84">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(61,220,132,0.12)" stroke="#3ddc84" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#3ddc84" font-family="inherit">RA</text></svg>
+        <div class="agent-name">Rally</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#ff4d4d">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(255,77,77,0.12)" stroke="#ff4d4d" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#ff4d4d" font-family="inherit">CR</text></svg>
+        <div class="agent-name">Crash</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#4da6ff">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(77,166,255,0.12)" stroke="#4da6ff" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#4da6ff" font-family="inherit">VE</text></svg>
+        <div class="agent-name">Vector</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#ffa53d">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(255,165,61,0.12)" stroke="#ffa53d" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#ffa53d" font-family="inherit">TE</text></svg>
+        <div class="agent-name">Tempo</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#b3312c">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(179,49,44,0.12)" stroke="#b3312c" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#b3312c" font-family="inherit">HU</text></svg>
+        <div class="agent-name">Hunt</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#d9d9d9">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(217,217,217,0.12)" stroke="#d9d9d9" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#d9d9d9" font-family="inherit">SN</text></svg>
+        <div class="agent-name">Sniper</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#d4af37">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(212,175,55,0.12)" stroke="#d4af37" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#d4af37" font-family="inherit">MA</text></svg>
+        <div class="agent-name">Macro</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#2ec4b6">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(46,196,182,0.12)" stroke="#2ec4b6" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#2ec4b6" font-family="inherit">HE</text></svg>
+        <div class="agent-name">Hedge</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#3ddbd9">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(61,219,217,0.12)" stroke="#3ddbd9" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#3ddbd9" font-family="inherit">FL</text></svg>
+        <div class="agent-name">Flow</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#ff6ec7">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(255,110,199,0.12)" stroke="#ff6ec7" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#ff6ec7" font-family="inherit">SE</text></svg>
+        <div class="agent-name">Sentiment</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#9b5de5">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(155,93,229,0.12)" stroke="#9b5de5" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#9b5de5" font-family="inherit">OR</text></svg>
+        <div class="agent-name">Oracle</div>
+      </div>
+      <div class="agent-cell" style="--hexglow:#6a5acd">
+        <svg class="agent-hex" viewBox="0 0 100 100"><polygon points="50,3 95,25 95,75 50,97 5,75 5,25" fill="rgba(106,90,205,0.12)" stroke="#6a5acd" stroke-width="3"/><text x="50" y="60" text-anchor="middle" font-size="30" fill="#6a5acd" font-family="inherit">SH</text></svg>
+        <div class="agent-name">Shrink</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-pricing" role="dialog" aria-label="Pricing">
+    <button class="panel-close" type="button" data-close>&times;</button>
+    <div class="panel-eyebrow">Membership</div>
+    <div class="panel-title">Pricing</div>
+    <div class="placeholder-flag">Placeholder pricing &amp; features — not final</div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-card-head">
+          <span class="price-tier-name">Initiate</span>
+          <span class="price-tier-cost">$49/mo</span>
+        </div>
+        <div class="price-todo">[TODO: real feature list]</div>
+        <ul class="price-features">
+          <li>Feature 1</li>
+          <li>Feature 2</li>
+          <li>Feature 3</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <div class="price-card-head">
+          <span class="price-tier-name">Council Member</span>
+          <span class="price-tier-cost">$149/mo</span>
+        </div>
+        <div class="price-todo">[TODO: real feature list]</div>
+        <ul class="price-features">
+          <li>Feature 1</li>
+          <li>Feature 2</li>
+          <li>Feature 3</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <div class="price-card-head">
+          <span class="price-tier-name">Council Elite</span>
+          <span class="price-tier-cost">$299/mo</span>
+        </div>
+        <div class="price-todo">[TODO: real feature list]</div>
+        <ul class="price-features">
+          <li>Feature 1</li>
+          <li>Feature 2</li>
+          <li>Feature 3</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-philosophy" role="dialog" aria-label="Philosophy">
+    <button class="panel-close" type="button" data-close>&times;</button>
+    <div class="panel-eyebrow">The Trading Floor</div>
+    <div class="panel-title">Philosophy</div>
+    <div class="placeholder-flag">Placeholder copy — will be replaced</div>
+    <p class="philosophy-quote">&ldquo;Discipline over emotion. Knowledge over noise. Patience over impulse.&rdquo;</p>
+  </div>
+
+  <div class="panel" id="panel-whatwedo" role="dialog" aria-label="What We Do">
+    <button class="panel-close" type="button" data-close>&times;</button>
+    <div class="panel-eyebrow">The Trading Floor</div>
+    <div class="panel-title">What We Do</div>
+    <div class="placeholder-flag">Placeholder copy — will be replaced</div>
+    <p class="whatwedo-copy">We are an elite network of traders, analysts, and strategists&hellip;</p>
+  </div>
+
+  <div class="panel" id="panel-join" role="dialog" aria-label="Join">
+    <button class="panel-close" type="button" data-close>&times;</button>
+    <div class="panel-eyebrow">The Trading Floor</div>
+    <div class="panel-title">Join the Council</div>
+    <p class="join-copy">Request access and take your seat at the table.</p>
+    <a class="join-btn" href="#" data-join-placeholder>Enter Discord</a>
+    <span class="join-note">Placeholder link — real Discord invite goes here.</span>
+  </div>
+
+</div>
 
 <script>
 (function () {
@@ -249,6 +678,7 @@
       window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
     }
+    siteNav.style.display = "flex";
   }
 
   window.addEventListener("resize", function () {
@@ -271,6 +701,94 @@
   }
 
   preload();
+
+  // ---------- Nav + click-to-open panels ----------
+  // Not tied to scroll in any way: nav buttons are the only trigger.
+
+  var siteNav = document.getElementById("site-nav");
+  var overlay = document.getElementById("panel-overlay");
+  var navButtons = Array.prototype.slice.call(document.querySelectorAll(".nav-btn"));
+  var panelEls = {};
+  navButtons.forEach(function (btn) {
+    var key = btn.getAttribute("data-panel");
+    panelEls[key] = document.getElementById("panel-" + key);
+  });
+
+  var openKey = null;
+  var closeTimer = null;
+
+  function setNavActive(key) {
+    navButtons.forEach(function (btn) {
+      btn.classList.toggle("nav-btn-active", btn.getAttribute("data-panel") === key);
+    });
+  }
+
+  function openPanel(key) {
+    if (!panelEls[key]) return;
+    clearTimeout(closeTimer);
+    Object.keys(panelEls).forEach(function (k) {
+      panelEls[k].classList.toggle("panel-active", k === key);
+    });
+    overlay.style.display = "flex";
+    setNavActive(key);
+    openKey = key;
+    if (reduceMotion) {
+      overlay.classList.add("visible");
+    } else {
+      // force reflow so the fade/scale-in transition actually runs
+      void overlay.offsetWidth;
+      overlay.classList.add("visible");
+    }
+  }
+
+  function closePanel() {
+    if (!openKey) return;
+    overlay.classList.remove("visible");
+    setNavActive(null);
+    openKey = null;
+    if (reduceMotion) {
+      overlay.style.display = "none";
+    } else {
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(function () {
+        overlay.style.display = "none";
+      }, 320);
+    }
+  }
+
+  navButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var key = btn.getAttribute("data-panel");
+      if (openKey === key) {
+        closePanel();
+      } else {
+        openPanel(key);
+      }
+    });
+  });
+
+  // Close via the X button inside any panel
+  overlay.querySelectorAll("[data-close]").forEach(function (btn) {
+    btn.addEventListener("click", closePanel);
+  });
+
+  // Close by clicking the dimmed backdrop (not the panel itself)
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closePanel();
+  });
+
+  // Close on Escape
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closePanel();
+  });
+
+  // Placeholder Discord link: swallow the click, this isn't wired to a real invite yet
+  var joinBtn = document.querySelector("[data-join-placeholder]");
+  if (joinBtn) {
+    joinBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+    });
+  }
 })();
 </script>
 
