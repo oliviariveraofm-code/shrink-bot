@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll-Scrub Frame Animation — Technical Proof</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: #000;
+    color: #eee;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  /* The scrollable "track" the scrub section plays across.
+     Height controls how much scroll distance maps to the 15s sequence. */
+  #scrub-track {
+    position: relative;
+    height: 600vh;
+  }
+
+  #scrub-stage {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #scrub-canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* Loading indicator, shown until every frame is preloaded */
+  #preloader {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 20;
+    transition: opacity 0.4s ease;
+  }
+  #preloader.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #preloader-bar-track {
+    width: 240px;
+    height: 3px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #preloader-bar {
+    height: 100%;
+    width: 0%;
+    background: #fff;
+    transition: width 0.1s linear;
+  }
+  #preloader-label {
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    color: #999;
+    text-transform: uppercase;
+  }
+
+  /* Simple filler content before/after so the sticky section has scroll
+     context, matching how this would sit inside a real page. */
+  .filler {
+    height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  #debug-hud {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 30;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #9f9;
+    background: rgba(0,0,0,0.55);
+    padding: 8px 12px;
+    border-radius: 6px;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #scrub-track { height: auto; }
+    #scrub-stage { position: relative; height: 100vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="filler">scroll down to begin</div>
+
+<div id="scrub-track">
+  <div id="scrub-stage">
+    <canvas id="scrub-canvas"></canvas>
+  </div>
+</div>
+
+<div class="filler">end of sequence — page continues normally from here</div>
+
+<div id="preloader">
+  <div id="preloader-bar-track"><div id="preloader-bar"></div></div>
+  <div id="preloader-label">Loading sequence — <span id="preloader-count">0 / 0</span></div>
+</div>
+
+<div id="debug-hud"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var FRAME_COUNT = 226;
+  var FRAME_PATH = function (i) {
+    return "frames/frame-" + String(i).padStart(4, "0") + ".webp";
+  };
+  // Final portion of scroll progress that holds on the last frame
+  // instead of continuing to advance, so the close-up doesn't feel cut off.
+  var HOLD_FRACTION = 0.10;
+
+  var canvas = document.getElementById("scrub-canvas");
+  var ctx = canvas.getContext("2d");
+  var track = document.getElementById("scrub-track");
+  var preloader = document.getElementById("preloader");
+  var preloaderBar = document.getElementById("preloader-bar");
+  var preloaderCount = document.getElementById("preloader-count");
+  var hud = document.getElementById("debug-hud");
+
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var images = new Array(FRAME_COUNT);
+  var loadedCount = 0;
+  var currentFrame = -1; // force first draw
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resizeCanvas() {
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+  }
+
+  function drawFrame(index) {
+    var img = images[index];
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+
+    var cw = canvas.width, ch = canvas.height;
+    var iw = img.naturalWidth, ih = img.naturalHeight;
+
+    // cover-fit: fill viewport, crop overflow, preserve aspect ratio
+    var scale = Math.max(cw / iw, ch / ih);
+    var dw = iw * scale, dh = ih * scale;
+    var dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function renderFrameForIndex(index) {
+    index = Math.max(0, Math.min(FRAME_COUNT - 1, index));
+    if (index === currentFrame) return;
+    currentFrame = index;
+    drawFrame(index);
+    hud.textContent = "frame " + (index + 1) + " / " + FRAME_COUNT;
+  }
+
+  function scrollProgress() {
+    var rect = track.getBoundingClientRect();
+    var trackHeight = track.offsetHeight - window.innerHeight;
+    if (trackHeight <= 0) return 1;
+    var scrolled = -rect.top;
+    var p = scrolled / trackHeight;
+    return Math.max(0, Math.min(1, p));
+  }
+
+  // Map [0,1] scroll progress to a frame index, holding the final frame
+  // flat across the last HOLD_FRACTION of scroll so the close-up settles
+  // instead of appearing to cut off.
+  function progressToFrame(p) {
+    var playFraction = 1 - HOLD_FRACTION;
+    if (p >= playFraction) return FRAME_COUNT - 1;
+    var playP = p / playFraction;
+    return Math.round(playP * (FRAME_COUNT - 1));
+  }
+
+  var ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      var p = scrollProgress();
+      renderFrameForIndex(progressToFrame(p));
+      ticking = false;
+    });
+  }
+
+  function markLoaded() {
+    loadedCount++;
+    var pct = Math.round((loadedCount / FRAME_COUNT) * 100);
+    preloaderBar.style.width = pct + "%";
+    preloaderCount.textContent = loadedCount + " / " + FRAME_COUNT;
+    if (loadedCount === FRAME_COUNT) onAllLoaded();
+  }
+
+  function preload() {
+    for (var i = 0; i < FRAME_COUNT; i++) {
+      (function (idx) {
+        var img = new Image();
+        img.src = FRAME_PATH(idx + 1);
+        images[idx] = img;
+        // decode() fully rasterizes the image off the render path so the
+        // scroll-triggered drawImage() call never has to decode on demand,
+        // which is what causes jank/dropped frames on first paint of a frame.
+        if (img.decode) {
+          img.decode().then(markLoaded).catch(markLoaded);
+        } else {
+          img.onload = img.onerror = markLoaded;
+        }
+      })(i);
+    }
+  }
+
+  function onAllLoaded() {
+    preloader.classList.add("hidden");
+    if (reduceMotion) {
+      renderFrameForIndex(FRAME_COUNT - 1);
+    } else {
+      renderFrameForIndex(0);
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+    }
+  }
+
+  window.addEventListener("resize", function () {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    resizeCanvas();
+    var idx = currentFrame;
+    currentFrame = -1;
+    renderFrameForIndex(idx < 0 ? 0 : idx);
+  });
+
+  resizeCanvas();
+
+  if (reduceMotion) {
+    // No scrub behavior at all: static final frame, normal page flow.
+    track.style.height = "auto";
+    var stage = document.getElementById("scrub-stage");
+    stage.style.position = "relative";
+    stage.style.height = "100vh";
+    hud.style.display = "none";
+  }
+
+  preload();
+})();
+</script>
+
+</body>
+</html>
