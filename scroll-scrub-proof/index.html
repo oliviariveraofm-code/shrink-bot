@@ -117,12 +117,17 @@
     --ink-dim: #a99a72;
   }
 
+  /* The hologram nav: not shown on load, not shown throughout the scroll —
+     only materializes once scroll reaches the hold zone at the very end of
+     the sequence, i.e. once you're face-to-face with Shrink at the desk.
+     Scrolling back out of that zone dematerializes it again. It stays in
+     the DOM at all times (position: fixed takes it out of layout flow) and
+     visibility is purely opacity/transform/pointer-events driven, so the
+     reveal can be an animation rather than a display:none flip. */
   #site-nav {
-    display: none; /* shown once the scene has finished loading */
     position: fixed;
-    top: 22px;
     left: 50%;
-    transform: translateX(-50%);
+    bottom: 7vh;
     z-index: 45; /* above #panel-overlay (40) so nav stays clickable while a panel is open */
     gap: 4px;
     padding: 8px;
@@ -135,6 +140,34 @@
     flex-wrap: wrap;
     max-width: 94vw;
     justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 14px) scale(0.88);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Soft radial glow behind the pill, like the nav is being projected
+     from a source rather than just a UI bar sitting on top of the scene. */
+  #site-nav::before {
+    content: "";
+    position: absolute;
+    inset: -50px -30px;
+    z-index: -1;
+    background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.22), transparent 70%);
+    pointer-events: none;
+  }
+  #site-nav.hologram-visible {
+    opacity: 1;
+    pointer-events: auto;
+    animation: hologram-materialize 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  @keyframes hologram-materialize {
+    0%   { opacity: 0;    transform: translate(-50%, 16px) scale(0.86); }
+    10%  { opacity: 0.5;  transform: translate(-50%, 10px) scale(0.92); }
+    22%  { opacity: 0.1;  transform: translate(-50%, 10px) scale(0.92); }
+    38%  { opacity: 0.8;  transform: translate(-50%, 4px)  scale(0.98); }
+    50%  { opacity: 0.4;  transform: translate(-50%, 4px)  scale(0.98); }
+    70%  { opacity: 1;    transform: translate(-50%, 0)    scale(1.015); }
+    100% { opacity: 1;    transform: translate(-50%, 0)    scale(1); }
   }
 
   .nav-btn {
@@ -389,6 +422,13 @@
     .panel {
       transition: none !important;
     }
+    #site-nav {
+      transition: none !important;
+      animation: none !important;
+    }
+    #site-nav.hologram-visible {
+      transform: translate(-50%, 0) scale(1);
+    }
   }
 
   @media (max-width: 480px) {
@@ -632,6 +672,10 @@
     return Math.round(playP * (FRAME_COUNT - 1));
   }
 
+  // The hold zone is also "you're now face-to-face with Shrink at the
+  // desk" — that's the moment the hologram nav should appear, not before.
+  var HOLOGRAM_THRESHOLD = 1 - HOLD_FRACTION;
+
   var ticking = false;
   function onScroll() {
     if (ticking) return;
@@ -639,6 +683,7 @@
     requestAnimationFrame(function () {
       var p = scrollProgress();
       renderFrameForIndex(progressToFrame(p));
+      setNavRevealed(p >= HOLOGRAM_THRESHOLD);
       ticking = false;
     });
   }
@@ -672,13 +717,16 @@
   function onAllLoaded() {
     preloader.classList.add("hidden");
     if (reduceMotion) {
+      // No scroll track at all in this mode, so there's no "reaching the
+      // end" to wait for — you're already looking at Shrink from the
+      // first paint, so the hologram is just there from the start.
       renderFrameForIndex(FRAME_COUNT - 1);
+      setNavRevealed(true);
     } else {
       renderFrameForIndex(0);
       window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
     }
-    siteNav.style.display = "flex";
   }
 
   window.addEventListener("resize", function () {
@@ -702,8 +750,10 @@
 
   preload();
 
-  // ---------- Nav + click-to-open panels ----------
-  // Not tied to scroll in any way: nav buttons are the only trigger.
+  // ---------- Hologram nav reveal + click-to-open panels ----------
+  // The nav itself only materializes once scrollProgress reaches the hold
+  // zone (see onScroll above) — opening/closing individual panels below is
+  // still strictly click-only, never triggered by scroll position.
 
   var siteNav = document.getElementById("site-nav");
   var overlay = document.getElementById("panel-overlay");
@@ -716,6 +766,22 @@
 
   var openKey = null;
   var closeTimer = null;
+  var navRevealed = false;
+
+  function setNavRevealed(revealed) {
+    if (revealed === navRevealed) return;
+    navRevealed = revealed;
+    if (revealed) {
+      // restart the materialize animation cleanly even if it fired before
+      siteNav.classList.remove("hologram-visible");
+      void siteNav.offsetWidth; // force reflow so the animation replays
+      siteNav.classList.add("hologram-visible");
+    } else {
+      siteNav.classList.remove("hologram-visible");
+      // The hologram is gone, so anything it was projecting should go too.
+      closePanel();
+    }
+  }
 
   function setNavActive(key) {
     navButtons.forEach(function (btn) {
